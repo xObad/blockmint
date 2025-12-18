@@ -161,26 +161,25 @@ export function Dashboard({
           whileTap={{ scale: 0.98 }}
           data-testid="card-invite-friend"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-black" />
-          <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-950" />
+          <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
             <defs>
-              <linearGradient id="mountainGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#64748b" stopOpacity="0.6"/>
-                <stop offset="100%" stopColor="#334155" stopOpacity="0.3"/>
-              </linearGradient>
+              <radialGradient id="grad1" cx="30%" cy="30%">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4"/>
+                <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
+              </radialGradient>
+              <radialGradient id="grad2" cx="70%" cy="70%">
+                <stop offset="0%" stopColor="#1e40af" stopOpacity="0.3"/>
+                <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
+              </radialGradient>
             </defs>
-            <path d="M0,150 L0,80 Q50,40 100,70 T200,50 T300,80 T400,60 L400,150 Z" fill="url(#mountainGrad1)"/>
-            <path d="M0,150 L0,100 Q80,70 150,90 T280,75 T400,95 L400,150 Z" fill="#475569" fillOpacity="0.4"/>
+            <circle cx="80" cy="40" r="120" fill="url(#grad1)"/>
+            <circle cx="320" cy="160" r="100" fill="url(#grad2)"/>
+            <path d="M0,120 Q100,80 200,100 T400,120 L400,200 L0,200 Z" fill="#3b82f6" fillOpacity="0.08"/>
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <motion.img 
-              src={serverMining}
-              alt="Invite"
-              className="w-12 h-12 object-contain"
-              whileHover={{ scale: 1.1 }}
-            />
-            <p className="text-sm font-medium text-foreground text-center px-4 leading-tight max-w-xs">
-              Invite A Friend, Both Receive <span className="text-primary font-bold">$20 In BTC</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-lg font-semibold text-foreground text-center px-4 leading-snug">
+              Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$20 In BTC</span>
             </p>
           </div>
         </motion.div>
@@ -190,25 +189,24 @@ export function Dashboard({
           whileTap={{ scale: 0.98 }}
           data-testid="card-rate-app"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-black" />
-          <svg className="absolute inset-0 w-full h-full opacity-35" viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/60 via-slate-900/80 to-slate-950" />
+          <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
             <defs>
-              <linearGradient id="mountainGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#78716c" stopOpacity="0.5"/>
-                <stop offset="100%" stopColor="#44403c" stopOpacity="0.3"/>
-              </linearGradient>
+              <radialGradient id="grad3" cx="20%" cy="20%">
+                <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4"/>
+                <stop offset="100%" stopColor="#92400e" stopOpacity="0"/>
+              </radialGradient>
+              <radialGradient id="grad4" cx="80%" cy="80%">
+                <stop offset="0%" stopColor="#d97706" stopOpacity="0.3"/>
+                <stop offset="100%" stopColor="#78350f" stopOpacity="0"/>
+              </radialGradient>
             </defs>
-            <path d="M0,150 L0,70 Q60,30 120,60 T240,45 T360,70 T400,55 L400,150 Z" fill="url(#mountainGrad2)"/>
-            <path d="M0,150 L0,95 Q100,65 180,85 T320,70 T400,90 L400,150 Z" fill="#57534e" fillOpacity="0.35"/>
+            <circle cx="100" cy="50" r="110" fill="url(#grad3)"/>
+            <circle cx="300" cy="150" r="90" fill="url(#grad4)"/>
+            <path d="M0,130 Q100,90 200,110 T400,130 L400,200 L0,200 Z" fill="#f59e0b" fillOpacity="0.08"/>
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <motion.img 
-              src={gpuMining}
-              alt="Rate"
-              className="w-12 h-12 object-contain"
-              whileHover={{ scale: 1.1 }}
-            />
-            <p className="text-sm font-medium text-foreground text-center px-4 leading-tight max-w-xs">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-lg font-semibold text-foreground text-center px-4 leading-snug">
               Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
             </p>
           </div>
