@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star } from "lucide-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
@@ -154,7 +154,7 @@ export function Dashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex flex-col gap-3"
+        className="grid grid-cols-2 gap-3"
       >
         <motion.div
           className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate h-40"
@@ -177,8 +177,9 @@ export function Dashboard({
             <circle cx="320" cy="160" r="100" fill="url(#grad2)"/>
             <path d="M0,120 Q100,80 200,100 T400,120 L400,200 L0,200 Z" fill="#3b82f6" fillOpacity="0.08"/>
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-lg font-semibold text-foreground text-center px-4 leading-snug">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <Users className="w-8 h-8 text-blue-300" />
+            <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
               Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$20 In BTC</span>
             </p>
           </div>
@@ -205,8 +206,9 @@ export function Dashboard({
             <circle cx="300" cy="150" r="90" fill="url(#grad4)"/>
             <path d="M0,130 Q100,90 200,110 T400,130 L400,200 L0,200 Z" fill="#f59e0b" fillOpacity="0.08"/>
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-lg font-semibold text-foreground text-center px-4 leading-snug">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <Star className="w-8 h-8 text-amber-300 fill-amber-300" />
+            <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
               Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
             </p>
           </div>
