@@ -1,0 +1,20 @@
+The app will be for mining btc and ltc
+I will attach some images that can works with bitcoin offers and another designs for the litecoin offers
+the deffirence is the design
+Also, make sure to make the lowest icons (home, mining, invest, etc the bottom navigation bar) with a rounded corners background like liquid glass design, it's better to use the liquid glass design language for all the app, and make sure the Wallet page with functional buttons for deposit and withdraw btc, ltc, usdt, usdc with all it's networks supported
+Make sure to use the font called "Space Grotesk" and fonts like this style it's free in google fonts
+Also make sure to integrate the devices options with the images i attached like how the user see the package and choose his best one, the packages is 6 months 12 months 36 months and it will shows the hashrate power for 3 devices with a navigation for the user to choose the timeframe 6months or 12 or 36 with a badge called "Best" for the 36 months package, the devices should be in the same line but looks like a slider, 2 is visible and the 3d is swipable
+the devices should appear in the home screen
+I prefer if you can add the iOS ui standarts like the dynamic island and battery, wifi, clock, and even the bottom line for closing the app
+Please make sure that make a navigations for the devices packages, like 3 devices for mining bitcoin and 3 for mining litecoin
+each coin will offer 3 packages, each package for each timeframe or expiring date
+Also, if you can add an page for Solo Mining with a great design and modern ideas it would be great
+If you added this, replace it with settings
+and make the settings options for the icon in the top of the page
+Make sure to stick with latest ios design standards like the places of the texts in the top and the places and also liquid glass design with bright colors but it will still with dark style and also BEAUTIFUL LOOK ANIMATIONS
+Also
+I prefer to add the packages also in the mining page so the new users can but from it, with something like customized slider for the user to choose the hashrate manually and calculate it based on the bitcoin or litecoin price at the last day in the contract and also how much months
+Like. example 50TH/s (slider can reduce or increase) Profits will be $6000 (the profit will be the last line with uncustomizable option
+And after the Hashrate line, months line, and predicted coin price that will make the profits more higher if the user predicts higher price, just like cloud mining calculator, but in the end we will add a button if the user want to get this customized miner
+
+Go ahead for now please and take your time

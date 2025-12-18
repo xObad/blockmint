@@ -6,7 +6,8 @@ interface GlassCardProps {
   className?: string;
   animate?: boolean;
   delay?: number;
-  glow?: boolean;
+  glow?: "btc" | "ltc" | "none";
+  variant?: "default" | "strong" | "subtle";
 }
 
 export function GlassCard({ 
@@ -14,20 +15,25 @@ export function GlassCard({
   className, 
   animate = true, 
   delay = 0,
-  glow = false 
+  glow = "none",
+  variant = "default"
 }: GlassCardProps) {
+  const glowClass = glow === "btc" ? "glass-glow-btc" : glow === "ltc" ? "glass-glow-ltc" : "";
+  const variantClass = variant === "strong" ? "liquid-glass-strong" : variant === "subtle" ? "liquid-glass-subtle" : "";
+  
   const content = (
     <div
       className={cn(
-        "relative rounded-2xl p-6",
-        "bg-gradient-to-br from-white/[0.08] to-white/[0.02]",
-        "backdrop-blur-xl",
-        "border border-white/[0.08]",
-        glow && "shadow-[0_0_30px_rgba(139,92,246,0.15)]",
+        "relative rounded-2xl p-6 overflow-hidden",
+        "liquid-glass",
+        variantClass,
+        glowClass,
         className
       )}
     >
-      {children}
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
 
@@ -35,10 +41,10 @@ export function GlassCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ 
-        duration: 0.4, 
+        duration: 0.5, 
         delay, 
         ease: [0.25, 0.46, 0.45, 0.94] 
       }}
@@ -46,4 +52,8 @@ export function GlassCard({
       {content}
     </motion.div>
   );
+}
+
+export function LiquidGlassCard(props: GlassCardProps) {
+  return <GlassCard {...props} />;
 }
