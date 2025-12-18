@@ -8,6 +8,7 @@ import { AnimatePresence } from "framer-motion";
 import { BottomNav, type TabType } from "@/components/BottomNav";
 import { Dashboard } from "@/pages/Dashboard";
 import { Wallet } from "@/pages/Wallet";
+import { Invest } from "@/pages/Invest";
 import { Mining } from "@/pages/Mining";
 import { Settings } from "@/pages/Settings";
 import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton";
@@ -47,10 +48,10 @@ function MobileApp() {
             ) : (
               <Dashboard
                 key="dashboard"
-                miningStats={miningStats}
-                chartData={chartData}
-                onToggleMining={toggleMining}
-                isPending={isPending}
+                balances={balances}
+                totalBalance={totalBalance}
+                change24h={change24h}
+                transactions={transactions}
               />
             )
           )}
@@ -66,6 +67,9 @@ function MobileApp() {
                 change24h={change24h}
               />
             )
+          )}
+          {activeTab === "invest" && (
+            <Invest key="invest" />
           )}
           {activeTab === "mining" && (
             <Mining
