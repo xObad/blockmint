@@ -74,11 +74,8 @@ function MobileApp() {
           {activeTab === "mining" && (
             <Mining
               key="mining"
-              pools={pools}
-              settings={settings}
               chartData={chartData}
-              onPoolSelect={selectPool}
-              onSettingsChange={updateSettings}
+              onNavigateToInvest={() => setActiveTab("invest")}
             />
           )}
           {activeTab === "settings" && (

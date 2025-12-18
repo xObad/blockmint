@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { 
-  User, Shield, Bell, Moon, HelpCircle, 
-  LogOut, ChevronRight, Award 
+  User, Shield, Bell, Key, Fingerprint, Clock, 
+  DollarSign, Globe, ChevronRight, Award, Info,
+  FileText, Mail, Zap, Activity
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { UserSettings } from "@/lib/types";
 
@@ -21,9 +24,10 @@ interface SettingItemProps {
   onClick?: () => void;
   action?: React.ReactNode;
   danger?: boolean;
+  testId?: string;
 }
 
-function SettingItem({ icon: Icon, label, description, onClick, action, danger }: SettingItemProps) {
+function SettingItem({ icon: Icon, label, description, onClick, action, danger, testId }: SettingItemProps) {
   const content = (
     <div className={cn(
       "flex items-center gap-4 py-3",
@@ -57,14 +61,14 @@ function SettingItem({ icon: Icon, label, description, onClick, action, danger }
       <button
         className="w-full text-left hover-elevate rounded-lg"
         onClick={onClick}
-        data-testid={`setting-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        data-testid={testId || `setting-${label.toLowerCase().replace(/\s+/g, '-')}`}
       >
         {content}
       </button>
     );
   }
 
-  return content;
+  return <div data-testid={testId || `setting-${label.toLowerCase().replace(/\s+/g, '-')}`}>{content}</div>;
 }
 
 export function Settings({ settings, onSettingsChange }: SettingsProps) {
@@ -92,28 +96,28 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             <span className="text-2xl font-bold text-white">JD</span>
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-foreground">John Doe</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-semibold text-foreground" data-testid="text-user-name">John Doe</h2>
               <Badge variant="secondary" className="bg-primary/20 text-primary border-0">
                 <Award className="w-3 h-3 mr-1" />
                 Pro
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">Mining since Dec 2024</p>
+            <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-mining-since">Mining since Dec 2024</p>
           </div>
         </div>
 
-        <div className="relative z-10 flex gap-6 mt-6 pt-4 border-t border-white/[0.06]">
+        <div className="relative z-10 flex gap-6 mt-6 pt-4 border-t border-white/[0.06] flex-wrap">
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground">142</p>
+            <p className="text-xl font-bold text-foreground" data-testid="text-days-active">142</p>
             <p className="text-xs text-muted-foreground">Days Active</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground">0.85</p>
+            <p className="text-xl font-bold text-foreground" data-testid="text-btc-mined">0.85</p>
             <p className="text-xs text-muted-foreground">BTC Mined</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground">#247</p>
+            <p className="text-xl font-bold text-foreground" data-testid="text-global-rank">#247</p>
             <p className="text-xs text-muted-foreground">Global Rank</p>
           </div>
         </div>
@@ -127,12 +131,29 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             label="Profile"
             description="Edit your personal info"
             onClick={() => {}}
+            testId="button-profile"
+          />
+          <SettingItem
+            icon={Key}
+            label="Change Password"
+            description="Update your account password"
+            onClick={() => {}}
+            testId="button-change-password"
           />
           <SettingItem
             icon={Shield}
-            label="Security"
-            description="Password, 2FA, backup"
-            onClick={() => {}}
+            label="Two-Factor Authentication"
+            description="Add extra security to your account"
+            testId="setting-two-factor"
+            action={
+              <Switch
+                data-testid="switch-two-factor"
+                checked={settings.twoFactorEnabled}
+                onCheckedChange={(checked) => 
+                  onSettingsChange({ twoFactorEnabled: checked })
+                }
+              />
+            }
           />
         </GlassCard>
       </div>
@@ -143,7 +164,8 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
           <SettingItem
             icon={Bell}
             label="Notifications"
-            description="Mining alerts, payouts"
+            description="Mining alerts and payouts"
+            testId="setting-notifications"
             action={
               <Switch
                 data-testid="switch-notifications"
@@ -155,38 +177,172 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             }
           />
           <SettingItem
-            icon={Moon}
-            label="Dark Mode"
-            description="Always enabled"
+            icon={Zap}
+            label="Low Power Mode"
+            description="Optimize battery usage"
+            testId="setting-power-saver"
             action={
               <Switch
-                data-testid="switch-dark-mode"
-                checked={true}
-                disabled
+                data-testid="switch-power-saver"
+                checked={settings.powerSaver}
+                onCheckedChange={(checked) => 
+                  onSettingsChange({ powerSaver: checked })
+                }
               />
             }
           />
+          <div className="py-3 border-b border-white/[0.04]" data-testid="setting-mining-intensity">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Mining Intensity</p>
+                <p className="text-sm text-muted-foreground">Hashpower visualization level</p>
+              </div>
+              <span className="text-sm font-medium text-foreground" data-testid="text-intensity-value">{settings.miningIntensity}%</span>
+            </div>
+            <Slider
+              data-testid="slider-mining-intensity"
+              value={[settings.miningIntensity]}
+              onValueChange={(value) => onSettingsChange({ miningIntensity: value[0] })}
+              min={0}
+              max={100}
+              step={5}
+              className="ml-14"
+            />
+          </div>
+          <div className="py-3 border-b border-white/[0.04]" data-testid="setting-currency">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Currency Display</p>
+                <p className="text-sm text-muted-foreground">Preferred currency</p>
+              </div>
+              <Select 
+                value={settings.currency} 
+                onValueChange={(value: 'USD' | 'EUR' | 'GBP') => onSettingsChange({ currency: value })}
+              >
+                <SelectTrigger className="w-24" data-testid="select-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD" data-testid="option-currency-usd">USD</SelectItem>
+                  <SelectItem value="EUR" data-testid="option-currency-eur">EUR</SelectItem>
+                  <SelectItem value="GBP" data-testid="option-currency-gbp">GBP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="py-3" data-testid="setting-language">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Language</p>
+                <p className="text-sm text-muted-foreground">App language</p>
+              </div>
+              <Select 
+                value={settings.language} 
+                onValueChange={(value) => onSettingsChange({ language: value })}
+              >
+                <SelectTrigger className="w-28" data-testid="select-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English" data-testid="option-language-english">English</SelectItem>
+                  <SelectItem value="Spanish" data-testid="option-language-spanish">Spanish</SelectItem>
+                  <SelectItem value="French" data-testid="option-language-french">French</SelectItem>
+                  <SelectItem value="German" data-testid="option-language-german">German</SelectItem>
+                  <SelectItem value="Chinese" data-testid="option-language-chinese">Chinese</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </GlassCard>
       </div>
 
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">SUPPORT</h2>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">SECURITY</h2>
         <GlassCard delay={0.25} className="p-4">
           <SettingItem
-            icon={HelpCircle}
-            label="Help Center"
-            onClick={() => {}}
+            icon={Fingerprint}
+            label="Biometric Login"
+            description="Use fingerprint or Face ID"
+            testId="setting-biometric"
+            action={
+              <Switch
+                data-testid="switch-biometric"
+                checked={settings.biometricEnabled}
+                onCheckedChange={(checked) => 
+                  onSettingsChange({ biometricEnabled: checked })
+                }
+              />
+            }
+          />
+          <div className="py-3" data-testid="setting-session-timeout">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Session Timeout</p>
+                <p className="text-sm text-muted-foreground">Auto-lock after inactivity</p>
+              </div>
+              <Select 
+                value={String(settings.sessionTimeout)} 
+                onValueChange={(value) => onSettingsChange({ sessionTimeout: parseInt(value) })}
+              >
+                <SelectTrigger className="w-24" data-testid="select-session-timeout">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5" data-testid="option-timeout-5">5 min</SelectItem>
+                  <SelectItem value="15" data-testid="option-timeout-15">15 min</SelectItem>
+                  <SelectItem value="30" data-testid="option-timeout-30">30 min</SelectItem>
+                  <SelectItem value="60" data-testid="option-timeout-60">1 hour</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">ABOUT</h2>
+        <GlassCard delay={0.3} className="p-4">
+          <SettingItem
+            icon={Info}
+            label="Version"
+            description="CryptoMine v1.0.0"
+            testId="setting-version"
           />
           <SettingItem
-            icon={LogOut}
-            label="Sign Out"
-            danger
-            onClick={() => {}}
+            icon={FileText}
+            label="Terms of Service"
+            onClick={() => window.open('#', '_blank')}
+            testId="button-terms"
+          />
+          <SettingItem
+            icon={Shield}
+            label="Privacy Policy"
+            onClick={() => window.open('#', '_blank')}
+            testId="button-privacy"
+          />
+          <SettingItem
+            icon={Mail}
+            label="Contact Support"
+            description="Get help with your account"
+            onClick={() => window.open('mailto:support@cryptomine.app', '_blank')}
+            testId="button-contact-support"
           />
         </GlassCard>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-2">
+      <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
         CryptoMine v1.0.0
       </p>
     </motion.div>

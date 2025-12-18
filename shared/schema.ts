@@ -68,7 +68,11 @@ export interface ChartDataPoint {
 export interface UserSettings {
   miningIntensity: number;
   notificationsEnabled: boolean;
-  autoMining: boolean;
   powerSaver: boolean;
   selectedPool: string;
+  twoFactorEnabled: boolean;
+  biometricEnabled: boolean;
+  currency: 'USD' | 'EUR' | 'GBP';
+  language: string;
+  sessionTimeout: number;
 }

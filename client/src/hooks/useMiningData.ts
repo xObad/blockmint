@@ -86,9 +86,13 @@ export function useMiningData() {
   const defaultSettings: UserSettings = {
     miningIntensity: 75,
     notificationsEnabled: true,
-    autoMining: false,
     powerSaver: true,
     selectedPool: "1",
+    twoFactorEnabled: false,
+    biometricEnabled: false,
+    currency: "USD",
+    language: "English",
+    sessionTimeout: 30,
   };
 
   return {

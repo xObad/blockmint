@@ -48,7 +48,33 @@ export interface ChartDataPoint {
 export interface UserSettings {
   miningIntensity: number;
   notificationsEnabled: boolean;
-  autoMining: boolean;
   powerSaver: boolean;
   selectedPool: string;
+  twoFactorEnabled: boolean;
+  biometricEnabled: boolean;
+  currency: 'USD' | 'EUR' | 'GBP';
+  language: string;
+  sessionTimeout: number;
+}
+
+export interface MiningContract {
+  id: string;
+  cryptoType: "BTC" | "LTC";
+  hashrate: number;
+  hashrateUnit: string;
+  daysRemaining: number;
+  totalDays: number;
+  earnedSoFar: number;
+  dailyEarningRate: number;
+  hourlyEarningRate: number;
+  startDate: Date;
+  status: "active" | "expired";
+}
+
+export interface PoolStatus {
+  connected: boolean;
+  poolName: string;
+  hashRate: string;
+  uptime: number;
+  workers: number;
 }

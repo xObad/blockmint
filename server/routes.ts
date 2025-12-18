@@ -90,7 +90,7 @@ export async function registerRoutes(
 
   app.patch("/api/settings", async (req, res) => {
     try {
-      const allowedKeys = ['miningIntensity', 'notificationsEnabled', 'autoMining', 'powerSaver', 'selectedPool'];
+      const allowedKeys = ['miningIntensity', 'notificationsEnabled', 'powerSaver', 'selectedPool', 'twoFactorEnabled', 'biometricEnabled', 'currency', 'language', 'sessionTimeout'];
       const validatedSettings: Record<string, any> = {};
       
       for (const key of allowedKeys) {

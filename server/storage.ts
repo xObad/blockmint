@@ -167,9 +167,13 @@ export class MemStorage implements IStorage {
     this.settings = {
       miningIntensity: 75,
       notificationsEnabled: true,
-      autoMining: false,
       powerSaver: true,
       selectedPool: "1",
+      twoFactorEnabled: false,
+      biometricEnabled: false,
+      currency: "USD",
+      language: "English",
+      sessionTimeout: 30,
     };
   }
 
