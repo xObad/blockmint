@@ -1,8 +1,8 @@
-# Miners Clab - Premium Hashpower Sales App
+# Mining Club - Premium Hashpower Sales App
 
 ## Overview
 
-Miners Clab is a mobile-first cryptocurrency hashpower sales app built as a web application with iOS 26 Liquid Glass design language. The app provides a premium, native-feeling experience for users to purchase Bitcoin and Litecoin mining contracts, manage multi-crypto wallets (BTC, LTC, USDT, USDC), and participate in Solo Mining for lottery-style block rewards. This is hashpower sales, NOT mobile mining—users purchase contracts that mine passively.
+Mining Club is a mobile-first cryptocurrency hashpower sales app built as a web application with iOS 26 Liquid Glass design language. The app provides a premium, native-feeling experience for users to purchase Bitcoin and Litecoin mining contracts, manage multi-crypto wallets (BTC, LTC, USDT, USDC), and participate in Solo Mining for lottery-style block rewards. This is hashpower sales, NOT mobile mining—users purchase contracts that mine passively.
 
 ## User Preferences
 
@@ -33,7 +33,7 @@ The frontend follows a component-based architecture with:
 
 ### App Structure
 - **Bottom Navigation**: 5 tabs (Home, Wallet, Invest, Mining, Solo)
-- **Header**: Settings icon next to Notifications (Settings accessible via overlay)
+- **Header**: Profile icon (for non-logged-in users), Settings icon, Notifications
 - **iOS 26 Components**: IOSStatusBar (battery, network, time) and IOSHomeIndicator
 - **Onboarding**: 3 premium onboarding pages for first-time users
 - **Authentication**: Sign-in/Register pages with Google and Apple SSO
@@ -74,13 +74,13 @@ The app follows iOS 26 Liquid Glass design patterns with:
 - Safe area padding for notch devices
 - Inter font (UI) + Space Grotesk font (display/headings)
 - iOS status bar simulation with battery, signal, wifi icons
-- iOS home indicator bar
+- iOS home indicator bar with proper spacing from navigation
 
 ### Supported Cryptocurrencies
-- BTC (Bitcoin) - gold accent
-- LTC (Litecoin) - silver/blue accent
-- USDT (Tether) - emerald accent
-- USDC (USD Coin) - sky/blue accent
+- BTC (Bitcoin) - gold accent, 3D logo
+- LTC (Litecoin) - silver/blue accent, 3D logo
+- USDT (Tether) - emerald circle with $ symbol
+- USDC (USD Coin) - blue circle with $ symbol
 
 ## External Dependencies
 

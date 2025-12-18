@@ -39,7 +39,7 @@ export function IOSStatusBar() {
 export function IOSHomeIndicator() {
   return (
     <motion.div 
-      className="fixed bottom-1 left-1/2 -translate-x-1/2 z-[100]"
+      className="fixed bottom-2 left-1/2 -translate-x-1/2 z-[100]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.5 }}

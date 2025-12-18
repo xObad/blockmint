@@ -111,7 +111,7 @@ function MobileApp() {
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
       </div>
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-16 pb-28">
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-16 pb-36">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
@@ -124,6 +124,8 @@ function MobileApp() {
                 change24h={change24h}
                 transactions={transactions}
                 onOpenSettings={() => setShowSettings(true)}
+                onOpenProfile={() => setAppView("auth")}
+                isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
               />
             )
           )}
@@ -175,7 +177,7 @@ function MobileApp() {
               <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
             </div>
             <div className="relative z-10 flex items-center justify-between px-4 pt-16 pb-4">
-              <h1 className="text-xl font-bold text-foreground font-display">Settings</h1>
+              <h1 className="text-xl font-bold text-foreground font-display">Mining Club</h1>
               <motion.button
                 data-testid="button-close-settings"
                 onClick={() => setShowSettings(false)}

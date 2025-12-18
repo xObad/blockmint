@@ -17,7 +17,7 @@ interface OnboardingProps {
 const onboardingPages = [
   {
     id: 1,
-    title: "Welcome to Miners Clab",
+    title: "Welcome to Mining Club",
     subtitle: "The Future of Bitcoin Mining",
     description: "Purchase hashpower contracts and earn Bitcoin passively. No hardware required, no electricity bills.",
     image: mixedMain,
@@ -70,7 +70,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <Wallet className="w-6 h-6 text-primary" />
-            <span className="font-display text-lg font-bold text-foreground">Miners Clab</span>
+            <span className="font-display text-lg font-bold text-foreground">Mining Club</span>
           </div>
           <Button 
             variant="ghost" 

@@ -22,7 +22,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     <motion.nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50",
-        "mx-2 mb-2",
+        "mx-2 mb-6",
         "rounded-[28px]",
         "bg-white/[0.08] dark:bg-white/[0.06]",
         "backdrop-blur-2xl",

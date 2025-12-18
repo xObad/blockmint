@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Zap, TrendingUp, Gift } from "lucide-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,10 @@ import type { WalletBalance, Transaction } from "@/lib/types";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.png";
 import gpuMining from "@assets/Gpu_Mining_1766014388614.png";
-import btcWallet from "@assets/Bitcoin_Wallet_1766014388613.png";
-import btcCalc from "@assets/Bitcoin_calculation_1766014388615.png";
 import serverMining from "@assets/Server_Mining_1766014388610.png";
 import btcShop from "@assets/Bitcoin_shop_1766014388611.png";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
-import usdtLogo from "@assets/stock_images/usdt_tether_cryptocu_4498e890.jpg";
-import usdcLogo from "@assets/stock_images/usdc_usd_coin_crypto_278bc2c1.jpg";
 
 interface DashboardProps {
   balances: WalletBalance[];
@@ -24,6 +20,8 @@ interface DashboardProps {
   onDeposit?: () => void;
   onWithdraw?: () => void;
   onOpenSettings?: () => void;
+  onOpenProfile?: () => void;
+  isLoggedIn?: boolean;
 }
 
 export function Dashboard({ 
@@ -33,7 +31,9 @@ export function Dashboard({
   transactions = [],
   onDeposit, 
   onWithdraw,
-  onOpenSettings
+  onOpenSettings,
+  onOpenProfile,
+  isLoggedIn = false
 }: DashboardProps) {
   const safeChange24h = change24h ?? 0;
   const isPositiveChange = safeChange24h >= 0;
@@ -57,9 +57,19 @@ export function Dashboard({
       >
         <div>
           <p className="text-sm text-muted-foreground">Welcome back</p>
-          <h1 className="text-2xl font-bold text-foreground font-display">Miners Clab</h1>
+          <h1 className="text-2xl font-bold text-foreground font-display">Mining Club</h1>
         </div>
         <div className="flex items-center gap-2">
+          {!isLoggedIn && (
+            <motion.button
+              data-testid="button-profile"
+              onClick={onOpenProfile}
+              className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
+              whileTap={{ scale: 0.95 }}
+            >
+              <User className="w-5 h-5 text-primary" />
+            </motion.button>
+          )}
           <motion.button
             data-testid="button-settings"
             onClick={onOpenSettings}
@@ -142,39 +152,55 @@ export function Dashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
+        className="grid grid-cols-2 gap-3"
       >
-        <h2 className="text-lg font-semibold text-foreground mb-4 font-display">Mining Performance</h2>
-        <GlassCard delay={0.25} className="p-5 relative overflow-hidden" glow="primary">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-cyan-500/5 pointer-events-none" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-5">
-              <motion.img 
-                src={gpuMining} 
-                alt="Mining" 
-                className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">Total Hashrate</p>
-                <p className="text-3xl font-bold text-foreground font-display" data-testid="text-hash-power">{miningPower}</p>
-                <p className="text-xs text-emerald-400 mt-1">Active & Mining</p>
-              </div>
+        <GlassCard delay={0.25} className="p-4 hover-elevate cursor-pointer" glow="primary">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+              <Zap className="w-7 h-7 text-blue-400" />
             </div>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div className="liquid-glass rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContracts}</p>
-                <p className="text-xs text-muted-foreground">Contracts</p>
-              </div>
-              <div className="liquid-glass rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-400 font-display" data-testid="text-total-earned">{totalEarned}</p>
-                <p className="text-xs text-muted-foreground">Earned (BTC)</p>
-              </div>
-              <div className="liquid-glass rounded-xl p-3 text-center">
-                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-days-active">{daysActive}</p>
-                <p className="text-xs text-muted-foreground">Days</p>
-              </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground font-display" data-testid="text-hash-power">{miningPower}</p>
+              <p className="text-xs text-muted-foreground">Hashrate</p>
+            </div>
+          </div>
+        </GlassCard>
+        
+        <GlassCard delay={0.3} className="p-4 hover-elevate cursor-pointer" glow="btc">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+              <TrendingUp className="w-7 h-7 text-amber-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-emerald-400 font-display" data-testid="text-total-earned">{totalEarned}</p>
+              <p className="text-xs text-muted-foreground">Earned (BTC)</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard delay={0.35} className="p-4 hover-elevate cursor-pointer">
+          <div className="flex flex-col items-center text-center gap-3">
+            <motion.img 
+              src={serverMining}
+              alt="Contracts"
+              className="w-14 h-14 object-contain"
+              whileHover={{ scale: 1.05 }}
+            />
+            <div>
+              <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContracts}</p>
+              <p className="text-xs text-muted-foreground">Active Contracts</p>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard delay={0.4} className="p-4 hover-elevate cursor-pointer">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+              <Gift className="w-7 h-7 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground font-display" data-testid="text-days-active">{daysActive}</p>
+              <p className="text-xs text-muted-foreground">Days Mining</p>
             </div>
           </div>
         </GlassCard>
@@ -199,15 +225,17 @@ export function Dashboard({
                   data-testid={`asset-row-${balance.id}`}
                 >
                   <div className="flex items-center gap-3">
-                    <img 
-                      src={
-                        balance.symbol === 'BTC' ? btcLogo : 
-                        balance.symbol === 'LTC' ? ltcLogo : 
-                        balance.symbol === 'USDT' ? usdtLogo : usdcLogo
-                      } 
-                      alt={balance.symbol}
-                      className="w-10 h-10 shrink-0 object-contain rounded-full"
-                    />
+                    {balance.symbol === 'BTC' || balance.symbol === 'LTC' ? (
+                      <img 
+                        src={balance.symbol === 'BTC' ? btcLogo : ltcLogo} 
+                        alt={balance.symbol}
+                        className="w-10 h-10 shrink-0 object-contain rounded-full"
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-white ${balance.symbol === 'USDT' ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+                        $
+                      </div>
+                    )}
                     <div>
                       <p className="font-medium text-foreground">{balance.name}</p>
                       <p className="text-sm text-muted-foreground">{(balance.balance ?? 0).toFixed(6)} {balance.symbol}</p>

@@ -49,7 +49,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           </Button>
           <div className="flex items-center gap-2">
             <Wallet className="w-6 h-6 text-primary" />
-            <span className="font-display text-lg font-bold text-foreground">Miners Clab</span>
+            <span className="font-display text-lg font-bold text-foreground">Mining Club</span>
           </div>
           <div className="w-9" />
         </div>
@@ -67,7 +67,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             >
               <img 
                 src={mixedMain} 
-                alt="Miners Clab"
+                alt="Mining Club"
                 className="w-full h-full object-contain"
               />
             </motion.div>
