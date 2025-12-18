@@ -194,10 +194,14 @@ export function Dashboard({
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      balance.symbol === 'BTC' ? 'bg-amber-500/20' : 'bg-blue-500/20'
+                      balance.symbol === 'BTC' ? 'bg-amber-500/20' : 
+                      balance.symbol === 'LTC' ? 'bg-blue-500/20' : 
+                      balance.symbol === 'USDT' ? 'bg-emerald-500/20' : 'bg-sky-500/20'
                     }`}>
                       <span className={`font-bold ${
-                        balance.symbol === 'BTC' ? 'text-amber-400' : 'text-blue-400'
+                        balance.symbol === 'BTC' ? 'text-amber-400' : 
+                        balance.symbol === 'LTC' ? 'text-blue-400' : 
+                        balance.symbol === 'USDT' ? 'text-emerald-400' : 'text-sky-400'
                       }`}>{balance.symbol.charAt(0)}</span>
                     </div>
                     <div>
