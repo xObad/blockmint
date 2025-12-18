@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { WalletBalance } from "@/lib/types";
@@ -12,8 +12,7 @@ import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_176603859618
 interface CryptoCardProps {
   crypto: WalletBalance;
   index: number;
-  onDeposit?: (symbol: string) => void;
-  onWithdraw?: (symbol: string) => void;
+  onExchange?: (symbol: string) => void;
 }
 
 const logoMap: Record<string, string> = {
@@ -42,7 +41,7 @@ const colorMap: Record<string, { gradient: string; border: string }> = {
   },
 };
 
-export function CryptoCard({ crypto, index, onDeposit, onWithdraw }: CryptoCardProps) {
+export function CryptoCard({ crypto, index, onExchange }: CryptoCardProps) {
   const colors = colorMap[crypto.symbol] || colorMap.BTC;
   const logo = logoMap[crypto.symbol] || btcLogo;
   const isPositive = crypto.change24h >= 0;
@@ -102,27 +101,17 @@ export function CryptoCard({ crypto, index, onDeposit, onWithdraw }: CryptoCardP
         </div>
       </div>
 
-      {(onDeposit || onWithdraw) && (
+      {onExchange && (
         <div className="flex gap-2 mt-3 relative z-10">
           <Button
             size="sm"
             variant="ghost"
-            className="flex-1 liquid-glass border-0 bg-white/[0.06] text-xs gap-1"
-            onClick={() => onDeposit?.(crypto.symbol)}
-            data-testid={`button-deposit-${crypto.symbol.toLowerCase()}`}
+            className="flex-1 liquid-glass border-0 bg-primary/20 text-xs gap-1"
+            onClick={() => onExchange?.(crypto.symbol)}
+            data-testid={`button-exchange-${crypto.symbol.toLowerCase()}`}
           >
-            <ArrowDownLeft className="w-3.5 h-3.5" />
-            Deposit
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="flex-1 liquid-glass border-0 bg-white/[0.06] text-xs gap-1"
-            onClick={() => onWithdraw?.(crypto.symbol)}
-            data-testid={`button-withdraw-${crypto.symbol.toLowerCase()}`}
-          >
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            Withdraw
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            Exchange
           </Button>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, RefreshCw, Copy, Check, AlertCircle } from "lucide-react";
+import { ArrowLeftRight, Copy, Check, AlertCircle } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { CryptoCard } from "@/components/CryptoCard";
 import { TransactionItem } from "@/components/TransactionItem";
@@ -216,30 +216,12 @@ export function Wallet({ balances = defaultBalances, transactions, totalBalance,
 
           <div className="flex gap-3 mt-6">
             <Button
-              data-testid="button-wallet-withdraw"
+              data-testid="button-wallet-exchange"
               variant="secondary"
-              className="flex-1 liquid-glass border-0 bg-white/[0.08]"
-              onClick={openWithdrawModal}
+              className="flex-1 liquid-glass border-0 bg-primary/20"
             >
-              <ArrowUpRight className="w-5 h-5 mr-2" />
-              Withdraw
-            </Button>
-            <Button
-              data-testid="button-wallet-deposit"
-              variant="secondary"
-              className="flex-1 liquid-glass border-0 bg-white/[0.08]"
-              onClick={openDepositModal}
-            >
-              <ArrowDownLeft className="w-5 h-5 mr-2" />
-              Deposit
-            </Button>
-            <Button
-              data-testid="button-wallet-swap"
-              size="icon"
-              variant="secondary"
-              className="liquid-glass border-0 bg-white/[0.08]"
-            >
-              <RefreshCw className="w-5 h-5" />
+              <ArrowLeftRight className="w-5 h-5 mr-2" />
+              Exchange
             </Button>
           </div>
         </div>
@@ -253,8 +235,6 @@ export function Wallet({ balances = defaultBalances, transactions, totalBalance,
               key={crypto.id} 
               crypto={crypto} 
               index={index}
-              onDeposit={openDepositModal}
-              onWithdraw={openWithdrawModal}
             />
           ))}
         </div>
