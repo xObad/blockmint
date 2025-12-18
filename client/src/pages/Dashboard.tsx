@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User } from "lucide-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
@@ -161,12 +161,20 @@ export function Dashboard({
           whileTap={{ scale: 0.98 }}
           data-testid="card-invite-friend"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800/90 via-slate-900/95 to-black" />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iMC4wMyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiLz48L3N2Zz4=')] opacity-50" />
-          <div className="relative z-10 p-4 flex items-center gap-4">
-            <Users className="w-8 h-8 text-primary shrink-0" />
-            <p className="text-sm font-medium text-foreground">
-              Invite A Friend, Both Receive <span className="text-primary font-bold">$20 In Hashpower</span>
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-700/60 via-slate-800/80 to-slate-900" />
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,100 Q100,50 200,100 T400,100 L400,0 L0,0 Z' fill='%23475569'/%3E%3C/svg%3E")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'top'
+            }}
+          />
+          <div className="relative z-10 p-6 pt-12 text-center">
+            <p className="text-base font-medium text-foreground leading-relaxed">
+              Invite A Friend,<br />
+              Both Receive<br />
+              <span className="text-primary font-bold">$20 In BTC</span>
             </p>
           </div>
         </motion.div>
@@ -176,12 +184,20 @@ export function Dashboard({
           whileTap={{ scale: 0.98 }}
           data-testid="card-rate-app"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-800/90 via-slate-900/95 to-black" />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iMC4wMyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiLz48L3N2Zz4=')] opacity-50" />
-          <div className="relative z-10 p-4 flex items-center gap-4">
-            <Star className="w-8 h-8 text-amber-400 shrink-0" />
-            <p className="text-sm font-medium text-foreground">
-              Get <span className="text-amber-400 font-bold">$20</span> In Hashpower When You Rate Our App
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-700/60 via-slate-800/80 to-slate-900" />
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,80 Q100,120 200,80 T400,80 L400,0 L0,0 Z' fill='%23475569'/%3E%3C/svg%3E")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'top'
+            }}
+          />
+          <div className="relative z-10 p-6 pt-12 text-center">
+            <p className="text-base font-medium text-foreground leading-relaxed">
+              Rate Our App,<br />
+              Receive<br />
+              <span className="text-amber-400 font-bold">$20 In Hashpower</span>
             </p>
           </div>
         </motion.div>
