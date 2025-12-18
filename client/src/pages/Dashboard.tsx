@@ -154,7 +154,7 @@ export function Dashboard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="grid grid-cols-2 gap-3"
+        className="flex flex-col gap-3"
       >
         <motion.div
           className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate"
@@ -163,12 +163,10 @@ export function Dashboard({
         >
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800/90 via-slate-900/95 to-black" />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iMC4wMyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiLz48L3N2Zz4=')] opacity-50" />
-          <div className="relative z-10 p-4 h-32 flex flex-col justify-end">
-            <Users className="w-6 h-6 text-primary mb-2" />
-            <p className="text-sm font-medium text-foreground leading-tight">
-              Invite a friend,<br />
-              both receive<br />
-              <span className="text-primary font-bold">$20 in hashpower</span>
+          <div className="relative z-10 p-4 flex items-center gap-4">
+            <Users className="w-8 h-8 text-primary shrink-0" />
+            <p className="text-sm font-medium text-foreground">
+              Invite a friend, both receive <span className="text-primary font-bold">$20 in hashpower</span>
             </p>
           </div>
         </motion.div>
@@ -180,12 +178,10 @@ export function Dashboard({
         >
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800/90 via-slate-900/95 to-black" />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmYiIHN0b3Atb3BhY2l0eT0iMC4wMyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9InVybCgjZykiLz48L3N2Zz4=')] opacity-50" />
-          <div className="relative z-10 p-4 h-32 flex flex-col justify-end">
-            <Star className="w-6 h-6 text-amber-400 mb-2" />
-            <p className="text-sm font-medium text-foreground leading-tight">
-              Get <span className="text-amber-400 font-bold">$20</span> in<br />
-              hashpower when<br />
-              you rate our app
+          <div className="relative z-10 p-4 flex items-center gap-4">
+            <Star className="w-8 h-8 text-amber-400 shrink-0" />
+            <p className="text-sm font-medium text-foreground">
+              Get <span className="text-amber-400 font-bold">$20</span> in hashpower when you rate our app
             </p>
           </div>
         </motion.div>
