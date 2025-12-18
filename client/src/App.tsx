@@ -45,6 +45,15 @@ function MobileApp() {
   } = useMiningData();
 
   useEffect(() => {
+    // Version check to reset localStorage on new app version
+    const currentVersion = "1.0.0";
+    const savedVersion = localStorage.getItem("appVersion");
+    
+    if (savedVersion !== currentVersion) {
+      localStorage.clear();
+      localStorage.setItem("appVersion", currentVersion);
+    }
+    
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     const isLoggedIn = localStorage.getItem("isLoggedIn");
     
