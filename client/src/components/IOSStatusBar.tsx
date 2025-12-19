@@ -34,7 +34,7 @@ export function IOSStatusBar() {
       </div>
       
       <div
-        className={`h-16 transition-all duration-300 pointer-events-auto ${
+        className={`h-16 transition-all duration-300 pointer-events-none ${
           hasScrolled ? "bg-transparent" : "bg-transparent"
         }`}
         style={{

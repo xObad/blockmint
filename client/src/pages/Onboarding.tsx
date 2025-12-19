@@ -72,23 +72,15 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             <Wallet className="w-6 h-6 text-primary" />
             <span className="font-display text-lg font-bold text-foreground">Mining Club</span>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              if (onSkip) {
-                onSkip();
-              } else {
-                onSignIn();
-              }
-            }}
-            className="text-muted-foreground pointer-events-auto"
+          <button
+            onClick={() => onSkip ? onSkip() : onSignIn()}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
             data-testid="button-skip"
             type="button"
+            aria-label="Skip onboarding"
           >
             Skip
-          </Button>
+          </button>
         </div>
 
         <AnimatePresence mode="wait">
