@@ -62,21 +62,27 @@ export function Dashboard({
           <h1 className="text-2xl font-bold text-foreground font-display">Mining Club</h1>
         </div>
         <div className="flex items-center gap-2">
-          {!isLoggedIn && (
-            <motion.button
-              data-testid="button-profile"
-              onClick={onOpenProfile}
-              className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
-              whileTap={{ scale: 0.95 }}
-            >
-              <User className="w-5 h-5 text-primary" />
-            </motion.button>
-          )}
+          <motion.button
+            data-testid="button-profile"
+            onClick={(e) => {
+              e.preventDefault();
+              onOpenProfile?.();
+            }}
+            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate pointer-events-auto"
+            whileTap={{ scale: 0.95 }}
+            type="button"
+          >
+            <User className="w-5 h-5 text-primary" />
+          </motion.button>
           <motion.button
             data-testid="button-settings"
-            onClick={onOpenSettings}
-            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
+            onClick={(e) => {
+              e.preventDefault();
+              onOpenSettings?.();
+            }}
+            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate pointer-events-auto"
             whileTap={{ scale: 0.95 }}
+            type="button"
           >
             <Settings className="w-5 h-5 text-muted-foreground" />
           </motion.button>

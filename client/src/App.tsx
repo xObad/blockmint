@@ -120,7 +120,7 @@ function MobileApp() {
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
       </div>
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-16 pb-36">
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-16 pb-48">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
@@ -165,6 +165,21 @@ function MobileApp() {
             />
           )}
         </AnimatePresence>
+
+        <motion.footer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-12 text-center space-y-2"
+        >
+          <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-xs text-muted-foreground">Mining Club App By Hardisk UAE Mining Farms</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
+              ©
+            </span>
+          </div>
+        </motion.footer>
       </main>
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
