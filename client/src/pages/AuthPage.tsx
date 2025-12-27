@@ -22,12 +22,20 @@ interface AuthPageProps {
   onComplete: () => void;
 }
 
+// Detect iOS device
+function isIOSDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const isIOS = isIOSDevice();
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -219,20 +227,22 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               <span className="text-foreground">Continue With Google</span>
             </Button>
 
-            <Button
-              onClick={() => handleSocialAuth("apple")}
-              variant="outline"
-              className="w-full h-14 text-base font-medium bg-black dark:bg-white border-white/20 gap-3"
-              data-testid="button-apple-auth"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
-              ) : (
-                <SiApple className="w-5 h-5 text-white dark:text-black" />
-              )}
-              <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
-            </Button>
+            {isIOS && (
+              <Button
+                onClick={() => handleSocialAuth("apple")}
+                variant="outline"
+                className="w-full h-14 text-base font-medium bg-black dark:bg-white border-white/20 gap-3"
+                data-testid="button-apple-auth"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
+                ) : (
+                  <SiApple className="w-5 h-5 text-white dark:text-black" />
+                )}
+                <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
+              </Button>
+            )}
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
