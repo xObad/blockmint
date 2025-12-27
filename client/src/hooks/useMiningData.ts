@@ -84,12 +84,11 @@ export function useMiningData() {
   };
 
   const defaultSettings: UserSettings = {
-    miningIntensity: 75,
     notificationsEnabled: true,
-    powerSaver: true,
     selectedPool: "1",
     twoFactorEnabled: false,
     biometricEnabled: false,
+    pinLockEnabled: false,
     currency: "USD",
     language: "English",
     sessionTimeout: 30,

@@ -1,16 +1,21 @@
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { 
   User, Shield, Bell, Key, Fingerprint, Clock, 
   DollarSign, Globe, ChevronRight, Award, Info,
-  FileText, Mail, Zap, Activity, LogOut
+  FileText, Mail, LogOut, Lock, Loader2
 } from "lucide-react";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import type { UserSettings } from "@/lib/types";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -75,13 +80,164 @@ function SettingItem({ icon: Icon, label, description, onClick, action, danger, 
   return <div data-testid={testId || `setting-${label.toLowerCase().replace(/\s+/g, '-')}`}>{content}</div>;
 }
 
+function isEmailPasswordUser(user: FirebaseUser | null | undefined): boolean {
+  if (!user) return false;
+  return user.providerData.some(provider => provider.providerId === 'password');
+}
+
 export function Settings({ settings, onSettingsChange, user, onLogout }: SettingsProps) {
+  const { toast } = useToast();
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pinCode, setPinCode] = useState("");
+  const [confirmPinCode, setConfirmPinCode] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const displayName = user?.displayName || user?.email?.split('@')[0] || "Guest User";
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || "GU";
   const email = user?.email || "Not signed in";
   const memberSince = user?.metadata?.creationTime 
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : "Dec 2024";
+
+  const handleChangePassword = async () => {
+    if (!user) return;
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "Please make sure your new passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Password Change Failed",
+        description: error.code === 'auth/wrong-password' 
+          ? "Current password is incorrect." 
+          : "Failed to change password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleSetPin = () => {
+    if (pinCode.length !== 4 || !/^\d{4}$/.test(pinCode)) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter a 4-digit PIN code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (pinCode !== confirmPinCode) {
+      toast({
+        title: "PINs Don't Match",
+        description: "Please make sure your PIN codes match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onSettingsChange({ pinLockEnabled: true, pinCode: pinCode });
+    localStorage.setItem("pinCode", pinCode);
+    toast({
+      title: "PIN Lock Enabled",
+      description: "Your app is now protected with a PIN code.",
+    });
+    setShowPinDialog(false);
+    setPinCode("");
+    setConfirmPinCode("");
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (enabled) {
+      if (!('credentials' in navigator) || !('PublicKeyCredential' in window)) {
+        toast({
+          title: "Not Supported",
+          description: "Biometric authentication is not supported on this device.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const available = await (window as any).PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable?.();
+        if (!available) {
+          toast({
+            title: "Not Available",
+            description: "Biometric authentication is not available on this device.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        onSettingsChange({ biometricEnabled: true });
+        localStorage.setItem("biometricEnabled", "true");
+        toast({
+          title: "Biometric Lock Enabled",
+          description: "Your app is now protected with Face ID or fingerprint.",
+        });
+      } catch (error) {
+        toast({
+          title: "Setup Failed",
+          description: "Failed to enable biometric authentication.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      onSettingsChange({ biometricEnabled: false });
+      localStorage.removeItem("biometricEnabled");
+      toast({
+        title: "Biometric Lock Disabled",
+        description: "Biometric authentication has been turned off.",
+      });
+    }
+  };
+
+  const handlePinToggle = (enabled: boolean) => {
+    if (enabled) {
+      setShowPinDialog(true);
+    } else {
+      onSettingsChange({ pinLockEnabled: false, pinCode: undefined });
+      localStorage.removeItem("pinCode");
+      toast({
+        title: "PIN Lock Disabled",
+        description: "PIN code authentication has been turned off.",
+      });
+    }
+  };
 
   return (
     <motion.div
@@ -96,7 +252,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         transition={{ duration: 0.4 }}
       >
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage your preferences</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage Your Preferences</p>
       </motion.header>
 
       <GlassCard delay={0.1} className="relative overflow-hidden">
@@ -119,7 +275,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-user-email">{email}</p>
-            <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-mining-since">Mining since {memberSince}</p>
+            <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-mining-since">Mining Since {memberSince}</p>
           </div>
         </div>
 
@@ -145,21 +301,23 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={User}
             label="Profile"
-            description="Edit your personal info"
+            description="Edit Your Personal Info"
             onClick={() => {}}
             testId="button-profile"
           />
-          <SettingItem
-            icon={Key}
-            label="Change Password"
-            description="Update your account password"
-            onClick={() => {}}
-            testId="button-change-password"
-          />
+          {isEmailPasswordUser(user) && (
+            <SettingItem
+              icon={Key}
+              label="Change Password"
+              description="Update Your Account Password"
+              onClick={() => setShowPasswordDialog(true)}
+              testId="button-change-password"
+            />
+          )}
           <SettingItem
             icon={Shield}
             label="Two-Factor Authentication"
-            description="Add extra security to your account"
+            description="Add Extra Security To Your Account"
             testId="setting-two-factor"
             action={
               <Switch
@@ -180,7 +338,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Bell}
             label="Notifications"
-            description="Mining alerts and payouts"
+            description="Mining Alerts And Payouts"
             testId="setting-notifications"
             action={
               <Switch
@@ -192,42 +350,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               />
             }
           />
-          <SettingItem
-            icon={Zap}
-            label="Low Power Mode"
-            description="Optimize battery usage"
-            testId="setting-power-saver"
-            action={
-              <Switch
-                data-testid="switch-power-saver"
-                checked={settings.powerSaver}
-                onCheckedChange={(checked) => 
-                  onSettingsChange({ powerSaver: checked })
-                }
-              />
-            }
-          />
-          <div className="py-3 border-b border-white/[0.04]" data-testid="setting-mining-intensity">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
-                <Activity className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Mining Intensity</p>
-                <p className="text-sm text-muted-foreground">Hashpower visualization level</p>
-              </div>
-              <span className="text-sm font-medium text-foreground" data-testid="text-intensity-value">{settings.miningIntensity}%</span>
-            </div>
-            <Slider
-              data-testid="slider-mining-intensity"
-              value={[settings.miningIntensity]}
-              onValueChange={(value) => onSettingsChange({ miningIntensity: value[0] })}
-              min={0}
-              max={100}
-              step={5}
-              className="ml-14"
-            />
-          </div>
           <div className="py-3 border-b border-white/[0.04]" data-testid="setting-currency">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">
@@ -235,11 +357,11 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground">Currency Display</p>
-                <p className="text-sm text-muted-foreground">Preferred currency</p>
+                <p className="text-sm text-muted-foreground">Preferred Currency</p>
               </div>
               <Select 
                 value={settings.currency} 
-                onValueChange={(value: 'USD' | 'EUR' | 'GBP') => onSettingsChange({ currency: value })}
+                onValueChange={(value: 'USD' | 'EUR' | 'GBP' | 'AED') => onSettingsChange({ currency: value })}
               >
                 <SelectTrigger className="w-24" data-testid="select-currency">
                   <SelectValue />
@@ -248,6 +370,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                   <SelectItem value="USD" data-testid="option-currency-usd">USD</SelectItem>
                   <SelectItem value="EUR" data-testid="option-currency-eur">EUR</SelectItem>
                   <SelectItem value="GBP" data-testid="option-currency-gbp">GBP</SelectItem>
+                  <SelectItem value="AED" data-testid="option-currency-aed">AED</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -259,7 +382,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground">Language</p>
-                <p className="text-sm text-muted-foreground">App language</p>
+                <p className="text-sm text-muted-foreground">App Language</p>
               </div>
               <Select 
                 value={settings.language} 
@@ -273,6 +396,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                   <SelectItem value="Spanish" data-testid="option-language-spanish">Spanish</SelectItem>
                   <SelectItem value="French" data-testid="option-language-french">French</SelectItem>
                   <SelectItem value="German" data-testid="option-language-german">German</SelectItem>
+                  <SelectItem value="Arabic" data-testid="option-language-arabic">Arabic</SelectItem>
                   <SelectItem value="Chinese" data-testid="option-language-chinese">Chinese</SelectItem>
                 </SelectContent>
               </Select>
@@ -286,16 +410,27 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         <GlassCard delay={0.25} className="p-4">
           <SettingItem
             icon={Fingerprint}
-            label="Biometric Login"
-            description="Use fingerprint or Face ID"
+            label="Biometric Lock"
+            description="Use Fingerprint Or Face ID"
             testId="setting-biometric"
             action={
               <Switch
                 data-testid="switch-biometric"
                 checked={settings.biometricEnabled}
-                onCheckedChange={(checked) => 
-                  onSettingsChange({ biometricEnabled: checked })
-                }
+                onCheckedChange={handleBiometricToggle}
+              />
+            }
+          />
+          <SettingItem
+            icon={Lock}
+            label="PIN Lock"
+            description="Use A 4-Digit PIN Code"
+            testId="setting-pin-lock"
+            action={
+              <Switch
+                data-testid="switch-pin-lock"
+                checked={settings.pinLockEnabled}
+                onCheckedChange={handlePinToggle}
               />
             }
           />
@@ -306,7 +441,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               </div>
               <div className="flex-1">
                 <p className="font-medium text-foreground">Session Timeout</p>
-                <p className="text-sm text-muted-foreground">Auto-lock after inactivity</p>
+                <p className="text-sm text-muted-foreground">Auto-Lock After Inactivity</p>
               </div>
               <Select 
                 value={String(settings.sessionTimeout)} 
@@ -316,10 +451,10 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="5" data-testid="option-timeout-5">5 min</SelectItem>
-                  <SelectItem value="15" data-testid="option-timeout-15">15 min</SelectItem>
-                  <SelectItem value="30" data-testid="option-timeout-30">30 min</SelectItem>
-                  <SelectItem value="60" data-testid="option-timeout-60">1 hour</SelectItem>
+                  <SelectItem value="5" data-testid="option-timeout-5">5 Min</SelectItem>
+                  <SelectItem value="15" data-testid="option-timeout-15">15 Min</SelectItem>
+                  <SelectItem value="30" data-testid="option-timeout-30">30 Min</SelectItem>
+                  <SelectItem value="60" data-testid="option-timeout-60">1 Hour</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -333,12 +468,12 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Info}
             label="Version"
-            description="CryptoMine v1.0.0"
+            description="Mining Club v1.0.0"
             testId="setting-version"
           />
           <SettingItem
             icon={FileText}
-            label="Terms of Service"
+            label="Terms Of Service"
             onClick={() => window.open('#', '_blank')}
             testId="button-terms"
           />
@@ -351,8 +486,8 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Mail}
             label="Contact Support"
-            description="Get help with your account"
-            onClick={() => window.open('mailto:support@cryptomine.app', '_blank')}
+            description="Get Help With Your Account"
+            onClick={() => window.open('mailto:support@miningclub.app', '_blank')}
             testId="button-contact-support"
           />
         </GlassCard>
@@ -362,7 +497,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         <div className="mt-4">
           <Button
             variant="outline"
-            className="w-full h-12 border-red-500/30 text-red-400 hover:bg-red-500/10"
+            className="w-full h-12 border-red-500/30 text-red-400"
             onClick={onLogout}
             data-testid="button-logout"
           >
@@ -375,6 +510,108 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
         Mining Club v1.0.0
       </p>
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter Your Current Password And Choose A New One.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter Current Password"
+                data-testid="input-current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter New Password"
+                data-testid="input-new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm New Password"
+                data-testid="input-confirm-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePassword} disabled={isChangingPassword}>
+              {isChangingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Change Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set PIN Lock</DialogTitle>
+            <DialogDescription>
+              Create A 4-Digit PIN To Secure Your App.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="pin-code">Enter 4-Digit PIN</Label>
+              <Input
+                id="pin-code"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinCode}
+                onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter PIN"
+                data-testid="input-pin-code"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-pin">Confirm PIN</Label>
+              <Input
+                id="confirm-pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={confirmPinCode}
+                onChange={(e) => setConfirmPinCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Confirm PIN"
+                data-testid="input-confirm-pin"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPinDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSetPin}>
+              Set PIN
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
