@@ -10,7 +10,8 @@ import {
   signInWithApple, 
   signInWithEmail, 
   registerWithEmail,
-  resetPassword
+  resetPassword,
+  resendVerificationEmail
 } from "@/lib/firebase";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.png";
@@ -34,8 +35,40 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const { toast } = useToast();
   const isIOS = isIOSDevice();
+
+  const handleResendVerification = async () => {
+    setIsLoading(true);
+    try {
+      await resendVerificationEmail();
+      toast({
+        title: "Email Sent!",
+        description: "A new verification email has been sent.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed To Send",
+        description: error.code === "auth/too-many-requests" 
+          ? "Please wait before requesting another email."
+          : "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContinueAfterVerification = () => {
+    setShowVerification(false);
+    onModeChange("signin");
+    toast({
+      title: "Ready To Sign In",
+      description: "Please sign in with your verified email.",
+    });
+  };
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -125,16 +158,20 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
     try {
       if (mode === "signin") {
         await signInWithEmail(email, password);
+        toast({
+          title: "Welcome Back!",
+          description: "You have successfully signed in.",
+        });
+        onComplete();
       } else {
         await registerWithEmail(email, password, name.trim());
+        setRegisteredEmail(email);
+        setShowVerification(true);
+        toast({
+          title: "Verification Email Sent!",
+          description: "Please check your inbox to verify your email.",
+        });
       }
-      toast({
-        title: mode === "signin" ? "Welcome Back!" : "Account Created!",
-        description: mode === "signin" 
-          ? "You have successfully signed in." 
-          : "Your account has been created successfully.",
-      });
-      onComplete();
     } catch (error: any) {
       console.error("Auth error:", error);
       let message = "Please try again.";
@@ -181,35 +218,80 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           <div className="w-9" />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-1 flex flex-col"
-        >
-          <div className="text-center mb-8">
-            <motion.div 
-              className="w-24 h-24 mx-auto mb-6"
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <img 
-                src={mixedMain} 
-                alt="Mining Club"
-                className="w-full h-full object-contain"
-              />
-            </motion.div>
+        {showVerification ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 flex flex-col items-center justify-center text-center"
+          >
+            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mb-6">
+              <Mail className="w-10 h-10 text-primary" />
+            </div>
             <h1 
               className="font-display text-2xl font-bold text-foreground mb-2"
-              data-testid="heading-auth"
+              data-testid="heading-verification"
             >
-              {mode === "signin" ? "Welcome Back" : "Create Account"}
+              Verify Your Email
             </h1>
-            <p className="text-muted-foreground">
-              {mode === "signin" 
-                ? "Sign in to continue mining" 
-                : "Start your mining journey today"}
+            <p className="text-muted-foreground mb-2 max-w-xs">
+              We have sent a verification link to
             </p>
-          </div>
+            <p className="text-primary font-medium mb-6">{registeredEmail}</p>
+            <p className="text-sm text-muted-foreground mb-8 max-w-xs">
+              Click the link in the email to verify your account. Check your spam folder if you do not see it.
+            </p>
+            <div className="space-y-3 w-full max-w-xs">
+              <Button
+                onClick={handleContinueAfterVerification}
+                className="w-full h-12"
+                data-testid="button-continue-verification"
+              >
+                Continue To Sign In
+              </Button>
+              <Button
+                onClick={handleResendVerification}
+                variant="ghost"
+                className="w-full h-12"
+                disabled={isLoading}
+                data-testid="button-resend-verification"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                ) : null}
+                Resend Verification Email
+              </Button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 flex flex-col"
+          >
+            <div className="text-center mb-8">
+              <motion.div 
+                className="w-24 h-24 mx-auto mb-6"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <img 
+                  src={mixedMain} 
+                  alt="Mining Club"
+                  className="w-full h-full object-contain"
+                />
+              </motion.div>
+              <h1 
+                className="font-display text-2xl font-bold text-foreground mb-2"
+                data-testid="heading-auth"
+              >
+                {mode === "signin" ? "Welcome Back" : "Create Account"}
+              </h1>
+              <p className="text-muted-foreground">
+                {mode === "signin" 
+                  ? "Sign in to continue mining" 
+                  : "Start your mining journey today"}
+              </p>
+            </div>
 
           <div className="space-y-4">
             <Button
@@ -346,6 +428,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             By Continuing, You Agree To Our Terms Of Service And Privacy Policy
           </p>
         </motion.div>
+        )}
       </div>
     </div>
   );

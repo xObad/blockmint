@@ -12,6 +12,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   User
 } from "firebase/auth";
@@ -70,9 +71,28 @@ export async function registerWithEmail(email: string, password: string, display
     if (displayName && result.user) {
       await updateProfile(result.user, { displayName });
     }
+    // Send email verification
+    if (result.user) {
+      await sendEmailVerification(result.user);
+    }
     return result.user;
   } catch (error) {
     console.error("Email registration error:", error);
+    throw error;
+  }
+}
+
+// Resend email verification
+export async function resendVerificationEmail() {
+  try {
+    const user = auth.currentUser;
+    if (user && !user.emailVerified) {
+      await sendEmailVerification(user);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Resend verification error:", error);
     throw error;
   }
 }

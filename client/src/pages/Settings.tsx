@@ -88,7 +88,7 @@ function isEmailPasswordUser(user: FirebaseUser | null | undefined): boolean {
 
 export function Settings({ settings, onSettingsChange, user, onLogout }: SettingsProps) {
   const { toast } = useToast();
-  const { setCurrency } = useCurrency();
+  const { currency, setCurrency } = useCurrency();
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -362,7 +362,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                 <p className="text-sm text-muted-foreground">Preferred Currency</p>
               </div>
               <Select 
-                value={settings.currency} 
+                value={currency} 
                 onValueChange={(value: 'USD' | 'EUR' | 'GBP' | 'AED') => {
                   onSettingsChange({ currency: value });
                   setCurrency(value);

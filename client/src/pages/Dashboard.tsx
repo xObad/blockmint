@@ -287,7 +287,7 @@ export function Dashboard({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-foreground">${(balance.usdValue ?? 0).toFixed(2)}</p>
+                    <p className="font-medium text-foreground">{getSymbol()}{convert(balance.usdValue ?? 0).toFixed(2)}</p>
                     <p className={`text-sm ${(balance.change24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {(balance.change24h ?? 0) >= 0 ? '+' : ''}{(balance.change24h ?? 0).toFixed(2)}%
                     </p>
