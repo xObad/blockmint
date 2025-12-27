@@ -46,13 +46,13 @@ export interface ChartDataPoint {
 }
 
 export interface UserSettings {
-  miningIntensity: number;
   notificationsEnabled: boolean;
-  powerSaver: boolean;
   selectedPool: string;
   twoFactorEnabled: boolean;
   biometricEnabled: boolean;
-  currency: 'USD' | 'EUR' | 'GBP';
+  pinLockEnabled: boolean;
+  pinCode?: string;
+  currency: 'USD' | 'EUR' | 'GBP' | 'AED';
   language: string;
   sessionTimeout: number;
 }

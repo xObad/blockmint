@@ -100,8 +100,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </motion.header>
 
       <GlassCard delay={0.1} className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/5" />
-        
         <div className="relative z-10 flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center overflow-hidden">
             {user?.photoURL ? (

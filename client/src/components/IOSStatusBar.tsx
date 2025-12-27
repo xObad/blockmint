@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import statusBarImage from "@assets/dynamic_island_1766091053259.png";
 
 export function IOSStatusBar() {
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -22,26 +21,9 @@ export function IOSStatusBar() {
       className="fixed top-0 left-0 right-0 z-[100] pointer-events-none"
     >
       <div 
-        className={`h-12 flex items-center justify-center transition-all duration-300 ${
-          hasScrolled ? "bg-background/70 backdrop-blur-md" : "bg-transparent"
+        className={`h-12 transition-all duration-300 ${
+          hasScrolled ? "bg-background/80 backdrop-blur-xl" : "bg-transparent"
         }`}
-      >
-        <img 
-          src={statusBarImage}
-          alt="Status Bar"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      
-      <div
-        className={`h-16 transition-all duration-300 pointer-events-none ${
-          hasScrolled ? "bg-transparent" : "bg-transparent"
-        }`}
-        style={{
-          background: hasScrolled 
-            ? "linear-gradient(to bottom, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.3) 50%, hsl(var(--background) / 0.05) 100%)"
-            : "linear-gradient(to bottom, hsl(var(--background) / 0.05) 0%, hsl(var(--background) / 0.02) 100%)"
-        }}
       />
     </motion.div>
   );
