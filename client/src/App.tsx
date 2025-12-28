@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Switch, Route, Link } from "wouter";
@@ -22,6 +24,9 @@ import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton"
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import Exchange from "@/pages/Exchange";
 import { Admin } from "@/pages/Admin";
+import { Referral } from "@/pages/Referral";
+import { History } from "@/pages/History";
+import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
 import type { User } from "firebase/auth";
@@ -193,8 +198,28 @@ function MobileApp() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-12 text-center space-y-2"
+          className="mt-12 text-center space-y-4"
         >
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://x.com/miningclub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-x"
+            >
+              <SiX className="w-5 h-5 text-foreground" />
+            </a>
+            <a
+              href="https://instagram.com/miningclub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-instagram"
+            >
+              <SiInstagram className="w-5 h-5 text-foreground" />
+            </a>
+          </div>
           <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
           <div className="flex items-center justify-center gap-1">
             <span className="text-xs text-muted-foreground">Mining Club App By Hardisk UAE Mining Farms</span>
@@ -261,20 +286,26 @@ function MobileApp() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Switch>
-            <Route path="/privacy" component={PrivacyPolicy} />
-            <Route path="/exchange" component={Exchange} />
-            <Route path="/admin">
-              {() => <Admin onBack={() => window.history.back()} />}
-            </Route>
-            <Route path="/" component={MobileApp} />
-            <Route component={MobileApp} />
-          </Switch>
-        </TooltipProvider>
-      </CurrencyProvider>
+      <ThemeProvider>
+        <CurrencyProvider>
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Switch>
+                <Route path="/privacy" component={PrivacyPolicy} />
+                <Route path="/exchange" component={Exchange} />
+                <Route path="/referral" component={Referral} />
+                <Route path="/history" component={History} />
+                <Route path="/admin">
+                  {() => <Admin onBack={() => window.history.back()} />}
+                </Route>
+                <Route path="/" component={MobileApp} />
+                <Route component={MobileApp} />
+              </Switch>
+            </TooltipProvider>
+          </NotificationProvider>
+        </CurrencyProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

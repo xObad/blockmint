@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
+import { SiX, SiInstagram } from "react-icons/si";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { WalletBalance, Transaction } from "@/lib/types";
 import {
   DropdownMenu,
@@ -57,7 +63,11 @@ export function Dashboard({
   isLoggedIn = false
 }: DashboardProps) {
   const { convert, getSymbol, currency, setCurrency } = useCurrency();
+  const { theme, toggleTheme } = useTheme();
+  const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showRewardCelebration, setShowRewardCelebration] = useState(false);
+  const [hasRatedApp, setHasRatedApp] = useState(() => localStorage.getItem("hasRatedApp") === "true");
   const safeChange24h = change24h ?? 0;
   const isPositiveChange = safeChange24h >= 0;
   const activeContracts = 0;
@@ -67,6 +77,39 @@ export function Dashboard({
   const convertedBalance = convert(totalBalance);
   
   const notifications: { id: string; title: string; message: string; time: string }[] = [];
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && localStorage.getItem("pendingRateReward") === "true") {
+        localStorage.removeItem("pendingRateReward");
+        localStorage.setItem("hasRatedApp", "true");
+        setHasRatedApp(true);
+        setShowRewardCelebration(true);
+        toast({
+          title: "Reward Claimed!",
+          description: "You've earned $20 in hashpower for rating the app!",
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [toast]);
+
+  const handleRateApp = () => {
+    if (hasRatedApp) {
+      toast({
+        title: "Already Rated",
+        description: "You've already received your reward for rating the app.",
+      });
+      return;
+    }
+    localStorage.setItem("pendingRateReward", "true");
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const storeUrl = isIOS 
+      ? "https://apps.apple.com/app/mining-club/id123456789?action=write-review"
+      : "https://play.google.com/store/apps/details?id=com.miningclub.app&showAllReviews=true";
+    window.open(storeUrl, "_blank");
+  };
 
   return (
     <motion.div
@@ -86,6 +129,25 @@ export function Dashboard({
           <h1 className="text-2xl font-bold text-foreground font-display">Mining Club</h1>
         </div>
         <div className="flex items-center gap-2">
+          <motion.button
+            data-testid="button-theme-toggle"
+            onClick={toggleTheme}
+            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+            whileTap={{ scale: 0.95 }}
+            type="button"
+          >
+            <motion.div
+              initial={false}
+              animate={{ rotate: theme === "dark" ? 0 : 180 }}
+              transition={{ duration: 0.3 }}
+            >
+              {theme === "dark" ? (
+                <Moon className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <Sun className="w-5 h-5 text-amber-500" />
+              )}
+            </motion.div>
+          </motion.button>
           <button
             data-testid="button-settings"
             onClick={onOpenSettings}
@@ -241,38 +303,41 @@ export function Dashboard({
         transition={{ delay: 0.2 }}
         className="grid grid-cols-2 gap-3"
       >
-        <motion.div
-          className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate h-40"
-          whileTap={{ scale: 0.98 }}
-          data-testid="card-invite-friend"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-950" />
-          <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
-            <defs>
-              <radialGradient id="grad1" cx="30%" cy="30%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4"/>
-                <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
-              </radialGradient>
-              <radialGradient id="grad2" cx="70%" cy="70%">
-                <stop offset="0%" stopColor="#1e40af" stopOpacity="0.3"/>
-                <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
-              </radialGradient>
-            </defs>
-            <circle cx="80" cy="40" r="120" fill="url(#grad1)"/>
-            <circle cx="320" cy="160" r="100" fill="url(#grad2)"/>
-            <path d="M0,120 Q100,80 200,100 T400,120 L400,200 L0,200 Z" fill="#3b82f6" fillOpacity="0.08"/>
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Users className="w-8 h-8 text-blue-300" />
-            <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
-              Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$20 In BTC</span>
-            </p>
-          </div>
-        </motion.div>
+        <Link href="/referral">
+          <motion.div
+            className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate h-40"
+            whileTap={{ scale: 0.98 }}
+            data-testid="card-invite-friend"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-950" />
+            <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
+              <defs>
+                <radialGradient id="grad1" cx="30%" cy="30%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4"/>
+                  <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="grad2" cx="70%" cy="70%">
+                  <stop offset="0%" stopColor="#1e40af" stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0"/>
+                </radialGradient>
+              </defs>
+              <circle cx="80" cy="40" r="120" fill="url(#grad1)"/>
+              <circle cx="320" cy="160" r="100" fill="url(#grad2)"/>
+              <path d="M0,120 Q100,80 200,100 T400,120 L400,200 L0,200 Z" fill="#3b82f6" fillOpacity="0.08"/>
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <Users className="w-8 h-8 text-blue-300" />
+              <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
+                Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$5 In BTC</span>
+              </p>
+            </div>
+          </motion.div>
+        </Link>
 
         <motion.div
           className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate h-40"
           whileTap={{ scale: 0.98 }}
+          onClick={handleRateApp}
           data-testid="card-rate-app"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-amber-950/60 via-slate-900/80 to-slate-950" />
@@ -292,13 +357,75 @@ export function Dashboard({
             <path d="M0,130 Q100,90 200,110 T400,130 L400,200 L0,200 Z" fill="#f59e0b" fillOpacity="0.08"/>
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Star className="w-8 h-8 text-amber-300 fill-amber-300" />
-            <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
-              Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
-            </p>
+            {hasRatedApp ? (
+              <>
+                <Sparkles className="w-8 h-8 text-emerald-400" />
+                <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
+                  Thank You! <span className="text-emerald-400 font-bold">Reward Claimed</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <Star className="w-8 h-8 text-amber-300 fill-amber-300" />
+                <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
+                  Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
+                </p>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>
+
+      <Dialog open={showRewardCelebration} onOpenChange={setShowRewardCelebration}>
+        <DialogContent className="liquid-glass border-amber-500/30 bg-gradient-to-br from-amber-950/90 via-slate-900/95 to-slate-950 max-w-sm">
+          <motion.div
+            className="text-center py-6 space-y-4"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
+          >
+            <motion.div
+              initial={{ rotate: 0 }}
+              animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                <Gift className="w-10 h-10 text-white" />
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-2xl font-bold text-foreground">Congratulations!</h3>
+              <p className="text-amber-400 font-semibold text-lg mt-1">You Earned $20 in Hashpower!</p>
+            </motion.div>
+            <motion.p
+              className="text-muted-foreground text-sm"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Thank you for rating Mining Club! Your reward has been added to your account.
+            </motion.p>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Button
+                className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                onClick={() => setShowRewardCelebration(false)}
+                data-testid="button-claim-reward"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Awesome!
+              </Button>
+            </motion.div>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -390,7 +517,125 @@ export function Dashboard({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
+        transition={{ delay: 0.52 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground font-display flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Trending Cryptocurrencies
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { symbol: "BTC", name: "Bitcoin", price: 97245.32, change: 2.45, logo: btcLogo },
+            { symbol: "ETH", name: "Ethereum", price: 3421.87, change: -1.23, logo: btcLogo },
+            { symbol: "SOL", name: "Solana", price: 187.45, change: 8.76, logo: btcLogo },
+            { symbol: "LTC", name: "Litecoin", price: 102.34, change: 3.12, logo: ltcLogo },
+          ].map((crypto, index) => (
+            <GlassCard 
+              key={crypto.symbol}
+              delay={0.53 + index * 0.05} 
+              className="p-3"
+              data-testid={`trending-crypto-${crypto.symbol.toLowerCase()}`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <img 
+                  src={crypto.logo} 
+                  alt={crypto.symbol} 
+                  className="w-8 h-8 object-contain"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm truncate">{crypto.symbol}</p>
+                  <p className="text-xs text-muted-foreground truncate">{crypto.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-foreground text-sm">
+                  {getSymbol()}{convert(crypto.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+                <div className={`flex items-center gap-1 ${crypto.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {crypto.change >= 0 ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  )}
+                  <span className="text-xs font-medium">
+                    {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.54 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground font-display flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Portfolio Performance
+          </h2>
+          <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-1 rounded-full">
+            +12.5% This Week
+          </span>
+        </div>
+        <GlassCard delay={0.55} className="p-4">
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart 
+              data={[
+                { day: "Mon", value: 1000 },
+                { day: "Tue", value: 1050 },
+                { day: "Wed", value: 1030 },
+                { day: "Thu", value: 1120 },
+                { day: "Fri", value: 1080 },
+                { day: "Sat", value: 1150 },
+                { day: "Sun", value: 1200 },
+              ]}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis 
+                dataKey="day" 
+                axisLine={false} 
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+              />
+              <YAxis hide />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--background) / 0.95)',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '12px',
+                  backdropFilter: 'blur(12px)',
+                }}
+                labelStyle={{ color: 'hsl(var(--foreground))' }}
+                formatter={(value: number) => [`${getSymbol()}${convert(value).toFixed(2)}`, 'Value']}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="value" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={2}
+                fill="url(#portfolioGradient)" 
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </GlassCard>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.56 }}
       >
         <h2 className="text-lg font-semibold text-foreground mb-4 font-display">Premium Features</h2>
         <div className="space-y-3">

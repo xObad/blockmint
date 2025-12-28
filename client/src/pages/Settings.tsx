@@ -484,11 +484,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English" data-testid="option-language-english">English</SelectItem>
-                  <SelectItem value="Spanish" data-testid="option-language-spanish">Spanish</SelectItem>
-                  <SelectItem value="French" data-testid="option-language-french">French</SelectItem>
-                  <SelectItem value="German" data-testid="option-language-german">German</SelectItem>
-                  <SelectItem value="Arabic" data-testid="option-language-arabic">Arabic</SelectItem>
-                  <SelectItem value="Chinese" data-testid="option-language-chinese">Chinese</SelectItem>
                 </SelectContent>
               </Select>
             </div>
