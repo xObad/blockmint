@@ -21,12 +21,27 @@ export interface WalletBalance {
 
 export interface Transaction {
   id: string;
-  type: 'earned' | 'withdrawn' | 'received';
+  type: 'earned' | 'withdrawn' | 'received' | 'deposit' | 'exchange';
   amount: number;
   symbol: string;
   usdValue: number;
   timestamp: Date;
-  status: 'completed' | 'pending';
+  status: 'completed' | 'pending' | 'failed';
+}
+
+export interface CryptoNetwork {
+  id: string;
+  name: string;
+  fee: number;
+  estimatedTime: string;
+}
+
+export interface SupportedCrypto {
+  symbol: string;
+  name: string;
+  networks: CryptoNetwork[];
+  color: string;
+  iconBg: string;
 }
 
 export interface MiningPool {
