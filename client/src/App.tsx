@@ -21,6 +21,7 @@ import { AuthPage } from "@/pages/AuthPage";
 import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import Exchange from "@/pages/Exchange";
+import { Admin } from "@/pages/Admin";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
 import type { User } from "firebase/auth";
@@ -266,6 +267,9 @@ function App() {
           <Switch>
             <Route path="/privacy" component={PrivacyPolicy} />
             <Route path="/exchange" component={Exchange} />
+            <Route path="/admin">
+              {() => <Admin onBack={() => window.history.back()} />}
+            </Route>
             <Route path="/" component={MobileApp} />
             <Route component={MobileApp} />
           </Switch>

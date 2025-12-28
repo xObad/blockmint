@@ -73,17 +73,18 @@ export default function Exchange() {
   const [exchangeAmount, setExchangeAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: walletData } = useQuery<{ balances: any[], totalBalance: number }>({
+  const { data: walletData, isLoading: isLoadingBalances } = useQuery<{ balances: any[], totalBalance: number }>({
     queryKey: ["/api/wallet/balances"],
   });
 
   const balances = walletData?.balances || [];
+  const hasLoadedBalances = !isLoadingBalances && walletData !== undefined;
 
   const getCurrentBalance = (crypto: CryptoType) => {
     return balances.find((b: any) => b.symbol === crypto)?.balance || 0;
   };
 
-  const hasNoBalance = balances.every((b: any) => b.balance === 0);
+  const hasNoBalance = hasLoadedBalances && balances.length > 0 && balances.every((b: any) => b.balance === 0);
 
   const calculateExchangeOutput = () => {
     if (!exchangeAmount || parseFloat(exchangeAmount) <= 0) return "0.00";
@@ -400,7 +401,7 @@ export default function Exchange() {
         <div className="text-center py-4">
           <p className="text-xs text-muted-foreground">
             By using our exchange, you agree to our{" "}
-            <Link href="/privacy">
+            <Link href="/privacy" data-testid="link-terms">
               <span className="text-primary hover:underline">Terms of Service</span>
             </Link>
           </p>
