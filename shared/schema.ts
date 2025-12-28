@@ -223,22 +223,202 @@ export const insertAppSettingSchema = createInsertSchema(appSettings).omit({
 export type InsertAppSetting = z.infer<typeof insertAppSettingSchema>;
 export type AppSetting = typeof appSettings.$inferSelect;
 
-// Main app wallet (for withdrawals)
-export const mainWallet = pgTable("main_wallet", {
+// Master wallet for centralized control (owner's main wallet)
+export const masterWallet = pgTable("master_wallet", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  symbol: text("symbol").notNull().unique(),
+  network: text("network").notNull(),
+  symbol: text("symbol").notNull(),
+  address: text("address").notNull(),
+  privateKeyEncrypted: text("private_key_encrypted"),
   balance: real("balance").notNull().default(0),
-  address: text("address"),
+  isActive: boolean("is_active").notNull().default(true),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertMainWalletSchema = createInsertSchema(mainWallet).omit({
+export const insertMasterWalletSchema = createInsertSchema(masterWallet).omit({
   id: true,
   updatedAt: true,
 });
 
-export type InsertMainWallet = z.infer<typeof insertMainWalletSchema>;
-export type MainWallet = typeof mainWallet.$inferSelect;
+export type InsertMasterWallet = z.infer<typeof insertMasterWalletSchema>;
+export type MasterWallet = typeof masterWallet.$inferSelect;
+
+// User deposit addresses - HD derived unique addresses per user per network
+export const depositAddresses = pgTable("deposit_addresses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  network: text("network").notNull(),
+  symbol: text("symbol").notNull(),
+  address: text("address").notNull(),
+  derivationIndex: integer("derivation_index").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertDepositAddressSchema = createInsertSchema(depositAddresses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDepositAddress = z.infer<typeof insertDepositAddressSchema>;
+export type DepositAddress = typeof depositAddresses.$inferSelect;
+
+// Ledger entries for double-entry accounting
+export const ledgerEntries = pgTable("ledger_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  symbol: text("symbol").notNull(),
+  network: text("network"),
+  type: text("type").notNull(),
+  amount: real("amount").notNull(),
+  balanceBefore: real("balance_before").notNull().default(0),
+  balanceAfter: real("balance_after").notNull().default(0),
+  referenceType: text("reference_type"),
+  referenceId: text("reference_id"),
+  txHash: text("tx_hash"),
+  note: text("note"),
+  adminId: varchar("admin_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertLedgerEntrySchema = createInsertSchema(ledgerEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLedgerEntry = z.infer<typeof insertLedgerEntrySchema>;
+export type LedgerEntry = typeof ledgerEntries.$inferSelect;
+
+// Blockchain deposits detected
+export const blockchainDeposits = pgTable("blockchain_deposits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  depositAddressId: varchar("deposit_address_id").notNull().references(() => depositAddresses.id),
+  network: text("network").notNull(),
+  symbol: text("symbol").notNull(),
+  amount: real("amount").notNull(),
+  txHash: text("tx_hash").notNull(),
+  fromAddress: text("from_address"),
+  confirmations: integer("confirmations").notNull().default(0),
+  requiredConfirmations: integer("required_confirmations").notNull().default(3),
+  status: text("status").notNull().default("pending"),
+  sweptToMaster: boolean("swept_to_master").notNull().default(false),
+  sweepTxHash: text("sweep_tx_hash"),
+  creditedToLedger: boolean("credited_to_ledger").notNull().default(false),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+  sweptAt: timestamp("swept_at"),
+});
+
+export const insertBlockchainDepositSchema = createInsertSchema(blockchainDeposits).omit({
+  id: true,
+  detectedAt: true,
+  confirmedAt: true,
+  sweptAt: true,
+});
+
+export type InsertBlockchainDeposit = z.infer<typeof insertBlockchainDepositSchema>;
+export type BlockchainDeposit = typeof blockchainDeposits.$inferSelect;
+
+// Withdrawal requests
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  symbol: text("symbol").notNull(),
+  network: text("network").notNull(),
+  amount: real("amount").notNull(),
+  fee: real("fee").notNull().default(0),
+  netAmount: real("net_amount").notNull(),
+  toAddress: text("to_address").notNull(),
+  status: text("status").notNull().default("pending"),
+  txHash: text("tx_hash"),
+  adminId: varchar("admin_id").references(() => users.id),
+  adminNote: text("admin_note"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  completedAt: timestamp("completed_at"),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+});
+
+export const insertWithdrawalRequestSchema = createInsertSchema(withdrawalRequests).omit({
+  id: true,
+  requestedAt: true,
+  processedAt: true,
+  completedAt: true,
+  rejectedAt: true,
+});
+
+export type InsertWithdrawalRequest = z.infer<typeof insertWithdrawalRequestSchema>;
+export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+
+// Admin actions audit log
+export const adminActions = pgTable("admin_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adminId: varchar("admin_id").notNull().references(() => users.id),
+  targetUserId: varchar("target_user_id").references(() => users.id),
+  actionType: text("action_type").notNull(),
+  details: jsonb("details"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAdminActionSchema = createInsertSchema(adminActions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAdminAction = z.infer<typeof insertAdminActionSchema>;
+export type AdminAction = typeof adminActions.$inferSelect;
+
+// Network configuration for supported chains
+export const networkConfig = pgTable("network_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  network: text("network").notNull().unique(),
+  chainId: integer("chain_id"),
+  rpcUrl: text("rpc_url"),
+  explorerUrl: text("explorer_url"),
+  nativeSymbol: text("native_symbol").notNull(),
+  requiredConfirmations: integer("required_confirmations").notNull().default(3),
+  withdrawalFee: real("withdrawal_fee").notNull().default(0),
+  minWithdrawal: real("min_withdrawal").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNetworkConfigSchema = createInsertSchema(networkConfig).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertNetworkConfig = z.infer<typeof insertNetworkConfigSchema>;
+export type NetworkConfig = typeof networkConfig.$inferSelect;
+
+// Interest/reward payments
+export const interestPayments = pgTable("interest_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  symbol: text("symbol").notNull(),
+  amount: real("amount").notNull(),
+  ratePercent: real("rate_percent").notNull(),
+  principalAmount: real("principal_amount").notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  status: text("status").notNull().default("pending"),
+  ledgerEntryId: varchar("ledger_entry_id").references(() => ledgerEntries.id),
+  adminId: varchar("admin_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+});
+
+export const insertInterestPaymentSchema = createInsertSchema(interestPayments).omit({
+  id: true,
+  createdAt: true,
+  paidAt: true,
+});
+
+export type InsertInterestPayment = z.infer<typeof insertInterestPaymentSchema>;
+export type InterestPayment = typeof interestPayments.$inferSelect;
 
 // Legacy in-memory types for compatibility
 export interface MiningStats {
