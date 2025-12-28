@@ -24,6 +24,8 @@ interface DashboardProps {
   onWithdraw?: () => void;
   onOpenSettings?: () => void;
   onOpenProfile?: () => void;
+  onNavigateToInvest?: () => void;
+  onNavigateToSolo?: () => void;
   isLoggedIn?: boolean;
 }
 
@@ -36,6 +38,8 @@ export function Dashboard({
   onWithdraw,
   onOpenSettings,
   onOpenProfile,
+  onNavigateToInvest,
+  onNavigateToSolo,
   isLoggedIn = false
 }: DashboardProps) {
   const { convert, getSymbol } = useCurrency();
@@ -310,7 +314,13 @@ export function Dashboard({
       >
         <h2 className="text-lg font-semibold text-foreground mb-4 font-display">Premium Features</h2>
         <div className="space-y-3">
-          <GlassCard delay={0.6} className="p-4 hover-elevate cursor-pointer" glow="primary">
+          <GlassCard 
+            delay={0.6} 
+            className="p-4 hover-elevate cursor-pointer" 
+            glow="primary"
+            onClick={onNavigateToInvest}
+            data-testid="card-buy-hashpower"
+          >
             <div className="flex items-center gap-4">
               <motion.img 
                 src={serverMining}
@@ -329,7 +339,13 @@ export function Dashboard({
             </div>
           </GlassCard>
 
-          <GlassCard delay={0.65} className="p-4 hover-elevate cursor-pointer" glow="btc">
+          <GlassCard 
+            delay={0.65} 
+            className="p-4 hover-elevate cursor-pointer" 
+            glow="btc"
+            onClick={onNavigateToSolo}
+            data-testid="card-solo-mining-jackpot"
+          >
             <div className="flex items-center gap-4">
               <motion.img 
                 src={btcShop}

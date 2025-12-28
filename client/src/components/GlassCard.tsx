@@ -8,6 +8,7 @@ interface GlassCardProps {
   delay?: number;
   glow?: "btc" | "ltc" | "primary" | "none";
   variant?: "default" | "strong" | "subtle";
+  onClick?: () => void;
 }
 
 export function GlassCard({ 
@@ -16,7 +17,8 @@ export function GlassCard({
   animate = true, 
   delay = 0,
   glow = "none",
-  variant = "default"
+  variant = "default",
+  onClick
 }: GlassCardProps) {
   const glowClass = glow === "btc" ? "glass-glow-btc" : glow === "ltc" ? "glass-glow-ltc" : glow === "primary" ? "glass-glow-primary" : "";
   const variantClass = variant === "strong" ? "liquid-glass-strong" : variant === "subtle" ? "liquid-glass-subtle" : "";
@@ -30,6 +32,9 @@ export function GlassCard({
         glowClass,
         className
       )}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       <div className="relative z-10">
         {children}
