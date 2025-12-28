@@ -12,7 +12,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useToast } from "@/hooks/use-toast";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import type { WalletBalance, Transaction } from "@/lib/types";
+import type { WalletBalance, Transaction, MiningStats } from "@/lib/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +34,8 @@ interface DashboardProps {
   totalBalance: number;
   change24h: number;
   transactions?: Transaction[];
+  miningStats?: MiningStats;
+  activeContracts?: number;
   onDeposit?: () => void;
   onWithdraw?: () => void;
   onOpenSettings?: () => void;
@@ -55,6 +57,8 @@ export function Dashboard({
   totalBalance = 0, 
   change24h = 0,
   transactions = [],
+  miningStats,
+  activeContracts = 0,
   onDeposit, 
   onWithdraw,
   onOpenSettings,
@@ -72,11 +76,13 @@ export function Dashboard({
   const [hasRatedApp, setHasRatedApp] = useState(() => localStorage.getItem("hasRatedApp") === "true");
   const safeChange24h = change24h ?? 0;
   const isPositiveChange = safeChange24h >= 0;
-  const activeContracts = 0;
   const totalEarned = 0;
-  const miningPower = "0 TH/s";
   const daysActive = 0;
   const convertedBalance = convert(totalBalance);
+  
+  const hashRate = miningStats?.hashRate ?? 0;
+  const hashRateUnit = miningStats?.hashRateUnit ?? "TH/s";
+  const miningPower = hashRate > 0 ? `${hashRate} ${hashRateUnit}` : "0 TH/s";
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -458,35 +464,39 @@ export function Dashboard({
         transition={{ delay: 0.3 }}
         className="grid grid-cols-2 gap-3"
       >
-        <GlassCard delay={0.35} className="p-4 hover-elevate cursor-pointer" glow="primary">
-          <div className="flex flex-col items-center text-center gap-3">
-            <motion.img 
-              src={gpuMining}
-              alt="Hashrate"
-              className="w-14 h-14 object-contain"
-              whileHover={{ scale: 1.05 }}
-            />
-            <div>
-              <p className="text-2xl font-bold text-foreground font-display" data-testid="text-hash-power">{miningPower}</p>
-              <p className="text-xs text-muted-foreground">Hashrate</p>
+        <Link href="/mining">
+          <GlassCard delay={0.35} className="p-4 hover-elevate cursor-pointer" glow="primary" data-testid="card-hashrate">
+            <div className="flex flex-col items-center text-center gap-3">
+              <motion.img 
+                src={gpuMining}
+                alt="Hashrate"
+                className="w-14 h-14 object-contain"
+                whileHover={{ scale: 1.05 }}
+              />
+              <div>
+                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-hash-power">{miningPower}</p>
+                <p className="text-xs text-muted-foreground">Hashrate</p>
+              </div>
             </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        </Link>
 
-        <GlassCard delay={0.4} className="p-4 hover-elevate cursor-pointer">
-          <div className="flex flex-col items-center text-center gap-3">
-            <motion.img 
-              src={serverMining}
-              alt="Contracts"
-              className="w-14 h-14 object-contain"
-              whileHover={{ scale: 1.05 }}
-            />
-            <div>
-              <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContracts}</p>
-              <p className="text-xs text-muted-foreground">Active Contracts</p>
+        <Link href="/mining">
+          <GlassCard delay={0.4} className="p-4 hover-elevate cursor-pointer" data-testid="card-active-contracts">
+            <div className="flex flex-col items-center text-center gap-3">
+              <motion.img 
+                src={serverMining}
+                alt="Contracts"
+                className="w-14 h-14 object-contain"
+                whileHover={{ scale: 1.05 }}
+              />
+              <div>
+                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContracts}</p>
+                <p className="text-xs text-muted-foreground">Active Contracts</p>
+              </div>
             </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        </Link>
       </motion.div>
 
       <motion.div

@@ -158,6 +158,8 @@ function MobileApp() {
                 totalBalance={totalBalance}
                 change24h={change24h}
                 transactions={transactions}
+                miningStats={miningStats}
+                activeContracts={0}
                 onOpenSettings={() => setShowSettings(true)}
                 onOpenProfile={() => firebaseUser ? setShowSettings(true) : setAppView("auth")}
                 onNavigateToInvest={() => setActiveTab("invest")}
