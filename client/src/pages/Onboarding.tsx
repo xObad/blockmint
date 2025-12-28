@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Gem, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassCard } from "@/components/GlassCard";
+import { Link } from "wouter";
 
 import btcMine from "@assets/Bitcoin_Mine_1766014388617.png";
 import mixedMain from "@assets/Mixed_main_1766014388605.png";
@@ -170,6 +170,16 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
               </button>
             </motion.p>
           )}
+        </div>
+
+        <div className="mt-6 text-center">
+          <Link 
+            href="/privacy" 
+            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            data-testid="link-privacy-policy"
+          >
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </div>

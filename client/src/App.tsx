@@ -9,7 +9,7 @@ import { X } from "lucide-react";
 import { Switch, Route, Link } from "wouter";
 
 import { BottomNav, type TabType } from "@/components/BottomNav";
-import { IOSStatusBar, IOSHomeIndicator } from "@/components/IOSStatusBar";
+import { IOSStatusBar } from "@/components/IOSStatusBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Wallet } from "@/pages/Wallet";
 import { Invest } from "@/pages/Invest";
@@ -111,7 +111,6 @@ function MobileApp() {
       <>
         <IOSStatusBar />
         <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipToMain} />
-        <IOSHomeIndicator />
       </>
     );
   }
@@ -126,7 +125,6 @@ function MobileApp() {
           onModeChange={setAuthMode}
           onComplete={handleAuthComplete}
         />
-        <IOSHomeIndicator />
       </>
     );
   }
@@ -211,7 +209,6 @@ function MobileApp() {
       </main>
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <IOSHomeIndicator />
 
       <AnimatePresence>
         {showSettings && (
@@ -252,7 +249,6 @@ function MobileApp() {
                 }}
               />
             </div>
-            <IOSHomeIndicator />
           </motion.div>
         )}
       </AnimatePresence>

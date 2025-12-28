@@ -5,6 +5,7 @@ import { SiGoogle, SiApple } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { 
   signInWithGoogle, 
   signInWithApple, 
@@ -425,7 +426,14 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           </div>
 
           <p className="text-center text-xs text-muted-foreground/60 mt-auto pt-8">
-            By Continuing, You Agree To Our Terms Of Service And Privacy Policy
+            By Continuing, You Agree To Our{" "}
+            <Link 
+              href="/privacy" 
+              className="text-primary/80 hover:text-primary underline"
+              data-testid="link-privacy-policy"
+            >
+              Privacy Policy
+            </Link>
           </p>
         </motion.div>
         )}
