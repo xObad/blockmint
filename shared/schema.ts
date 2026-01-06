@@ -67,6 +67,127 @@ export const insertInvestmentPlanSchema = createInsertSchema(investmentPlans).om
 export type InsertInvestmentPlan = z.infer<typeof insertInvestmentPlanSchema>;
 export type InvestmentPlan = typeof investmentPlans.$inferSelect;
 
+// ============ EARN/YIELD PLANS (Binance-style) ============
+
+// Earn plan types (daily, weekly, monthly, quarterly, yearly)
+export const earnPlanTypes = pgTable("earn_plan_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(), // daily, weekly, monthly, quarterly, yearly
+  displayName: text("display_name").notNull(),
+  periodDays: integer("period_days").notNull(),
+  aprRate: real("apr_rate").notNull(), // Annual Percentage Rate
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertEarnPlanTypeSchema = createInsertSchema(earnPlanTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEarnPlanType = z.infer<typeof insertEarnPlanTypeSchema>;
+export type EarnPlanType = typeof earnPlanTypes.$inferSelect;
+
+// Earn plans for each cryptocurrency
+export const earnPlans = pgTable("earn_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  symbol: text("symbol").notNull(), // BTC, ETH, USDT, etc.
+  name: text("name").notNull(), // Bitcoin, Ethereum, etc.
+  icon: text("icon"), // Icon character or URL
+  colorPrimary: text("color_primary"), // Gradient start color
+  colorSecondary: text("color_secondary"), // Gradient end color
+  minAmount: real("min_amount").notNull().default(50),
+  maxAmount: real("max_amount"),
+  dailyApr: real("daily_apr").notNull().default(17.9),
+  weeklyApr: real("weekly_apr").notNull().default(18.0),
+  monthlyApr: real("monthly_apr").notNull().default(18.25),
+  quarterlyApr: real("quarterly_apr").notNull().default(18.7),
+  yearlyApr: real("yearly_apr").notNull().default(19.25),
+  isActive: boolean("is_active").notNull().default(true),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertEarnPlanSchema = createInsertSchema(earnPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEarnPlan = z.infer<typeof insertEarnPlanSchema>;
+export type EarnPlan = typeof earnPlans.$inferSelect;
+
+// User earn subscriptions (deposits)
+export const earnSubscriptions = pgTable("earn_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  planId: varchar("plan_id").notNull().references(() => earnPlans.id),
+  amount: real("amount").notNull(),
+  symbol: text("symbol").notNull(),
+  durationType: text("duration_type").notNull(), // daily, weekly, monthly, quarterly, yearly
+  aprRate: real("apr_rate").notNull(),
+  status: text("status").notNull().default("active"), // active, completed, withdrawn
+  totalEarned: real("total_earned").notNull().default(0),
+  lastEarningAt: timestamp("last_earning_at"),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  withdrawnAt: timestamp("withdrawn_at"),
+});
+
+export const insertEarnSubscriptionSchema = createInsertSchema(earnSubscriptions).omit({
+  id: true,
+  startDate: true,
+  totalEarned: true,
+  lastEarningAt: true,
+  withdrawnAt: true,
+});
+
+export type InsertEarnSubscription = z.infer<typeof insertEarnSubscriptionSchema>;
+export type EarnSubscription = typeof earnSubscriptions.$inferSelect;
+
+// Earn FAQs (admin-controlled)
+export const earnFaqs = pgTable("earn_faqs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertEarnFaqSchema = createInsertSchema(earnFaqs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEarnFaq = z.infer<typeof insertEarnFaqSchema>;
+export type EarnFaq = typeof earnFaqs.$inferSelect;
+
+// Earn page settings (trust badges, marketing content)
+export const earnPageSettings = pgTable("earn_page_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  type: text("type").notNull().default("string"), // string, json, number, boolean
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEarnPageSettingSchema = createInsertSchema(earnPageSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertEarnPageSetting = z.infer<typeof insertEarnPageSettingSchema>;
+export type EarnPageSetting = typeof earnPageSettings.$inferSelect;
+
 // User investments table
 export const investments = pgTable("investments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -479,3 +600,246 @@ export interface UserSettings {
   language: string;
   sessionTimeout: number;
 }
+
+// ============ NOTIFICATIONS SYSTEM ============
+
+// Notification types for users and admins
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  type: text("type").notNull(), // deposit, withdrawal, reward, daily_return, promotion, system, admin_alert
+  category: text("category").notNull().default("user"), // user, admin
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  data: jsonb("data"), // Additional data like txHash, amount, etc.
+  isRead: boolean("is_read").notNull().default(false),
+  priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
+// ============ SUPPORT TICKETS SYSTEM ============
+
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull().default("general"), // general, deposit, withdrawal, mining, technical, other
+  priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
+  status: text("status").notNull().default("open"), // open, in_progress, resolved, closed
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
+});
+
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+
+// Support ticket messages
+export const ticketMessages = pgTable("ticket_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  attachments: jsonb("attachments"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
+export type TicketMessage = typeof ticketMessages.$inferSelect;
+
+// ============ ADMIN CONFIGURATION SYSTEM (SaaS-Style) ============
+
+// API Keys and Service Configurations
+export const apiConfigs = pgTable("api_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: text("service_name").notNull().unique(), // blockchain_api, payment_gateway, firebase, messaging, etc.
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  apiKey: text("api_key"), // Encrypted
+  apiSecret: text("api_secret"), // Encrypted
+  endpoint: text("endpoint"),
+  additionalConfig: jsonb("additional_config"), // Extra config like webhookUrl, projectId, etc.
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  isRequired: boolean("is_required").notNull().default(false),
+  lastTestedAt: timestamp("last_tested_at"),
+  testStatus: text("test_status"), // success, failed, pending
+  category: text("category").notNull().default("other"), // blockchain, payment, messaging, analytics, other
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertApiConfigSchema = createInsertSchema(apiConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastTestedAt: true,
+});
+
+export type InsertApiConfig = z.infer<typeof insertApiConfigSchema>;
+export type ApiConfig = typeof apiConfigs.$inferSelect;
+
+// Feature Toggles for enabling/disabling app features
+export const featureToggles = pgTable("feature_toggles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  featureName: text("feature_name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  category: text("category").notNull().default("general"), // mining, wallet, social, admin, general
+  dependsOn: text("depends_on"), // Another feature this depends on
+  config: jsonb("config"), // Feature-specific configuration
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertFeatureToggleSchema = createInsertSchema(featureToggles).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertFeatureToggle = z.infer<typeof insertFeatureToggleSchema>;
+export type FeatureToggle = typeof featureToggles.$inferSelect;
+
+// Daily Returns Configuration
+export const dailyReturnConfig = pgTable("daily_return_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planId: varchar("plan_id").references(() => investmentPlans.id),
+  baseRate: real("base_rate").notNull().default(1), // Base daily return percentage
+  minRate: real("min_rate").notNull().default(0.5),
+  maxRate: real("max_rate").notNull().default(2),
+  isAutomatic: boolean("is_automatic").notNull().default(true),
+  processingTime: text("processing_time").notNull().default("00:00"), // UTC time for auto-processing
+  lastProcessedAt: timestamp("last_processed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+});
+
+export const insertDailyReturnConfigSchema = createInsertSchema(dailyReturnConfig).omit({
+  id: true,
+  updatedAt: true,
+  lastProcessedAt: true,
+});
+
+export type InsertDailyReturnConfig = z.infer<typeof insertDailyReturnConfigSchema>;
+export type DailyReturnConfig = typeof dailyReturnConfig.$inferSelect;
+
+// UI Theme Configuration
+export const themeConfig = pgTable("theme_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  colors: jsonb("colors").notNull(), // { primary, secondary, accent, background, etc. }
+  fonts: jsonb("fonts"), // { heading, body, mono }
+  isActive: boolean("is_active").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertThemeConfigSchema = createInsertSchema(themeConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertThemeConfig = z.infer<typeof insertThemeConfigSchema>;
+export type ThemeConfig = typeof themeConfig.$inferSelect;
+
+// Admin Emails Configuration (who can be admin)
+export const adminEmails = pgTable("admin_emails", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  role: text("role").notNull().default("admin"), // admin, super_admin
+  permissions: jsonb("permissions"), // Granular permissions
+  addedBy: varchar("added_by").references(() => users.id),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAdminEmailSchema = createInsertSchema(adminEmails).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAdminEmail = z.infer<typeof insertAdminEmailSchema>;
+export type AdminEmail = typeof adminEmails.$inferSelect;
+
+// Reward Rules for automated rewards
+export const rewardRules = pgTable("reward_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  triggerType: text("trigger_type").notNull(), // signup, deposit, referral, milestone, daily_login, etc.
+  triggerCondition: jsonb("trigger_condition"), // { minAmount: 100, currency: "USDT" }
+  rewardType: text("reward_type").notNull(), // bonus, hashpower, discount, free_plan
+  rewardAmount: real("reward_amount").notNull(),
+  rewardCurrency: text("reward_currency"),
+  maxRewardsPerUser: integer("max_rewards_per_user").default(1),
+  totalBudget: real("total_budget"),
+  usedBudget: real("used_budget").default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  validFrom: timestamp("valid_from"),
+  validUntil: timestamp("valid_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertRewardRuleSchema = createInsertSchema(rewardRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  usedBudget: true,
+});
+
+export type InsertRewardRule = z.infer<typeof insertRewardRuleSchema>;
+export type RewardRule = typeof rewardRules.$inferSelect;
+
+// User notification preferences
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  deposits: boolean("deposits").notNull().default(true),
+  withdrawals: boolean("withdrawals").notNull().default(true),
+  rewards: boolean("rewards").notNull().default(true),
+  dailyReturns: boolean("daily_returns").notNull().default(true),
+  promotions: boolean("promotions").notNull().default(true),
+  systemAlerts: boolean("system_alerts").notNull().default(true),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  pushNotifications: boolean("push_notifications").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;

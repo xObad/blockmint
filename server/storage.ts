@@ -48,9 +48,13 @@ export class MemStorage implements IStorage {
   private pools: MiningPool[];
   private chartData: ChartDataPoint[];
   private settings: UserSettings;
+  private balanceHistory: Map<number, number>; // timestamp -> total balance
+  private lastBalanceSnapshot: number; // timestamp of last 24h snapshot
 
   constructor() {
     this.users = new Map();
+    this.balanceHistory = new Map();
+    this.lastBalanceSnapshot = Date.now();
     
     this.miningStats = {
       hashRate: 0,
@@ -70,7 +74,7 @@ export class MemStorage implements IStorage {
         name: "Bitcoin",
         balance: 0,
         usdValue: 0,
-        change24h: 2.45,
+        change24h: 0,
         icon: "btc",
       },
       {
@@ -79,7 +83,7 @@ export class MemStorage implements IStorage {
         name: "Litecoin",
         balance: 0,
         usdValue: 0,
-        change24h: 3.12,
+        change24h: 0,
         icon: "ltc",
       },
       {
@@ -88,7 +92,7 @@ export class MemStorage implements IStorage {
         name: "Tether",
         balance: 0,
         usdValue: 0,
-        change24h: 0.01,
+        change24h: 0,
         icon: "usdt",
       },
       {
@@ -97,7 +101,7 @@ export class MemStorage implements IStorage {
         name: "USD Coin",
         balance: 0,
         usdValue: 0,
-        change24h: -0.02,
+        change24h: 0,
         icon: "usdc",
       },
     ];
@@ -228,6 +232,61 @@ export class MemStorage implements IStorage {
   }
 
   async getWalletBalances(): Promise<WalletBalance[]> {
+    // Track balance over time for 24h change calculation
+    const now = Date.now();
+    const currentTotal = this.balances.reduce((sum, b) => sum + b.usdValue, 0);
+    
+    // Store current balance snapshot
+    this.balanceHistory.set(now, currentTotal);
+    
+    // Clean up old history (keep only 25 hours of data)
+    const oneDayAgo = now - 25 * 60 * 60 * 1000;
+    for (const [timestamp] of this.balanceHistory) {
+      if (timestamp < oneDayAgo) {
+        this.balanceHistory.delete(timestamp);
+      }
+    }
+    
+    return [...this.balances];
+  }
+  
+  get24hChange(): number {
+    const now = Date.now();
+    const currentTotal = this.balances.reduce((sum, b) => sum + b.usdValue, 0);
+    
+    // If balance is zero, return 0% change
+    if (currentTotal === 0) {
+      return 0;
+    }
+    
+    // Find balance from 24 hours ago
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    let closestBalance = currentTotal;
+    let closestDiff = Infinity;
+    
+    for (const [timestamp, balance] of this.balanceHistory) {
+      const diff = Math.abs(timestamp - oneDayAgo);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestBalance = balance;
+      }
+    }
+    
+    // If we don't have 24h history yet, return 0
+    if (closestBalance === currentTotal && this.balanceHistory.size < 2) {
+      return 0;
+    }
+    
+    // Calculate percentage change
+    if (closestBalance === 0) {
+      return currentTotal > 0 ? 100 : 0;
+    }
+    
+    const change = ((currentTotal - closestBalance) / closestBalance) * 100;
+    return change;
+  }
+
+  async getWalletBalancesOld(): Promise<WalletBalance[]> {
     return [...this.balances];
   }
 

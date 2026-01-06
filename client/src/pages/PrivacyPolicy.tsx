@@ -53,7 +53,7 @@ export function PrivacyPolicy() {
           <GlassCard delay={0.15} className="p-5">
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Introduction</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Welcome to Mining Club ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our cryptocurrency hashpower mining application and related services. By using Mining Club, you consent to the data practices described in this policy.
+              Welcome to BlockMint ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our cryptocurrency hashpower mining application and related services. By using BlockMint, you consent to the data practices described in this policy.
             </p>
           </GlassCard>
 
@@ -143,7 +143,7 @@ export function PrivacyPolicy() {
           <GlassCard delay={0.6} className="p-5">
             <h2 className="text-lg font-semibold text-foreground mb-3">10. Children's Privacy</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Mining Club is not intended for individuals under the age of 18. We do not knowingly collect personal information from minors. If you believe a child has provided us with personal information, please contact us immediately and we will take steps to delete such information.
+              BlockMint is not intended for individuals under the age of 18. We do not knowingly collect personal information from minors. If you believe a child has provided us with personal information, please contact us immediately and we will take steps to delete such information.
             </p>
           </GlassCard>
 
@@ -158,7 +158,7 @@ export function PrivacyPolicy() {
             <h2 className="text-lg font-semibold text-foreground mb-3">12. Contact Us</h2>
             <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
               <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
-              <p><strong className="text-foreground">Mining Club</strong></p>
+              <p><strong className="text-foreground">BlockMint</strong></p>
               <p>Operated by Hardisk UAE Mining Farms</p>
               <p>Email: privacy@miningclub.pro</p>
               <p>Website: miningclub.pro</p>
@@ -173,7 +173,7 @@ export function PrivacyPolicy() {
           className="mt-8 text-center space-y-2"
         >
           <div className="flex items-center justify-center gap-1">
-            <span className="text-xs text-muted-foreground">Mining Club App By Hardisk UAE Mining Farms</span>
+            <span className="text-xs text-muted-foreground">BlockMint App By Hardisk UAE Mining Farms</span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
               ©
             </span>

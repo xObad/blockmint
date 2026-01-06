@@ -1,0 +1,24 @@
+{
+  "name": "BlockMint - Premium HashPower",
+  "short_name": "BlockMint",
+  "description": "Purchase Bitcoin and Litecoin Hashpower Contracts with BlockMint - High Performance Crypto Mining Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/attached_assets/App-Icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/attached_assets/App-Icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

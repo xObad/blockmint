@@ -4,9 +4,9 @@ import { ChevronRight, Gem, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
-import btcMine from "@assets/Bitcoin_Mine_1766014388617.png";
-import mixedMain from "@assets/Mixed_main_1766014388605.png";
-import serverMining from "@assets/Server_Mining_1766014388610.png";
+import btcMine from "@assets/Bitcoin_Mine_1766014388617.webp";
+import mixedMain from "@assets/Mixed_main_1766014388605.webp";
+import serverMining from "@assets/Server_Mining_1766014388610.webp";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -17,7 +17,7 @@ interface OnboardingProps {
 const onboardingPages = [
   {
     id: 1,
-    title: "Welcome to Mining Club",
+    title: "Welcome to BlockMint",
     subtitle: "The Future of Bitcoin Mining",
     description: "Purchase hashpower contracts and earn Bitcoin passively. No hardware required, no electricity bills.",
     image: mixedMain,
@@ -55,6 +55,12 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
     }
   };
 
+  const handlePrevious = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   const page = onboardingPages[currentPage];
   const Icon = page.icon;
 
@@ -68,7 +74,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-16 pb-8">
         <div className="flex items-center justify-between mb-8">
-          <span className="font-display text-lg font-bold text-foreground">Mining Club</span>
+          <span className="font-display text-lg font-bold text-foreground">BlockMint</span>
           <button
             onClick={() => onSkip ? onSkip() : onSignIn()}
             className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
@@ -82,12 +88,26 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
 
         <AnimatePresence mode="wait">
           <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, { offset, velocity }) => {
+              const swipe = Math.abs(offset.x) * velocity.x;
+
+              if (swipe < -10000) {
+                // Swiped left (next page)
+                handleNext();
+              } else if (swipe > 10000) {
+                // Swiped right (previous page)
+                handlePrevious();
+              }
+            }}
             key={currentPage}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
             <div className="flex-1 flex flex-col items-center justify-center">
               <motion.div 

@@ -4,30 +4,30 @@
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0,0,0, .15);
+  --badge-outline: rgba(0,0,0, .10);
   --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0,0,0, .05);
+  --elevate-2: rgba(0,0,0, .10);
   --background: 240 5% 96%;
   --foreground: 240 6% 10%;
-  --border: 240 5% 89%;
+  --border: 240 10% 65%;
   --card: 240 5% 94%;
   --card-foreground: 240 6% 10%;
-  --card-border: 240 5% 87%;
+  --card-border: 240 10% 60%;
   --sidebar: 240 5% 92%;
   --sidebar-foreground: 240 6% 10%;
-  --sidebar-border: 240 5% 85%;
-  --sidebar-primary: 271 91% 65%;
-  --sidebar-primary-foreground: 271 20% 98%;
+  --sidebar-border: 240 10% 58%;
+  --sidebar-primary: 160 70% 45%;
+  --sidebar-primary-foreground: 160 20% 98%;
   --sidebar-accent: 240 6% 88%;
   --sidebar-accent-foreground: 240 6% 10%;
-  --sidebar-ring: 271 91% 65%;
+  --sidebar-ring: 160 70% 45%;
   --popover: 240 5% 90%;
   --popover-foreground: 240 6% 10%;
-  --popover-border: 240 5% 83%;
-  --primary: 271 91% 65%;
-  --primary-foreground: 271 20% 98%;
+  --popover-border: 240 10% 55%;
+  --primary: 160 70% 45%;
+  --primary-foreground: 160 20% 98%;
   --secondary: 240 6% 86%;
   --secondary-foreground: 240 6% 10%;
   --muted: 240 6% 88%;
@@ -36,9 +36,9 @@
   --accent-foreground: 240 6% 10%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 20% 98%;
-  --input: 240 6% 75%;
-  --ring: 271 91% 65%;
-  --chart-1: 271 91% 45%;
+  --input: 240 10% 70%;
+  --ring: 160 70% 45%;
+  --chart-1: 160 70% 45%;
   --chart-2: 195 92% 45%;
   --chart-3: 142 76% 42%;
   --chart-4: 43 96% 56%;
@@ -103,27 +103,27 @@
   --sidebar: 240 18% 6%;
   --sidebar-foreground: 240 5% 96%;
   --sidebar-border: 240 10% 14%;
-  --sidebar-primary: 217 91% 60%;
-  --sidebar-primary-foreground: 217 20% 98%;
+  --sidebar-primary: 160 70% 45%;
+  --sidebar-primary-foreground: 160 20% 98%;
   --sidebar-accent: 240 12% 12%;
   --sidebar-accent-foreground: 240 5% 96%;
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-ring: 160 70% 45%;
   --popover: 240 15% 8%;
   --popover-foreground: 240 5% 96%;
   --popover-border: 240 10% 14%;
-  --primary: 217 91% 60%;
-  --primary-foreground: 217 20% 98%;
+  --primary: 160 70% 45%;
+  --primary-foreground: 160 20% 98%;
   --secondary: 240 12% 14%;
   --secondary-foreground: 240 5% 96%;
   --muted: 240 12% 12%;
   --muted-foreground: 240 5% 60%;
-  --accent: 216 51% 41%;
-  --accent-foreground: 216 20% 98%;
+  --accent: 160 60% 40%;
+  --accent-foreground: 160 20% 98%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 20% 98%;
   --input: 240 10% 20%;
-  --ring: 217 91% 60%;
-  --chart-1: 217 91% 60%;
+  --ring: 160 70% 45%;
+  --chart-1: 160 70% 45%;
   --chart-2: 199 89% 48%;
   --chart-3: 142 76% 50%;
   --chart-4: 217 91% 70%;
@@ -183,6 +183,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Mobile-first: prevent horizontal scrolling */
+    overflow-x: hidden;
+    /* Set viewport to mobile */
+    max-width: 100vw;
   }
 
   body {
@@ -192,6 +196,21 @@
     text-rendering: optimizeLegibility;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    /* Mobile-first: center content and constrain width */
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0 auto;
+  }
+
+  /* Mobile viewport container - applies to ALL pages */
+  #root {
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0 auto;
+    /* Center on desktop, full width on mobile */
+    @media (min-width: 768px) {
+      max-width: 430px; /* iPhone 14 Pro Max width */
+    }
   }
 
   img {
@@ -335,12 +354,7 @@
 
   .liquid-glass {
     position: relative;
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.08) 0%,
-      rgba(255, 255, 255, 0.03) 50%,
-      rgba(255, 255, 255, 0.06) 100%
-    );
+    background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(var(--glass-blur, 24px));
     -webkit-backdrop-filter: blur(var(--glass-blur, 24px));
     border: 1px solid transparent;
@@ -354,38 +368,68 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* Light mode - solid white cards with visible borders */
+  :root:not(.dark) .liquid-glass,
+  .light .liquid-glass {
+    background: rgba(255, 255, 255, 0.90) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    box-shadow: 
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Light mode - strong variant */
+  :root:not(.dark) .liquid-glass-strong,
+  .light .liquid-glass-strong {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.10),
+      0 2px 4px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Light mode - subtle variant */
+  :root:not(.dark) .liquid-glass-subtle,
+  .light .liquid-glass-subtle {
+    background: rgba(255, 255, 255, 0.87) !important;
+    border: 1px solid hsl(var(--border) / 0.8) !important;
+    box-shadow: 
+      0 2px 6px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
+  }
+
   .liquid-glass::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      transparent 30%
-    );
+    background: transparent;
     pointer-events: none;
     z-index: 1;
   }
 
+  /* Dark mode ::before - remove gradient */
+  .dark .liquid-glass::before {
+    background: transparent;
+  }
+
+  /* Light mode - hide the ::before overlay */
+  :root:not(.dark) .liquid-glass::before,
+  .light .liquid-glass::before {
+    display: none;
+  }
+
   .liquid-glass-strong {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.12) 0%,
-      rgba(255, 255, 255, 0.04) 50%,
-      rgba(255, 255, 255, 0.08) 100%
-    );
+    background: rgba(255, 255, 255, 0.10);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
   }
 
   .liquid-glass-subtle {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.01) 50%,
-      rgba(255, 255, 255, 0.03) 100%
-    );
+    background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
@@ -422,14 +466,81 @@
   }
 }
 
-/* Prevent horizontal scrolling on mobile */
+/* Prevent horizontal scrolling on mobile - ENFORCED */
 html, body {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+  position: relative;
+  /* Support for safe area insets */
+  viewport-fit: cover;
+}
+
+#root {
+  overflow-x: hidden !important;
   max-width: 100vw;
   position: relative;
 }
 
-#root {
-  overflow-x: hidden;
-  max-width: 100vw;
+/* Admin panel needs full width for wide tables/forms */
+html.admin-mode,
+body.admin-mode,
+#root.admin-mode {
+  max-width: 100vw !important;
+  overflow-x: auto !important;
+  box-shadow: none !important;
 }
+
+/* Mobile-first: All content containers constrained to mobile width */
+.mobile-container {
+  max-width: 100vw;
+  margin: 0 auto;
+}
+
+/* On desktop, center content at mobile width */
+@media (min-width: 768px) {
+  #root {
+    max-width: 430px !important; /* iPhone 14 Pro Max width */
+    margin: 0 auto;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Safe area inset support for iOS 11+ and Android devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(env(safe-area-inset-left, 0), 0);
+    padding-right: max(env(safe-area-inset-right, 0), 0);
+  }
+}
+
+/* Padding utilities for safe areas */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 1rem), 1rem);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0), 0);
+}
+
+.px-safe {
+  padding-left: max(env(safe-area-inset-left, 1rem), 1rem);
+  padding-right: max(env(safe-area-inset-right, 1rem), 1rem);
+}
+
+/* Additional safe area utilities */
+.top-safe {
+  top: max(env(safe-area-inset-top, 0), 0);
+}
+
+.bottom-safe {
+  bottom: max(env(safe-area-inset-bottom, 0), 0);
+}
+
+.left-safe {
+  left: max(env(safe-area-inset-left, 0), 0);
+}
+
+.right-safe {
+  right: max(env(safe-area-inset-right, 0), 0);
+}
+

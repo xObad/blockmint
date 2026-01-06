@@ -59,8 +59,8 @@ export function Referral() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join Mining Club",
-          text: `Join Mining Club and start earning Bitcoin! Use my referral code: ${referralCode}`,
+          title: "Join BlockMint",
+          text: `Join BlockMint and start earning Bitcoin! Use my referral code: ${referralCode}`,
           url: referralLink,
         });
       } catch {
@@ -131,11 +131,11 @@ export function Referral() {
             </div>
             
             <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="text-center p-3 rounded-xl border border-white/10">
                 <p className="text-2xl font-bold text-foreground" data-testid="text-my-referrals">{myReferrals}</p>
                 <p className="text-xs text-muted-foreground">Your Referrals</p>
               </div>
-              <div className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="text-center p-3 rounded-xl border border-white/10">
                 <p className="text-2xl font-bold text-emerald-400" data-testid="text-my-earnings">{getSymbol()}{convert(myEarnings).toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Total Earned</p>
               </div>
@@ -146,7 +146,7 @@ export function Referral() {
         <GlassCard delay={0.15} className="p-5">
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">Your Referral Link</h3>
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center gap-2 p-3 rounded-xl border border-white/10">
               <input
                 type="text"
                 value={referralLink}
@@ -198,15 +198,15 @@ export function Referral() {
                   key={referrer.rank}
                   className={`flex items-center gap-3 p-3 rounded-xl ${
                     referrer.rank === 1 
-                      ? 'bg-gradient-to-r from-amber-500/20 to-amber-500/5 border border-amber-500/20' 
-                      : 'bg-white/5 border border-white/10'
+                      ? 'border border-amber-500/20' 
+                      : 'border border-white/10'
                   }`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 + index * 0.1 }}
                   data-testid={`leaderboard-entry-${referrer.rank}`}
                 >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center">
                     {getRankIcon(referrer.rank)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -236,7 +236,7 @@ export function Referral() {
           <GlassCard delay={0.3} className="p-5">
             <div className="space-y-4">
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
                   <span className="text-sm font-bold text-primary">1</span>
                 </div>
                 <div>
@@ -245,7 +245,7 @@ export function Referral() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
                   <span className="text-sm font-bold text-primary">2</span>
                 </div>
                 <div>
@@ -254,7 +254,7 @@ export function Referral() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
                   <span className="text-sm font-bold text-primary">3</span>
                 </div>
                 <div>
@@ -263,7 +263,7 @@ export function Referral() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
                   <DollarSign className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>

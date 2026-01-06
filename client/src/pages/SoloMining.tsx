@@ -14,6 +14,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { useBTCPrice } from "@/hooks/useBTCPrice";
 import {
   Accordion,
   AccordionContent,
@@ -21,9 +22,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import btcMine from "@assets/Bitcoin_Mine_1766014388617.png";
+import btcMine from "@assets/Bitcoin_Mine_1766014388617.webp";
 import btcCoin from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
-import serverMining from "@assets/Server_Mining_1766014388610.png";
+import serverMining from "@assets/Server_Mining_1766014388610.webp";
 
 const COST_PER_PH_PER_MONTH = 850;
 const NETWORK_HASHRATE_EH = 650;
@@ -79,6 +80,7 @@ function FloatingParticle({ delay, x, duration }: { delay: number; x: number; du
 export function SoloMining() {
   const [hashpower, setHashpower] = useState([50]);
   const [duration, setDuration] = useState([6]);
+  const { btcPrice } = useBTCPrice();
 
   const calculations = useMemo(() => {
     const ph = hashpower[0];
@@ -199,11 +201,11 @@ export function SoloMining() {
             </div>
             
             <Badge 
-              className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border-green-500/30"
+              className="bg-primary/10 text-primary border-primary/30 font-semibold"
               data-testid="badge-potential-value"
             >
               <Sparkles className="w-3 h-3 mr-1" />
-              ~$180,000 Value
+              ~${(btcPrice * 3).toLocaleString(undefined, { maximumFractionDigits: 0 })} Value
             </Badge>
           </div>
           
@@ -216,7 +218,7 @@ export function SoloMining() {
               className="mb-6"
             >
               <Badge 
-                className="w-full justify-center py-2 bg-gradient-to-r from-emerald-500/30 via-teal-500/30 to-emerald-500/30 text-emerald-300 border-emerald-400/50 font-semibold"
+                className="w-full justify-center py-2 bg-primary/20 text-primary border-primary/40 font-semibold"
                 data-testid="badge-recommended"
               >
                 <Award className="w-4 h-4 mr-2" />

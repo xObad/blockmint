@@ -11,7 +11,6 @@ import { X } from "lucide-react";
 import { Switch, Route, Link } from "wouter";
 
 import { BottomNav, type TabType } from "@/components/BottomNav";
-import { IOSStatusBar } from "@/components/IOSStatusBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Wallet } from "@/pages/Wallet";
 import { Invest } from "@/pages/Invest";
@@ -48,6 +47,9 @@ function MobileApp() {
     pools,
     settings,
     chartData,
+    portfolioHistory,
+    contracts,
+    poolStatus,
     totalBalance,
     change24h,
     isPending,
@@ -115,38 +117,34 @@ function MobileApp() {
 
   if (appView === "onboarding") {
     return (
-      <>
-        <IOSStatusBar />
+      <div className="min-h-screen">
         <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipToMain} />
-      </>
+      </div>
     );
   }
 
   if (appView === "auth") {
     return (
-      <>
-        <IOSStatusBar />
+      <div className="min-h-screen">
         <AuthPage 
           mode={authMode}
           onBack={() => setAppView("onboarding")}
           onModeChange={setAuthMode}
           onComplete={handleAuthComplete}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      <IOSStatusBar />
-      
+    <div className="min-h-screen bg-background overflow-x-hidden safe-area-inset">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
       </div>
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-16 pb-48">
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-safe pb-48">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
@@ -160,6 +158,7 @@ function MobileApp() {
                 transactions={transactions}
                 miningStats={miningStats}
                 activeContracts={0}
+                portfolioHistory={portfolioHistory}
                 onOpenSettings={() => setShowSettings(true)}
                 onOpenProfile={() => firebaseUser ? setShowSettings(true) : setAppView("auth")}
                 onNavigateToInvest={() => setActiveTab("invest")}
@@ -191,6 +190,8 @@ function MobileApp() {
             <Mining
               key="mining"
               chartData={chartData}
+              contracts={contracts}
+              poolStatus={poolStatus}
               onNavigateToInvest={() => setActiveTab("invest")}
             />
           )}
@@ -200,8 +201,18 @@ function MobileApp() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="mt-12 text-center space-y-4"
+          className="mt-12 text-center space-y-4 pb-safe"
         >
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/attached_assets/BlockMint-for-All.png" 
+              alt="BlockMint" 
+              className="h-8 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
           <div className="flex items-center justify-center gap-4">
             <a
               href="https://x.com/miningclub"
@@ -224,7 +235,7 @@ function MobileApp() {
           </div>
           <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
           <div className="flex items-center justify-center gap-1">
-            <span className="text-xs text-muted-foreground">Mining Club App By Hardisk UAE Mining Farms</span>
+            <span className="text-xs text-muted-foreground">BlockMint App By Hardisk UAE Mining Farms</span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
               ©
             </span>
@@ -242,20 +253,19 @@ function MobileApp() {
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            className="fixed inset-0 z-50 flex flex-col bg-background"
+            className="fixed inset-0 z-50 flex flex-col bg-background safe-area-inset"
             initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
-            <IOSStatusBar />
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
-              <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
+              <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
             </div>
-            <div className="relative z-10 flex items-center justify-between px-4 pt-16 pb-4">
-              <h1 className="text-xl font-bold text-foreground font-display">Mining Club</h1>
+            <div className="relative z-10 flex items-center justify-between px-4 pt-safe pb-4">
+              <h1 className="text-xl font-bold text-foreground font-display">BlockMint</h1>
               <motion.button
                 data-testid="button-close-settings"
                 onClick={() => setShowSettings(false)}
@@ -272,9 +282,9 @@ function MobileApp() {
                 user={firebaseUser}
                 onLogout={async () => {
                   await logOut();
-                  localStorage.removeItem("isLoggedIn");
+                  localStorage.clear(); // Clear all local storage including onboarding flag
                   setShowSettings(false);
-                  setAppView("auth");
+                  setAppView("onboarding"); // Return to splash screens
                 }}
               />
             </div>

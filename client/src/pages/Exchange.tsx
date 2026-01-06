@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -24,15 +25,6 @@ import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_17
 import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
 
 type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
-
-const cryptoPrices: Record<CryptoType, number> = {
-  BTC: 98500,
-  LTC: 125,
-  ETH: 3450,
-  USDT: 1,
-  USDC: 1,
-  TON: 5.20,
-};
 
 const cryptoConfig: Record<CryptoType, { name: string; color: string; iconBg: string }> = {
   BTC: { name: "Bitcoin", color: "text-amber-400", iconBg: "bg-amber-500/20" },
@@ -53,20 +45,28 @@ const logoMap: Record<string, string> = {
 interface ExchangeRate {
   from: CryptoType;
   to: CryptoType;
-  rate: number;
-  change24h: number;
 }
 
 const popularPairs: ExchangeRate[] = [
-  { from: "BTC", to: "USDT", rate: 98500, change24h: 2.34 },
-  { from: "ETH", to: "USDT", rate: 3450, change24h: -1.23 },
-  { from: "BTC", to: "ETH", rate: 28.55, change24h: 0.78 },
-  { from: "LTC", to: "USDT", rate: 125, change24h: 1.56 },
+  { from: "BTC", to: "USDT" },
+  { from: "ETH", to: "USDT" },
+  { from: "BTC", to: "ETH" },
+  { from: "LTC", to: "USDT" },
 ];
 
 export default function Exchange() {
   const { toast } = useToast();
   const { currency, getSymbol, convert } = useCurrency();
+  const { prices: cryptoPricesData } = useCryptoPrices();
+
+  const cryptoPrices: Record<CryptoType, number> = {
+    BTC: cryptoPricesData.BTC?.price || 98500,
+    LTC: cryptoPricesData.LTC?.price || 125,
+    ETH: cryptoPricesData.ETH?.price || 3450,
+    USDT: cryptoPricesData.USDT?.price || 1,
+    USDC: cryptoPricesData.USDC?.price || 1,
+    TON: cryptoPricesData.TON?.price || 5.2,
+  };
   
   const [exchangeFrom, setExchangeFrom] = useState<CryptoType>("BTC");
   const [exchangeTo, setExchangeTo] = useState<CryptoType>("USDT");
@@ -385,11 +385,30 @@ export default function Exchange() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{getSymbol()}{convert(pair.rate).toLocaleString()}</p>
-                    <p className={cn("text-xs flex items-center gap-1 justify-end", pair.change24h >= 0 ? "text-emerald-400" : "text-red-400")}>
-                      {pair.change24h >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {pair.change24h >= 0 ? "+" : ""}{pair.change24h}%
-                    </p>
+                    {(() => {
+                      const change24h = cryptoPricesData[pair.from]?.change24h ?? 0;
+                      const isStableQuote = pair.to === "USDT" || pair.to === "USDC";
+                      const rate = isStableQuote
+                        ? cryptoPrices[pair.from]
+                        : (cryptoPrices[pair.from] / cryptoPrices[pair.to]);
+
+                      return (
+                        <>
+                          <p className="font-medium">
+                            {isStableQuote
+                              ? `${getSymbol()}${convert(rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                              : `1 ${pair.from} = ${rate.toFixed(6)} ${pair.to}`}
+                          </p>
+                          <p className={cn(
+                            "text-xs flex items-center gap-1 justify-end",
+                            change24h >= 0 ? "text-emerald-400" : "text-red-400"
+                          )}>
+                            {change24h >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {change24h >= 0 ? "+" : ""}{change24h.toFixed(2)}%
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </GlassCard>

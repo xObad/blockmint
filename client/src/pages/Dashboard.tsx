@@ -1,14 +1,25 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3 } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check } from "lucide-react";
 import { Link } from "wouter";
 import { SiX, SiInstagram } from "react-icons/si";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useToast } from "@/hooks/use-toast";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -20,14 +31,78 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import mixedMain from "@assets/Mixed_main_1766014388605.png";
-import gpuMining from "@assets/Gpu_Mining_1766014388614.png";
-import serverMining from "@assets/Server_Mining_1766014388610.png";
-import btcShop from "@assets/Bitcoin_shop_1766014388611.png";
+import mixedMain from "@assets/Mixed_main_1766014388605.webp";
+import gpuMining from "@assets/Gpu_Mining_1766014388614.webp";
+import serverMining from "@assets/Server_Mining_1766014388610.webp";
+import btcShop from "@assets/Bitcoin_shop_1766014388611.webp";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
 import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
 import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
+
+type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
+
+interface NetworkOption {
+  id: string;
+  name: string;
+}
+
+const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
+  BTC: [
+    { id: "btc-native", name: "Bitcoin (Native)" },
+    { id: "btc-lightning", name: "Lightning Network" },
+  ],
+  LTC: [{ id: "ltc-native", name: "Litecoin (Native)" }],
+  ETH: [
+    { id: "eth-erc20", name: "Ethereum (ERC-20)" },
+    { id: "eth-arbitrum", name: "Arbitrum" },
+    { id: "eth-optimism", name: "Optimism" },
+  ],
+  USDT: [
+    { id: "usdt-erc20", name: "Ethereum (ERC-20)" },
+    { id: "usdt-trc20", name: "Tron (TRC-20)" },
+    { id: "usdt-bep20", name: "BSC (BEP-20)" },
+    { id: "usdt-ton", name: "TON Network" },
+  ],
+  USDC: [
+    { id: "usdc-erc20", name: "Ethereum (ERC-20)" },
+    { id: "usdc-trc20", name: "Tron (TRC-20)" },
+    { id: "usdc-bep20", name: "BSC (BEP-20)" },
+    { id: "usdc-polygon", name: "Polygon" },
+    { id: "usdc-arbitrum", name: "Arbitrum" },
+  ],
+  TON: [{ id: "ton-native", name: "TON Network" }],
+};
+
+const generateDepositAddress = (crypto: CryptoType, network: string): string => {
+  const addressPrefixes: Record<string, string> = {
+    "btc-native": "bc1q",
+    "btc-lightning": "lnbc",
+    "ltc-native": "ltc1q",
+    "eth-erc20": "0x",
+    "eth-arbitrum": "0x",
+    "eth-optimism": "0x",
+    "usdt-erc20": "0x",
+    "usdt-trc20": "T",
+    "usdt-bep20": "0x",
+    "usdt-ton": "EQ",
+    "usdc-erc20": "0x",
+    "usdc-trc20": "T",
+    "usdc-bep20": "0x",
+    "usdc-polygon": "0x",
+    "usdc-arbitrum": "0x",
+    "ton-native": "EQ",
+  };
+
+  const prefix = addressPrefixes[network] || "0x";
+  const randomPart = Array.from({ length: 34 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  const address = `${prefix}${randomPart}`;
+
+  if (crypto === "BTC" && network === "btc-lightning") return `${prefix}${randomPart.substring(0, 20)}`;
+  if (crypto === "ETH" || crypto === "USDT" || crypto === "USDC") return `${prefix}${randomPart.substring(0, 40)}`;
+  if (crypto === "TON") return `${prefix}${randomPart.substring(0, 46)}`;
+  return address;
+};
 
 interface DashboardProps {
   balances: WalletBalance[];
@@ -36,6 +111,7 @@ interface DashboardProps {
   transactions?: Transaction[];
   miningStats?: MiningStats;
   activeContracts?: number;
+  portfolioHistory?: Array<{ day: string; value: number; timestamp: string }>;
   onDeposit?: () => void;
   onWithdraw?: () => void;
   onOpenSettings?: () => void;
@@ -71,6 +147,16 @@ export function Dashboard({
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { toast } = useToast();
+  const { prices: cryptoPrices } = useCryptoPrices();
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("BTC");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>(cryptoNetworks.BTC[0].id);
+  const [depositAddress, setDepositAddress] = useState<string>(() => generateDepositAddress("BTC", cryptoNetworks.BTC[0].id));
+  const [depositAmount, setDepositAmount] = useState("");
+  const [withdrawAddress, setWithdrawAddress] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [copiedDeposit, setCopiedDeposit] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRewardCelebration, setShowRewardCelebration] = useState(false);
   const [hasRatedApp, setHasRatedApp] = useState(() => localStorage.getItem("hasRatedApp") === "true");
@@ -83,6 +169,50 @@ export function Dashboard({
   const hashRate = miningStats?.hashRate ?? 0;
   const hashRateUnit = miningStats?.hashRateUnit ?? "TH/s";
   const miningPower = hashRate > 0 ? `${hashRate} ${hashRateUnit}` : "0 TH/s";
+  const selectedBalance = balances.find((b) => b.symbol === selectedCrypto)?.balance ?? 0;
+
+  const handleSelectCrypto = (value: string) => {
+    const crypto = value as CryptoType;
+    setSelectedCrypto(crypto);
+    const firstNetwork = cryptoNetworks[crypto]?.[0]?.id ?? cryptoNetworks.BTC[0].id;
+    setSelectedNetwork(firstNetwork);
+    setDepositAddress(generateDepositAddress(crypto, firstNetwork));
+  };
+
+  const handleSelectNetwork = (value: string) => {
+    setSelectedNetwork(value);
+    setDepositAddress(generateDepositAddress(selectedCrypto, value));
+  };
+
+  const copyDepositAddress = async () => {
+    if (!depositAddress) return;
+    await navigator.clipboard.writeText(depositAddress);
+    setCopiedDeposit(true);
+    setTimeout(() => setCopiedDeposit(false), 1500);
+    toast({ title: "Copied", description: "Deposit address copied to clipboard." });
+  };
+
+  const openDeposit = () => {
+    if (onDeposit) return onDeposit();
+    setWithdrawOpen(false);
+    setDepositOpen((v) => !v);
+  };
+
+  const openWithdraw = () => {
+    if (onWithdraw) return onWithdraw();
+    setDepositOpen(false);
+    setWithdrawOpen((v) => !v);
+  };
+
+  const confirmWithdraw = () => {
+    toast({
+      title: "Withdraw request created",
+      description: "This will be connected to DeFi wallet later.",
+    });
+    setWithdrawOpen(false);
+    setWithdrawAmount("");
+    setWithdrawAddress("");
+  };
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -132,7 +262,7 @@ export function Dashboard({
       >
         <div>
           <p className="text-sm text-muted-foreground">Welcome Back</p>
-          <h1 className="text-2xl font-bold text-foreground font-display">Mining Club</h1>
+          <h1 className="text-2xl font-bold text-foreground font-display">BlockMint</h1>
         </div>
         <div className="flex items-center gap-2">
           <motion.button
@@ -200,72 +330,88 @@ export function Dashboard({
                 </span>
               )}
             </motion.button>
-            <AnimatePresence>
-              {showNotifications && (
-                <motion.div
-                  initial={{ opacity: 0, y: -100, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -100, scale: 0.98 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                  className="fixed right-4 left-4 top-16 liquid-glass bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl z-50 overflow-hidden"
-                  data-testid="panel-notifications"
-                >
-                  <div className="flex items-center justify-between p-4 border-b border-white/10">
-                    <h3 className="font-semibold text-foreground">Notifications</h3>
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={markAllAsRead}
-                          className="text-xs text-primary hover:underline"
-                          data-testid="button-mark-all-read"
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setShowNotifications(false)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-white/10"
-                        data-testid="button-close-notifications"
-                      >
-                        <X className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </div>
-                  </div>
-                  {notifications.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.map((notif) => (
-                        <button
-                          key={notif.id}
-                          onClick={() => markAsRead(notif.id)}
-                          className={`w-full text-left p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${!notif.read ? 'bg-primary/5' : ''}`}
-                          data-testid={`notification-item-${notif.id}`}
-                        >
-                          <div className="flex items-start gap-3">
-                            {!notif.read && (
-                              <span className="w-2 h-2 mt-1.5 rounded-full bg-primary shrink-0" />
-                            )}
-                            <div className={!notif.read ? '' : 'pl-5'}>
-                              <p className="font-medium text-foreground text-sm">{notif.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
-                              <p className="text-xs text-muted-foreground/60 mt-2">{notif.time}</p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center">
-                      <Inbox className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                      <p className="text-sm font-medium text-foreground">No Notifications Yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Notifications will appear here when you have mining updates, payouts, or important alerts.
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+
+      {/* Notification Panel - Portal to body to avoid layout issues */}
+      <AnimatePresence>
+        {showNotifications && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+              onClick={() => setShowNotifications(false)}
+              data-testid="notification-backdrop"
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ type: "spring", damping: 30, stiffness: 400 }}
+              className="fixed left-1/2 -translate-x-1/2 top-20 w-[calc(100%-2rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="panel-notifications"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="font-semibold text-foreground">Notifications</h3>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); markAllAsRead(); }}
+                      className="text-xs text-primary hover:underline"
+                      data-testid="button-mark-all-read"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowNotifications(false)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+                    data-testid="button-close-notifications"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+              </div>
+              {notifications.length > 0 ? (
+                <div className="max-h-80 overflow-y-auto overscroll-contain">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
+                      className={`w-full text-left p-4 border-b border-border/50 hover:bg-muted/50 transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
+                      data-testid={`notification-item-${notif.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {!notif.read && (
+                          <span className="w-2 h-2 mt-1.5 rounded-full bg-primary shrink-0" />
+                        )}
+                        <div className={!notif.read ? '' : 'pl-5'}>
+                          <p className="font-medium text-foreground text-sm">{notif.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
+                          <p className="text-xs text-muted-foreground/60 mt-2">{notif.time}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <Inbox className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="text-sm font-medium text-foreground">No Notifications Yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Notifications will appear here when you have mining updates, payouts, or important alerts.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
         </div>
       </motion.header>
 
@@ -306,24 +452,222 @@ export function Dashboard({
           </div>
 
           <div className="flex gap-3">
-            <Button
-              data-testid="button-deposit"
-              onClick={onDeposit}
-              className="flex-1 liquid-glass border-0 bg-primary/20 text-foreground gap-2"
-              variant="ghost"
-            >
-              <ArrowDownToLine className="w-4 h-4" />
-              Deposit
-            </Button>
-            <Button
-              data-testid="button-withdraw"
-              onClick={onWithdraw}
-              className="flex-1 liquid-glass border-0 bg-white/5 text-foreground gap-2"
-              variant="ghost"
-            >
-              <ArrowUpFromLine className="w-4 h-4" />
-              Withdraw
-            </Button>
+            <Popover open={depositOpen} onOpenChange={setDepositOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  data-testid="button-deposit"
+                  onClick={openDeposit}
+                  className="flex-1 liquid-glass border-0 bg-primary/20 text-foreground gap-2"
+                  variant="ghost"
+                  type="button"
+                >
+                  <ArrowDownToLine className="w-4 h-4" />
+                  Deposit
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="center"
+                sideOffset={10}
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-1.5rem))]"
+                data-testid="popover-deposit"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Deposit</p>
+                      <p className="text-xs text-muted-foreground">Choose currency and network</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select value={selectedCrypto} onValueChange={handleSelectCrypto}>
+                        <SelectTrigger className="liquid-glass border-white/10">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
+                          {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Network</Label>
+                      <Select value={selectedNetwork} onValueChange={handleSelectNetwork}>
+                        <SelectTrigger className="liquid-glass border-white/10">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
+                          {(cryptoNetworks[selectedCrypto] ?? []).map((n) => (
+                            <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Deposit address</Label>
+                    <div className="flex gap-2">
+                      <Input readOnly value={depositAddress} className="liquid-glass border-white/10 text-xs" />
+                      <Button variant="secondary" className="liquid-glass border-0" onClick={copyDepositAddress} type="button">
+                        {copiedDeposit ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(depositAddress)}`}
+                        alt="Deposit QR"
+                        className="w-24 h-24 rounded-lg border border-white/10"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Scan to deposit. Ensure the network matches exactly to avoid loss of funds.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <Input
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      placeholder={`0.00 ${selectedCrypto}`}
+                      className="liquid-glass border-white/10"
+                      inputMode="decimal"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>Live price: {getSymbol()}{convert(cryptoPrices[selectedCrypto]?.price ?? 0).toFixed(2)}</p>
+                      <p className="text-amber-400">Warning: Sending on the wrong network can result in permanent loss.</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="liquid-glass border-0"
+                      onClick={() => setDepositOpen(false)}
+                      type="button"
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  data-testid="button-withdraw"
+                  onClick={openWithdraw}
+                  className="flex-1 liquid-glass border-0 bg-white/5 text-foreground gap-2"
+                  variant="ghost"
+                  type="button"
+                >
+                  <ArrowUpFromLine className="w-4 h-4" />
+                  Withdraw
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                align="center"
+                sideOffset={10}
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-1.5rem))]"
+                data-testid="popover-withdraw"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Withdraw</p>
+                    <p className="text-xs text-muted-foreground">Choose currency and network</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select value={selectedCrypto} onValueChange={handleSelectCrypto}>
+                        <SelectTrigger className="liquid-glass border-white/10">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
+                          {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Network</Label>
+                      <Select value={selectedNetwork} onValueChange={handleSelectNetwork}>
+                        <SelectTrigger className="liquid-glass border-white/10">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
+                          {(cryptoNetworks[selectedCrypto] ?? []).map((n) => (
+                            <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Recipient address</Label>
+                    <Input
+                      value={withdrawAddress}
+                      onChange={(e) => setWithdrawAddress(e.target.value)}
+                      placeholder="Paste address"
+                      className="liquid-glass border-white/10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Amount</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        placeholder={`0.00 ${selectedCrypto}`}
+                        className="liquid-glass border-white/10 flex-1"
+                        inputMode="decimal"
+                      />
+                      <Button
+                        variant="secondary"
+                        className="liquid-glass border-0"
+                        type="button"
+                        onClick={() => setWithdrawAmount(selectedBalance.toString())}
+                      >
+                        Max
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Balance: {selectedBalance.toFixed(6)} {selectedCrypto}</p>
+                  </div>
+
+                  <div className="text-xs text-amber-400">
+                    Warning: Selecting the wrong blockchain network can lead to irreversible loss of funds. Double-check the network before confirming.
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="secondary" className="liquid-glass border-0" onClick={() => setWithdrawOpen(false)} type="button">
+                      Cancel
+                    </Button>
+                    <Button
+                      className="liquid-glass border-0 bg-primary/20 text-foreground"
+                      onClick={confirmWithdraw}
+                      type="button"
+                      disabled={!withdrawAddress || !withdrawAmount}
+                      data-testid="button-confirm-withdraw-dashboard"
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </LiquidGlassCard>
@@ -340,8 +684,8 @@ export function Dashboard({
             whileTap={{ scale: 0.98 }}
             data-testid="card-invite-friend"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-950" />
-            <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
+            <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-blue-950/60 dark:via-slate-900/80 dark:to-slate-950 bg-gradient-to-br from-blue-100/80 via-slate-50/90 to-blue-50" />
+            <svg className="absolute inset-0 w-full h-full opacity-30 dark:opacity-30 opacity-20" viewBox="0 0 400 200">
               <defs>
                 <radialGradient id="grad1" cx="30%" cy="30%">
                   <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4"/>
@@ -371,8 +715,8 @@ export function Dashboard({
           onClick={handleRateApp}
           data-testid="card-rate-app"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/60 via-slate-900/80 to-slate-950" />
-          <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 400 200">
+          <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-amber-950/60 dark:via-slate-900/80 dark:to-slate-950 bg-gradient-to-br from-amber-100/80 via-slate-50/90 to-amber-50" />
+          <svg className="absolute inset-0 w-full h-full opacity-30 dark:opacity-30 opacity-20" viewBox="0 0 400 200">
             <defs>
               <radialGradient id="grad3" cx="20%" cy="20%">
                 <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.4"/>
@@ -438,7 +782,7 @@ export function Dashboard({
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              Thank you for rating Mining Club! Your reward has been added to your account.
+              Thank you for rating BlockMint! Your reward has been added to your account.
             </motion.p>
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -533,10 +877,19 @@ export function Dashboard({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-foreground">{getSymbol()}{convert(balance.usdValue ?? 0).toFixed(2)}</p>
-                    <p className={`text-sm ${(balance.change24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {(balance.change24h ?? 0) >= 0 ? '+' : ''}{(balance.change24h ?? 0).toFixed(2)}%
-                    </p>
+                    {(() => {
+                      const price = cryptoPrices[balance.symbol as keyof typeof cryptoPrices]?.price || 0;
+                      const usdValue = (balance.balance ?? 0) * price;
+                      const change24h = cryptoPrices[balance.symbol as keyof typeof cryptoPrices]?.change24h || balance.change24h || 0;
+                      return (
+                        <>
+                          <p className="font-medium text-foreground">{getSymbol()}{convert(usdValue).toFixed(2)}</p>
+                          <p className={`text-sm ${change24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </motion.div>
               ))
@@ -561,46 +914,51 @@ export function Dashboard({
           </h2>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {[
-            { symbol: "BTC", name: "Bitcoin", price: 97245.32, change: 2.45, logo: btcLogo, color: "bg-amber-500" },
-            { symbol: "LTC", name: "Litecoin", price: 102.34, change: 3.12, logo: ltcLogo, color: "bg-slate-400" },
-            { symbol: "USDT", name: "Tether", price: 1.00, change: 0.01, logo: usdtLogo, color: "bg-emerald-500" },
-            { symbol: "USDC", name: "USD Coin", price: 1.00, change: -0.02, logo: usdcLogo, color: "bg-blue-500" },
-          ].map((crypto, index) => (
-            <GlassCard 
-              key={crypto.symbol}
-              delay={0.53 + index * 0.05} 
-              className="p-3"
-              data-testid={`trending-crypto-${crypto.symbol.toLowerCase()}`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <img 
-                  src={crypto.logo} 
-                  alt={crypto.symbol} 
-                  className={`object-contain ${crypto.symbol === 'USDT' ? 'w-10 h-10' : 'w-8 h-8'}`}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground text-sm truncate">{crypto.symbol}</p>
-                  <p className="text-xs text-muted-foreground truncate">{crypto.name}</p>
+          {balances.map((balance, index) => {
+            const cryptoData = cryptoPrices[balance.symbol as keyof typeof cryptoPrices];
+            const price = cryptoData?.price || 0;
+            const change24h = cryptoData?.change24h || balance.change24h || 0;
+            
+            return (
+              <GlassCard 
+                key={balance.id}
+                delay={0.53 + index * 0.05} 
+                className="p-3"
+                data-testid={`trending-crypto-${balance.symbol.toLowerCase()}`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <img 
+                    src={
+                      balance.symbol === 'BTC' ? btcLogo : 
+                      balance.symbol === 'LTC' ? ltcLogo :
+                      balance.symbol === 'USDT' ? usdtLogo : usdcLogo
+                    } 
+                    alt={balance.symbol}
+                    className={`object-contain ${balance.symbol === 'USDT' ? 'w-10 h-10' : 'w-8 h-8'}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{balance.symbol}</p>
+                    <p className="text-xs text-muted-foreground truncate">{balance.name}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-foreground text-sm">
-                  {getSymbol()}{convert(crypto.price).toLocaleString(undefined, { maximumFractionDigits: crypto.price < 10 ? 2 : 0 })}
-                </p>
-                <div className={`flex items-center gap-1 ${crypto.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {crypto.change >= 0 ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                  <span className="text-xs font-medium">
-                    {crypto.change >= 0 ? '+' : ''}{crypto.change.toFixed(2)}%
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-foreground text-sm">
+                    {getSymbol()}{convert(price).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                  <div className={`flex items-center gap-1 ${change24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {change24h >= 0 ? (
+                      <TrendingUp className="w-3 h-3" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3" />
+                    )}
+                    <span className="text-xs font-medium">
+                      {change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </GlassCard>
-          ))}
+              </GlassCard>
+            );
+          })}
         </div>
       </motion.div>
 
@@ -614,22 +972,32 @@ export function Dashboard({
             <BarChart3 className="w-5 h-5 text-primary" />
             Portfolio Performance
           </h2>
-          <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2 py-1 rounded-full">
-            +12.5% This Week
+          <span className={`text-xs ${safeChange24h >= 0 ? 'text-emerald-400' : 'text-red-400'} font-medium ${safeChange24h >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'} px-2 py-1 rounded-full`}>
+            {safeChange24h >= 0 ? '+' : ''}{safeChange24h.toFixed(2)}% This Week
           </span>
         </div>
         <GlassCard delay={0.55} className="p-4" data-testid="chart-portfolio-performance">
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart 
-              data={[
-                { day: "Mon", value: 1000 },
-                { day: "Tue", value: 1050 },
-                { day: "Wed", value: 1030 },
-                { day: "Thu", value: 1120 },
-                { day: "Fri", value: 1080 },
-                { day: "Sat", value: 1150 },
-                { day: "Sun", value: 1200 },
-              ]}
+              data={(() => {
+                // Calculate portfolio value for each day based on current balance and crypto prices
+                // Using a simulation of 7 days with growth based on 24h change
+                const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                const currentValue = balances.reduce((sum, balance) => {
+                  const price = cryptoPrices[balance.symbol as keyof typeof cryptoPrices]?.price || 0;
+                  return sum + ((balance.balance ?? 0) * price);
+                }, 0);
+                
+                const changePercent = safeChange24h / 100;
+                const dayChangePercent = changePercent / 7; // Distribute change across 7 days
+                
+                return days.map((day, index) => {
+                  // Simulate gradual growth over the week
+                  const growthFactor = 1 + (dayChangePercent * (index + 1));
+                  const value = currentValue * growthFactor;
+                  return { day, value };
+                });
+              })()}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
               <defs>

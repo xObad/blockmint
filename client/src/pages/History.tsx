@@ -207,7 +207,7 @@ export function History() {
                     data-testid={`transaction-${tx.id}`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
                         {getTypeIcon(tx.type)}
                       </div>
                       <div className="flex-1 min-w-0">

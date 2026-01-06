@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeftRight, Copy, Check, AlertCircle, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Info } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import type { WalletBalance, Transaction } from "@/lib/types";
-import walletImage from "@assets/Bitcoin_Wallet_1766014388613.png";
+import walletImage from "@assets/Bitcoin_Wallet_1766014388613.webp";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
 import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
@@ -147,6 +148,7 @@ export function Wallet({
 }: WalletProps) {
   const { convert, getSymbol } = useCurrency();
   const { toast } = useToast();
+  const { prices: cryptoPricesData } = useCryptoPrices();
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [exchangeOpen, setExchangeOpen] = useState(false);
@@ -161,19 +163,37 @@ export function Wallet({
   const [exchangeTo, setExchangeTo] = useState<CryptoType>("USDT");
   const [exchangeAmount, setExchangeAmount] = useState("");
 
-  const calculatedTotalBalance = totalBalance ?? balances.reduce((sum, b) => sum + b.usdValue, 0);
+  const cryptoPrices: Record<CryptoType, number> = {
+    BTC: cryptoPricesData.BTC?.price || 67000,
+    LTC: cryptoPricesData.LTC?.price || 85,
+    ETH: cryptoPricesData.ETH?.price || 3500,
+    USDT: cryptoPricesData.USDT?.price || 1,
+    USDC: cryptoPricesData.USDC?.price || 1,
+    TON: cryptoPricesData.TON?.price || 5.5,
+  };
+
+  const pricedBalances = useMemo(() => {
+    return balances.map((balance) => {
+      const symbol = balance.symbol as CryptoType;
+      const price = cryptoPrices[symbol] ?? 0;
+      const usdValue = (balance.balance ?? 0) * price;
+      const change24h = cryptoPricesData[symbol]?.change24h ?? balance.change24h ?? 0;
+
+      return {
+        ...balance,
+        usdValue,
+        change24h,
+      };
+    });
+  }, [balances, cryptoPrices, cryptoPricesData]);
+
+  const calculatedTotalBalance = pricedBalances.length > 0
+    ? pricedBalances.reduce((sum, b) => sum + (b.usdValue ?? 0), 0)
+    : (totalBalance ?? 0);
+
   const convertedBalance = convert(calculatedTotalBalance);
   const isPositive = change24h >= 0;
   const hasNoBalance = calculatedTotalBalance === 0;
-
-  const cryptoPrices: Record<CryptoType, number> = {
-    BTC: 67000,
-    LTC: 85,
-    ETH: 3500,
-    USDT: 1,
-    USDC: 1,
-    TON: 5.5,
-  };
 
   const handleCryptoChange = (crypto: CryptoType) => {
     setSelectedCrypto(crypto);
@@ -409,7 +429,7 @@ export function Wallet({
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">Assets</h2>
         <div className="flex flex-col gap-3">
-          {balances.map((crypto, index) => (
+          {pricedBalances.map((crypto, index) => (
             <CryptoCard 
               key={crypto.id} 
               crypto={crypto} 
@@ -438,7 +458,10 @@ export function Wallet({
       </div>
 
       <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
-        <DialogContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl max-w-md" data-testid="modal-deposit">
+        <DialogContent
+          className="max-w-md border border-white/12 bg-gradient-to-br from-white/[0.12] via-white/[0.04] to-white/[0.02] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+          data-testid="modal-deposit"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Deposit Crypto</DialogTitle>
             <DialogDescription>
@@ -542,7 +565,7 @@ export function Wallet({
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/20">
               <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-amber-200/80">
                 Only send {selectedCrypto} via {cryptoNetworks[selectedCrypto]?.find(n => n.id === selectedNetwork)?.name || "selected network"} to this address. Sending via wrong network may result in permanent loss of funds.
@@ -553,7 +576,10 @@ export function Wallet({
       </Dialog>
 
       <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <DialogContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl max-w-md" data-testid="modal-withdraw">
+        <DialogContent
+          className="max-w-md border border-white/12 bg-gradient-to-br from-white/[0.12] via-white/[0.04] to-white/[0.02] backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+          data-testid="modal-withdraw"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Withdraw Crypto</DialogTitle>
             <DialogDescription>
@@ -563,7 +589,7 @@ export function Wallet({
 
           <div className="space-y-5 mt-4">
             {hasNoBalance && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <div className="flex items-start gap-2 p-3 rounded-lg border border-red-500/20">
                 <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-red-400">No Balance Available</p>
@@ -663,13 +689,12 @@ export function Wallet({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs text-primary"
+                className="text-xs text-primary hover:text-primary/80"
                 onClick={() => {
                   const balance = getCurrentBalance(selectedCrypto);
                   const fee = getSelectedNetworkFee();
-                  if (balance > fee) {
-                    setWithdrawAmount((balance - fee).toFixed(6));
-                  }
+                  const maxAmount = Math.max(0, balance - fee);
+                  setWithdrawAmount(maxAmount.toFixed(6));
                 }}
               >
                 Use Max
@@ -695,7 +720,7 @@ export function Wallet({
               </div>
             </div>
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-red-500/20">
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-red-400">Important Warning</p>
@@ -706,7 +731,7 @@ export function Wallet({
             </div>
 
             <Button
-              className="w-full liquid-glass bg-primary/80 border-0"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={!withdrawAmount || !withdrawAddress || parseFloat(withdrawAmount) <= getSelectedNetworkFee() || parseFloat(withdrawAmount) > getCurrentBalance(selectedCrypto)}
               onClick={handleWithdraw}
               data-testid="button-confirm-withdraw"
@@ -728,7 +753,7 @@ export function Wallet({
 
           <div className="space-y-5 mt-4">
             {hasNoBalance && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <div className="flex items-start gap-2 p-3 rounded-lg border border-red-500/20">
                 <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-red-400">Insufficient Balance</p>
@@ -739,7 +764,7 @@ export function Wallet({
               </div>
             )}
 
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-blue-500/20">
               <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-blue-200/80">
                 We handle all blockchain bridging and network conversions for you. Your exchange will be processed at the current market rate.
@@ -841,7 +866,7 @@ export function Wallet({
             </div>
 
             <Button
-              className="w-full liquid-glass bg-primary/80 border-0"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={!exchangeAmount || parseFloat(exchangeAmount) <= 0 || parseFloat(exchangeAmount) > getCurrentBalance(exchangeFrom)}
               onClick={handleExchange}
               data-testid="button-confirm-exchange"

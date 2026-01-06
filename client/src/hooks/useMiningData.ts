@@ -6,13 +6,21 @@ import type {
   Transaction, 
   MiningPool, 
   ChartDataPoint, 
-  UserSettings 
+  UserSettings,
+  MiningContract,
+  PoolStatus
 } from "@/lib/types";
 
 interface WalletResponse {
   balances: WalletBalance[];
   totalBalance: number;
   change24h: number;
+}
+
+interface PortfolioHistoryPoint {
+  day: string;
+  value: number;
+  timestamp: string;
 }
 
 export function useMiningData() {
@@ -23,6 +31,7 @@ export function useMiningData() {
 
   const walletQuery = useQuery<WalletResponse>({
     queryKey: ["/api/wallet/balances"],
+    refetchInterval: 30000, // Refresh every 30s for balance syncing
   });
 
   const transactionsQuery = useQuery<Transaction[]>({
@@ -37,8 +46,23 @@ export function useMiningData() {
     queryKey: ["/api/chart"],
   });
 
+  const portfolioHistoryQuery = useQuery<PortfolioHistoryPoint[]>({
+    queryKey: ["/api/portfolio/history"],
+    refetchInterval: 60000, // Refresh every minute
+  });
+
   const settingsQuery = useQuery<UserSettings>({
     queryKey: ["/api/settings"],
+  });
+
+  const contractsQuery = useQuery<MiningContract[]>({
+    queryKey: ["/api/mining/contracts"],
+    refetchInterval: 5000,
+  });
+
+  const poolStatusQuery = useQuery<PoolStatus>({
+    queryKey: ["/api/mining/pool-status"],
+    refetchInterval: 10000,
   });
 
   const toggleMiningMutation = useMutation({
@@ -101,10 +125,13 @@ export function useMiningData() {
     pools: poolsQuery.data ?? [],
     settings: settingsQuery.data ?? defaultSettings,
     chartData: chartQuery.data ?? [],
+    portfolioHistory: portfolioHistoryQuery.data ?? [],
+    contracts: contractsQuery.data ?? [],
+    poolStatus: poolStatusQuery.data ?? { connected: false, poolName: "", hashRate: "0 TH/s", uptime: 0, workers: 0 },
     totalBalance: walletQuery.data?.totalBalance ?? 0,
     change24h: walletQuery.data?.change24h ?? 0,
-    isPending: toggleMiningMutation.isPending,
-    isLoading: miningStatsQuery.isLoading || walletQuery.isLoading,
+    isPending: toggleMiningMutation.isPending || contractsQuery.isPending,
+    isLoading: miningStatsQuery.isLoading || walletQuery.isLoading || contractsQuery.isLoading,
     toggleMining: () => toggleMiningMutation.mutate(),
     selectPool: (id: string) => selectPoolMutation.mutate(id),
     updateSettings: (settings: Partial<UserSettings>) => updateSettingsMutation.mutate(settings),

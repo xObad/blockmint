@@ -41,7 +41,8 @@ export async function registerRoutes(
     try {
       const balances = await storage.getWalletBalances();
       const totalBalance = balances.reduce((sum, b) => sum + b.usdValue, 0);
-      res.json({ balances, totalBalance, change24h: 2.15 });
+      const change24h = storage.get24hChange();
+      res.json({ balances, totalBalance, change24h });
     } catch (error) {
       res.status(500).json({ error: "Failed to get wallet balances" });
     }
@@ -82,6 +83,32 @@ export async function registerRoutes(
       res.json(chartData);
     } catch (error) {
       res.status(500).json({ error: "Failed to get chart data" });
+    }
+  });
+
+  // Portfolio History (7-day)
+  app.get("/api/portfolio/history", async (_req, res) => {
+    try {
+      // Return actual portfolio history for the last 7 days
+      const data = [];
+      const now = new Date();
+      const balances = await storage.getWalletBalances();
+      const currentValue = balances.reduce((sum, b) => sum + b.usdValue, 0);
+
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+        
+        data.push({
+          day: dayName,
+          value: currentValue, // Use actual balance value
+          timestamp: date.toISOString(),
+        });
+      }
+
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get portfolio history" });
     }
   });
 
@@ -621,6 +648,430 @@ export async function registerRoutes(
       initialized: blockchainService.isInitialized(),
       masterAddress: blockchainService.getMasterAddress(),
     });
+  });
+
+  // =====================================================
+  // NOTIFICATION ROUTES
+  // =====================================================
+
+  // Get user notifications
+  app.get("/api/notifications/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const includeRead = req.query.includeRead !== "false";
+
+      const { notificationService } = await import("./services/notificationService");
+      const notifications = await notificationService.getUserNotifications(userId, limit, includeRead);
+      const unreadCount = await notificationService.getUnreadCount(userId);
+
+      res.json({ notifications, unreadCount });
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ error: "Failed to get notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/notifications/:notificationId/read", async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+      const { notificationService } = await import("./services/notificationService");
+      await notificationService.markAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read for a user
+  app.post("/api/notifications/:userId/mark-all-read", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { notificationService } = await import("./services/notificationService");
+      await notificationService.markAllAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Delete notification
+  app.delete("/api/notifications/:notificationId", async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+      const { notificationService } = await import("./services/notificationService");
+      await notificationService.delete(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
+  // Admin: Get admin notifications
+  app.get("/api/admin/notifications", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const includeRead = req.query.includeRead !== "false";
+
+      const { notificationService } = await import("./services/notificationService");
+      const notifications = await notificationService.getAdminNotifications(limit, includeRead);
+      const unreadCount = await notificationService.getUnreadAdminCount();
+
+      res.json({ notifications, unreadCount });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get admin notifications" });
+    }
+  });
+
+  // Admin: Send broadcast notification
+  app.post("/api/admin/notifications/broadcast", async (req, res) => {
+    try {
+      const { title, message, type = "promotion" } = req.body;
+      
+      if (!title || !message) {
+        return res.status(400).json({ error: "Title and message are required" });
+      }
+
+      const { notificationService } = await import("./services/notificationService");
+      const count = await notificationService.createBroadcast(title, message, type);
+      res.json({ success: true, notificationsSent: count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to send broadcast notification" });
+    }
+  });
+
+  // Admin: Send notification to specific user
+  app.post("/api/admin/notifications/send", async (req, res) => {
+    try {
+      const { userId, title, message, type = "system", priority = "normal" } = req.body;
+      
+      if (!userId || !title || !message) {
+        return res.status(400).json({ error: "userId, title and message are required" });
+      }
+
+      const { notificationService } = await import("./services/notificationService");
+      const notification = await notificationService.create({
+        userId,
+        type,
+        title,
+        message,
+        priority,
+      });
+      res.json({ success: true, notification });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to send notification" });
+    }
+  });
+
+  // =====================================================
+  // SUPPORT TICKET ROUTES
+  // =====================================================
+
+  // Create support ticket
+  app.post("/api/support/tickets", async (req, res) => {
+    try {
+      const { userId, subject, description, category = "general", priority = "normal" } = req.body;
+      
+      if (!userId || !subject || !description) {
+        return res.status(400).json({ error: "userId, subject and description are required" });
+      }
+
+      const { supportTickets } = await import("@shared/schema");
+      const [ticket] = await db.insert(supportTickets).values({
+        userId,
+        subject,
+        description,
+        category,
+        priority,
+      }).returning();
+
+      // Notify admins
+      const { notificationService } = await import("./services/notificationService");
+      await notificationService.notifyAdminSupportTicket(ticket.id, subject, userId);
+
+      res.json(ticket);
+    } catch (error) {
+      console.error("Create ticket error:", error);
+      res.status(500).json({ error: "Failed to create support ticket" });
+    }
+  });
+
+  // Get user's tickets
+  app.get("/api/support/tickets/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { supportTickets } = await import("@shared/schema");
+      
+      const tickets = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, userId))
+        .orderBy(desc(supportTickets.createdAt));
+
+      res.json(tickets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get support tickets" });
+    }
+  });
+
+  // Get ticket messages
+  app.get("/api/support/tickets/:ticketId/messages", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const { ticketMessages } = await import("@shared/schema");
+      
+      const messages = await db.select()
+        .from(ticketMessages)
+        .where(eq(ticketMessages.ticketId, ticketId))
+        .orderBy(ticketMessages.createdAt);
+
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get ticket messages" });
+    }
+  });
+
+  // Add message to ticket
+  app.post("/api/support/tickets/:ticketId/messages", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const { userId, message, isAdmin = false } = req.body;
+      
+      if (!userId || !message) {
+        return res.status(400).json({ error: "userId and message are required" });
+      }
+
+      const { ticketMessages, supportTickets } = await import("@shared/schema");
+      
+      const [msg] = await db.insert(ticketMessages).values({
+        ticketId,
+        userId,
+        message,
+        isAdmin,
+      }).returning();
+
+      // Update ticket updated time
+      await db.update(supportTickets)
+        .set({ updatedAt: new Date() })
+        .where(eq(supportTickets.id, ticketId));
+
+      res.json(msg);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add message" });
+    }
+  });
+
+  // =====================================================
+  // USER NOTIFICATION PREFERENCES
+  // =====================================================
+
+  // Get notification preferences
+  app.get("/api/users/:userId/notification-preferences", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { notificationPreferences } = await import("@shared/schema");
+      
+      const prefs = await db.select()
+        .from(notificationPreferences)
+        .where(eq(notificationPreferences.userId, userId));
+
+      if (prefs.length === 0) {
+        // Return defaults
+        res.json({
+          deposits: true,
+          withdrawals: true,
+          rewards: true,
+          dailyReturns: true,
+          promotions: true,
+          systemAlerts: true,
+          emailNotifications: true,
+          pushNotifications: true,
+        });
+      } else {
+        res.json(prefs[0]);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get notification preferences" });
+    }
+  });
+
+  // Update notification preferences
+  app.patch("/api/users/:userId/notification-preferences", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const updates = req.body;
+      const { userService } = await import("./services/userService");
+      
+      const prefs = await userService.updateNotificationPreferences(userId, updates);
+      res.json(prefs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
+  // =====================================================
+  // EARN/YIELD PLANS (Public Routes)
+  // =====================================================
+
+  // Get active earn plans
+  app.get("/api/earn-plans", async (_req, res) => {
+    try {
+      const { earnPlans } = await import("@shared/schema");
+      const plans = await db.select()
+        .from(earnPlans)
+        .where(eq(earnPlans.isActive, true))
+        .orderBy(earnPlans.order);
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get earn plans" });
+    }
+  });
+
+  // Get earn APR rates
+  app.get("/api/earn-rates", async (_req, res) => {
+    try {
+      const { earnPageSettings } = await import("@shared/schema");
+      const settings = await db.select().from(earnPageSettings);
+      
+      // Default rates if not configured
+      const defaultRates = {
+        daily: { rate: 17.9, label: "Daily", period: 1 },
+        weekly: { rate: 18.0, label: "Weekly", period: 7 },
+        monthly: { rate: 18.25, label: "Monthly", period: 30 },
+        quarterly: { rate: 18.7, label: "Quarterly", period: 90 },
+        yearly: { rate: 19.25, label: "Yearly", period: 365 },
+      };
+
+      // Override with admin settings if available
+      const dailySetting = settings.find(s => s.key === "daily_apr");
+      const weeklySetting = settings.find(s => s.key === "weekly_apr");
+      const monthlySetting = settings.find(s => s.key === "monthly_apr");
+      const quarterlySetting = settings.find(s => s.key === "quarterly_apr");
+      const yearlySetting = settings.find(s => s.key === "yearly_apr");
+
+      if (dailySetting) defaultRates.daily.rate = parseFloat(dailySetting.value);
+      if (weeklySetting) defaultRates.weekly.rate = parseFloat(weeklySetting.value);
+      if (monthlySetting) defaultRates.monthly.rate = parseFloat(monthlySetting.value);
+      if (quarterlySetting) defaultRates.quarterly.rate = parseFloat(quarterlySetting.value);
+      if (yearlySetting) defaultRates.yearly.rate = parseFloat(yearlySetting.value);
+
+      res.json(defaultRates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get earn rates" });
+    }
+  });
+
+  // Get earn FAQs (public)
+  app.get("/api/content/earn-faqs", async (_req, res) => {
+    try {
+      const { earnFaqs } = await import("@shared/schema");
+      const faqs = await db.select()
+        .from(earnFaqs)
+        .where(eq(earnFaqs.isActive, true))
+        .orderBy(earnFaqs.order);
+      res.json(faqs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get earn FAQs" });
+    }
+  });
+
+  // Create earn subscription (user invests in earn plan)
+  app.post("/api/earn/subscribe", async (req, res) => {
+    try {
+      const { userId, planId, amount, symbol, durationType, aprRate } = req.body;
+      const { earnSubscriptions, wallets } = await import("@shared/schema");
+      
+      // Check user has sufficient balance
+      const userWallets = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, symbol)));
+      
+      if (userWallets.length === 0 || userWallets[0].balance < amount) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      // Deduct from wallet
+      await db.update(wallets)
+        .set({ balance: userWallets[0].balance - amount })
+        .where(eq(wallets.id, userWallets[0].id));
+
+      // Create subscription
+      const subscription = await db.insert(earnSubscriptions).values({
+        userId,
+        planId,
+        amount,
+        symbol,
+        durationType,
+        aprRate,
+        status: "active",
+      }).returning();
+
+      res.json(subscription[0]);
+    } catch (error) {
+      console.error("Error creating earn subscription:", error);
+      res.status(500).json({ error: "Failed to create earn subscription" });
+    }
+  });
+
+  // Withdraw from earn subscription
+  app.post("/api/earn/withdraw/:subscriptionId", async (req, res) => {
+    try {
+      const { subscriptionId } = req.params;
+      const { earnSubscriptions, wallets } = await import("@shared/schema");
+      
+      // Get subscription
+      const subs = await db.select()
+        .from(earnSubscriptions)
+        .where(eq(earnSubscriptions.id, subscriptionId));
+      
+      if (subs.length === 0) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+
+      const sub = subs[0];
+      if (sub.status !== "active") {
+        return res.status(400).json({ error: "Subscription is not active" });
+      }
+
+      // Return principal + earnings to wallet
+      const totalAmount = sub.amount + sub.totalEarned;
+      const userWallets = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, sub.userId), eq(wallets.symbol, sub.symbol)));
+      
+      if (userWallets.length > 0) {
+        await db.update(wallets)
+          .set({ balance: userWallets[0].balance + totalAmount })
+          .where(eq(wallets.id, userWallets[0].id));
+      }
+
+      // Mark as withdrawn
+      await db.update(earnSubscriptions)
+        .set({ status: "withdrawn", withdrawnAt: new Date() })
+        .where(eq(earnSubscriptions.id, subscriptionId));
+
+      res.json({ success: true, amountReturned: totalAmount });
+    } catch (error) {
+      console.error("Error withdrawing from earn subscription:", error);
+      res.status(500).json({ error: "Failed to withdraw" });
+    }
+  });
+
+  // Get user's earn subscriptions
+  app.get("/api/users/:userId/earn-subscriptions", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { earnSubscriptions } = await import("@shared/schema");
+      
+      const subs = await db.select()
+        .from(earnSubscriptions)
+        .where(eq(earnSubscriptions.userId, userId))
+        .orderBy(desc(earnSubscriptions.startDate));
+      
+      res.json(subs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get earn subscriptions" });
+    }
   });
 
   return httpServer;

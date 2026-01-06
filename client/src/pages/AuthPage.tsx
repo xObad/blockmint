@@ -15,7 +15,7 @@ import {
   resendVerificationEmail
 } from "@/lib/firebase";
 
-import mixedMain from "@assets/Mixed_main_1766014388605.png";
+import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 
 interface AuthPageProps {
   mode: "signin" | "register";
@@ -215,7 +215,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <span className="font-display text-lg font-bold text-foreground">Mining Club</span>
+          <span className="font-display text-lg font-bold text-foreground">BlockMint</span>
           <div className="w-9" />
         </div>
 
@@ -277,7 +277,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               >
                 <img 
                   src={mixedMain} 
-                  alt="Mining Club"
+                  alt="BlockMint"
                   className="w-full h-full object-contain"
                 />
               </motion.div>

@@ -127,6 +127,27 @@ export default {
       backdropBlur: {
         xs: "2px",
       },
+      spacing: {
+        safe: "max(env(safe-area-inset-left), env(safe-area-inset-right))",
+      },
+      padding: {
+        safe: "env(safe-area-inset-top, 0)",
+        "safe-bottom": "env(safe-area-inset-bottom, 0)",
+        "safe-left": "env(safe-area-inset-left, 0)",
+        "safe-right": "env(safe-area-inset-right, 0)",
+      },
+      top: {
+        safe: "env(safe-area-inset-top, 0)",
+      },
+      bottom: {
+        safe: "env(safe-area-inset-bottom, 0)",
+      },
+      left: {
+        safe: "env(safe-area-inset-left, 0)",
+      },
+      right: {
+        safe: "env(safe-area-inset-right, 0)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],

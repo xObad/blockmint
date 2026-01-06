@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   User, Shield, Bell, Key, Fingerprint, Clock, 
   DollarSign, Globe, ChevronRight, Award, Info,
-  FileText, Mail, LogOut, Lock, Loader2, Camera
+  FileText, Mail, LogOut, Lock, Loader2, Camera,
+  Link2, Unlink, Smartphone
 } from "lucide-react";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { UserSettings } from "@/lib/types";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -109,9 +111,12 @@ function getBiometricType(): 'face' | 'fingerprint' | 'unknown' {
 export function Settings({ settings, onSettingsChange, user, onLogout }: SettingsProps) {
   const { toast } = useToast();
   const { currency, setCurrency } = useCurrency();
+  const queryClient = useQueryClient();
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showNotificationPrefsDialog, setShowNotificationPrefsDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -128,6 +133,102 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const memberSince = user?.metadata?.creationTime 
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : "Dec 2024";
+
+  // Linked accounts detection
+  const linkedProviders = user?.providerData.map(p => p.providerId) || [];
+  const isGoogleLinked = linkedProviders.includes('google.com');
+  const isAppleLinked = linkedProviders.includes('apple.com');
+  const isPasswordLinked = linkedProviders.includes('password');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user) {
+        setIsAdminUser(false);
+        return;
+      }
+      try {
+        const tokenResult = await user.getIdTokenResult();
+        const claims: any = tokenResult?.claims || {};
+        const isAdmin = claims.admin === true || claims.role === "admin";
+        if (!cancelled) setIsAdminUser(isAdmin);
+      } catch {
+        if (!cancelled) setIsAdminUser(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // Notification preferences
+  const { data: notificationPrefs } = useQuery({
+    queryKey: ["/api/users", user?.uid, "notification-preferences"],
+    queryFn: async () => {
+      if (!user?.uid) return null;
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/users/${user.uid}/notification-preferences`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.json();
+    },
+    enabled: !!user?.uid,
+  });
+
+  const updateNotificationPrefsMutation = useMutation({
+    mutationFn: async (prefs: Record<string, boolean>) => {
+      if (!user?.uid) return;
+      const token = await user.getIdToken();
+      await fetch(`/api/users/${user.uid}/notification-preferences`, {
+        method: "PATCH",
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(prefs),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.uid, "notification-preferences"] });
+      toast({ title: "Preferences Updated" });
+    },
+  });
+
+  // Link/Unlink Google
+  const handleLinkGoogle = async () => {
+    if (!user) return;
+    try {
+      const provider = new GoogleAuthProvider();
+      await linkWithPopup(user, provider);
+      toast({
+        title: "Google Account Linked",
+        description: "You can now sign in with Google.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Link Failed",
+        description: error.message || "Failed to link Google account.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnlinkGoogle = async () => {
+    if (!user) return;
+    try {
+      await unlink(user, 'google.com');
+      toast({
+        title: "Google Account Unlinked",
+        description: "Google sign-in has been removed.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unlink Failed",
+        description: error.message || "Failed to unlink Google account.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleChangePassword = async () => {
     if (!user) return;
@@ -417,6 +518,70 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               />
             }
           />
+          {(process.env.NODE_ENV === "development" || isAdminUser) && (
+            <SettingItem
+              icon={Shield}
+              label="Admin Panel"
+              description={process.env.NODE_ENV === "development" ? "Access Admin Dashboard (Dev Only)" : "Access Admin Dashboard"}
+              onClick={() => window.location.href = '/admin'}
+              testId="button-admin-panel"
+            />
+          )}
+        </GlassCard>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">LINKED ACCOUNTS</h2>
+        <GlassCard delay={0.17} className="p-4">
+          <div className="flex items-center justify-between py-3 border-b border-white/[0.04]">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04]">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Google</p>
+                <p className="text-sm text-muted-foreground">
+                  {isGoogleLinked ? "Connected" : "Not connected"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant={isGoogleLinked ? "outline" : "default"}
+              size="sm"
+              onClick={isGoogleLinked ? handleUnlinkGoogle : handleLinkGoogle}
+            >
+              {isGoogleLinked ? <Unlink className="w-4 h-4 mr-1" /> : <Link2 className="w-4 h-4 mr-1" />}
+              {isGoogleLinked ? "Unlink" : "Link"}
+            </Button>
+          </div>
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04]">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Apple</p>
+                <p className="text-sm text-muted-foreground">
+                  {isAppleLinked ? "Connected" : "Not connected"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+            >
+              <Smartphone className="w-4 h-4 mr-1" />
+              iOS Only
+            </Button>
+          </div>
         </GlassCard>
       </div>
 
@@ -429,13 +594,23 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             description="Mining Alerts And Payouts"
             testId="setting-notifications"
             action={
-              <Switch
-                data-testid="switch-notifications"
-                checked={settings.notificationsEnabled}
-                onCheckedChange={(checked) => 
-                  onSettingsChange({ notificationsEnabled: checked })
-                }
-              />
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowNotificationPrefsDialog(true)}
+                  className="text-xs"
+                >
+                  Configure
+                </Button>
+                <Switch
+                  data-testid="switch-notifications"
+                  checked={settings.notificationsEnabled}
+                  onCheckedChange={(checked) => 
+                    onSettingsChange({ notificationsEnabled: checked })
+                  }
+                />
+              </div>
             }
           />
           <div className="py-3 border-b border-white/[0.04]" data-testid="setting-currency">
@@ -554,7 +729,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Info}
             label="Version"
-            description="Mining Club v1.0.0"
+            description="BlockMint v1.0.0"
             testId="setting-version"
           />
           <SettingItem
@@ -594,7 +769,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       )}
 
       <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
-        Mining Club v1.0.0
+        BlockMint v1.0.0
       </p>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
@@ -765,6 +940,121 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             </Button>
             <Button onClick={handleSaveProfile} data-testid="button-save-profile">
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Preferences Dialog */}
+      <Dialog open={showNotificationPrefsDialog} onOpenChange={setShowNotificationPrefsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notification Preferences</DialogTitle>
+            <DialogDescription>
+              Choose which notifications you want to receive.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Deposit Confirmations</p>
+                <p className="text-sm text-muted-foreground">When deposits are confirmed</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.depositAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ depositAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Withdrawal Updates</p>
+                <p className="text-sm text-muted-foreground">Status of your withdrawals</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.withdrawalAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ withdrawalAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Earning Notifications</p>
+                <p className="text-sm text-muted-foreground">Daily and weekly earnings</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.earningAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ earningAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Price Alerts</p>
+                <p className="text-sm text-muted-foreground">Significant price changes</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.priceAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ priceAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Promotions & News</p>
+                <p className="text-sm text-muted-foreground">Special offers and updates</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.promotionAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ promotionAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Security Alerts</p>
+                <p className="text-sm text-muted-foreground">Login attempts and security</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.securityAlerts !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ securityAlerts: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2 border-t pt-4">
+              <div>
+                <p className="font-medium">Email Notifications</p>
+                <p className="text-sm text-muted-foreground">Send copies to email</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.emailEnabled !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ emailEnabled: checked })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium">Push Notifications</p>
+                <p className="text-sm text-muted-foreground">Mobile push notifications</p>
+              </div>
+              <Switch
+                checked={notificationPrefs?.pushEnabled !== false}
+                onCheckedChange={(checked) => 
+                  updateNotificationPrefsMutation.mutate({ pushEnabled: checked })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowNotificationPrefsDialog(false)}>
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>

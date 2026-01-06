@@ -1,9 +1,15 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { registerAdminRoutes } from "./admin-routes";
 import { initializeFirebaseAdmin } from "./firebase-admin";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -64,6 +70,10 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize Firebase Admin SDK
   initializeFirebaseAdmin();
+  
+  // Serve attached assets statically
+  const attachedAssetsPath = path.resolve(__dirname, "..", "attached_assets");
+  app.use("/attached_assets", express.static(attachedAssetsPath));
   
   // Register routes
   await registerRoutes(httpServer, app);
