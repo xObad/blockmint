@@ -17,7 +17,6 @@ import {
 } from "@/lib/firebase";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
-import appLogo from "@assets/The-Full-Logo-For-Social-Media.png";
 
 interface AuthPageProps {
   mode: "signin" | "register";
@@ -217,14 +216,9 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <motion.img 
-            src={appLogo} 
-            alt="BlockMint Logo" 
-            className="h-12 w-auto drop-shadow-2xl"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          />
+          <div className="h-12 flex items-center">
+            <h1 className="text-xl font-display font-bold text-foreground">BlockMint</h1>
+          </div>
           <ThemeToggle />
         </div>
 
@@ -290,16 +284,9 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   duration: 0.8
                 }}
               >
-                <motion.img 
-                  src={appLogo} 
-                  alt="BlockMint"
-                  className="w-full h-full object-contain drop-shadow-2xl"
-                  animate={{ 
-                    y: [0, -8, 0],
-                    filter: ["drop-shadow(0 10px 30px rgba(16, 185, 129, 0.3))", "drop-shadow(0 15px 40px rgba(16, 185, 129, 0.5))", "drop-shadow(0 10px 30px rgba(16, 185, 129, 0.3))"]
-                  }}
-                  transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
-                />
+                <div className="flex items-center justify-center w-full h-full">
+                  <h1 className="text-6xl font-display font-bold text-foreground">B</h1>
+                </div>
               </motion.div>
               <h1 
                 className="font-display text-2xl font-bold text-foreground mb-2"

@@ -39,6 +39,7 @@ function MobileApp() {
   const [appView, setAppView] = useState<AppView>("onboarding");
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const {
     miningStats,
@@ -81,13 +82,25 @@ function MobileApp() {
 
   // Track Firebase auth state
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
+    const unsubscribe = onAuthChange(async (user) => {
       setFirebaseUser(user);
       if (user) {
+        // Check admin status from custom claims
+        try {
+          const idTokenResult = await user.getIdTokenResult();
+          const isAdminUser = idTokenResult.claims.admin === true || idTokenResult.claims.role === "admin";
+          setIsAdmin(isAdminUser);
+          localStorage.setItem("isAdmin", isAdminUser.toString());
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        }
         localStorage.setItem("isLoggedIn", "true");
       } else if (appView === "main") {
         // User signed out remotely - clear state and go to auth
         localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("isAdmin");
+        setIsAdmin(false);
         setAppView("auth");
       }
     });
@@ -164,6 +177,8 @@ function MobileApp() {
                 onNavigateToInvest={() => setActiveTab("invest")}
                 onNavigateToSolo={() => setActiveTab("solo")}
                 isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
+                isAdmin={isAdmin}
+                onNavigateToAdmin={() => setActiveTab("admin")}
               />
             )
           )}
@@ -194,6 +209,9 @@ function MobileApp() {
               poolStatus={poolStatus}
               onNavigateToInvest={() => setActiveTab("invest")}
             />
+          )}
+          {activeTab === "admin" && isAdmin && (
+            <Admin key="admin" onBack={() => setActiveTab("home")} />
           )}
         </AnimatePresence>
 

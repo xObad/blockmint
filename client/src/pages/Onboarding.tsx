@@ -8,8 +8,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import btcMine from "@assets/Bitcoin_Mine_1766014388617.webp";
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 import serverMining from "@assets/Server_Mining_1766014388610.webp";
-import appLogo from "@assets/The-Full-Logo-For-Social-Media.png";
-import appIcon from "@assets/App-Icon.png";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -77,14 +75,14 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-16 pb-8">
         <div className="flex items-center justify-center mb-8 relative">
-          <motion.img 
-            src={appLogo} 
-            alt="BlockMint Logo" 
-            className="h-16 w-auto drop-shadow-2xl"
+          <motion.div 
+            className="h-16 flex items-center"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-          />
+          >
+            <h1 className="text-2xl font-display font-bold text-foreground">BlockMint</h1>
+          </motion.div>
           <div className="absolute right-0 flex flex-col items-end gap-2">
             <motion.button
               onClick={() => onSkip ? onSkip() : onSignIn()}

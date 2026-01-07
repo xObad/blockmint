@@ -101,7 +101,7 @@ export function useCryptoPrices() {
   });
 
   return {
-    prices: prices || {},
+    prices: (prices ?? ({} as Record<CryptoType, CryptoPrice>)),
     isLoading,
     error,
   };

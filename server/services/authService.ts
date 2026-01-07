@@ -43,11 +43,31 @@ export const authService = {
         .where(eq(schema.users.firebaseUid, firebaseUid));
 
       if (existingUsers.length > 0) {
-        // Update last login
+        const existingUser = existingUsers[0];
+        
+        // Check if email is now in admin list (may have been added after registration)
+        const adminEmail = await db.select().from(schema.adminEmails)
+          .where(and(
+            eq(schema.adminEmails.email, email),
+            eq(schema.adminEmails.isActive, true)
+          ));
+
+        const shouldBeAdmin = adminEmail.length > 0;
+        const newRole = shouldBeAdmin ? adminEmail[0].role : existingUser.role;
+        
+        // Update last login and role if needed
         const [updatedUser] = await db.update(schema.users)
-          .set({ lastLoginAt: new Date() })
-          .where(eq(schema.users.id, existingUsers[0].id))
+          .set({ 
+            lastLoginAt: new Date(),
+            role: newRole 
+          })
+          .where(eq(schema.users.id, existingUser.id))
           .returning();
+        
+        // Update Firebase custom claims if role changed to admin
+        if (shouldBeAdmin && existingUser.role !== newRole) {
+          await setCustomClaims(firebaseUid, { admin: true, role: newRole });
+        }
         
         return { success: true, user: updatedUser };
       }

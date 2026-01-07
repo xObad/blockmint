@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check, Menu, Home, Wallet, PieChart, History, HelpCircle, LogOut } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check, Menu, Home, Wallet, PieChart, History, HelpCircle, LogOut, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { SiX, SiInstagram } from "react-icons/si";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
@@ -39,7 +39,6 @@ import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_176601438
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
 import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
 import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
-import appIcon from "@assets/App-Icon.png";
 
 type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
 
@@ -120,6 +119,8 @@ interface DashboardProps {
   onNavigateToInvest?: () => void;
   onNavigateToSolo?: () => void;
   isLoggedIn?: boolean;
+  isAdmin?: boolean;
+  onNavigateToAdmin?: () => void;
 }
 
 const currencies = [
@@ -142,7 +143,9 @@ export function Dashboard({
   onOpenProfile,
   onNavigateToInvest,
   onNavigateToSolo,
-  isLoggedIn = false
+    isLoggedIn = false,
+    isAdmin = false,
+    onNavigateToAdmin,
 }: DashboardProps) {
   const { convert, getSymbol, currency, setCurrency } = useCurrency();
   const { theme, toggleTheme } = useTheme();
@@ -278,25 +281,7 @@ export function Dashboard({
           </motion.div>
         </motion.button>
 
-        {/* Centered App Icon Logo */}
-        <motion.div 
-          className="absolute left-1/2 -translate-x-1/2"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-        >
-          <motion.img 
-            src={appIcon} 
-            alt="BlockMint" 
-            className="h-11 w-11 rounded-2xl shadow-2xl ring-2 ring-primary/20"
-            whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
-            transition={{ duration: 0.3 }}
-            style={{
-              filter: "drop-shadow(0 0 20px rgba(16, 185, 129, 0.4))",
-              imageRendering: "-webkit-optimize-contrast"
-            }}
-          />
-        </motion.div>
+        {/* Right Side Icons */}
         <div className="flex items-center gap-2">
           <motion.button
             data-testid="button-theme-toggle"
@@ -394,10 +379,9 @@ export function Dashboard({
                 {/* Menu Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
-                    <img src={appIcon} alt="BlockMint" className="h-12 w-12 rounded-xl shadow-lg" />
                     <div>
-                      <h2 className="font-display text-xl font-bold text-foreground">BlockMint</h2>
-                      <p className="text-xs text-muted-foreground">Mining Dashboard</p>
+                      <h2 className="font-display text-2xl font-bold text-foreground">BlockMint</h2>
+                      <p className="text-sm text-muted-foreground">Mining Dashboard</p>
                     </div>
                   </div>
                   <motion.button
@@ -432,6 +416,20 @@ export function Dashboard({
 
                 {/* Menu Items */}
                 <nav className="flex-1 space-y-2">
+                  {isAdmin && (
+                    <motion.button
+                      onClick={() => {
+                        setShowMenu(false);
+                          onNavigateToAdmin?.();
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-orange-500/10 transition-all border border-amber-500/20"
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Shield className="w-5 h-5 text-amber-500" />
+                      <span className="text-sm font-bold text-amber-500">Admin Panel</span>
+                    </motion.button>
+                  )}
                   <motion.button
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
                     whileHover={{ x: 5 }}
