@@ -17,7 +17,7 @@ import {
 } from "@/lib/firebase";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
-import appLogo from "@assets/App-Logo.png";
+import appLogo from "@assets/The-Full-Logo-For-Social-Media.png";
 
 interface AuthPageProps {
   mode: "signin" | "register";
@@ -220,7 +220,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           <motion.img 
             src={appLogo} 
             alt="BlockMint Logo" 
-            className="h-10 w-auto"
+            className="h-12 w-auto drop-shadow-2xl"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -280,14 +280,25 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           >
             <div className="text-center mb-8">
               <motion.div 
-                className="w-24 h-24 mx-auto mb-6"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+                className="w-48 h-auto mx-auto mb-6 relative"
+                initial={{ y: -200, scale: 0.5, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 100,
+                  damping: 15,
+                  duration: 0.8
+                }}
               >
-                <img 
-                  src={mixedMain} 
+                <motion.img 
+                  src={appLogo} 
                   alt="BlockMint"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain drop-shadow-2xl"
+                  animate={{ 
+                    y: [0, -8, 0],
+                    filter: ["drop-shadow(0 10px 30px rgba(16, 185, 129, 0.3))", "drop-shadow(0 15px 40px rgba(16, 185, 129, 0.5))", "drop-shadow(0 10px 30px rgba(16, 185, 129, 0.3))"]
+                  }}
+                  transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
                 />
               </motion.div>
               <h1 

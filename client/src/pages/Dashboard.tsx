@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check, Menu, Home, Wallet, PieChart, History, HelpCircle, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { SiX, SiInstagram } from "react-icons/si";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
@@ -39,6 +39,7 @@ import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_176601438
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
 import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
 import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
+import appIcon from "@assets/App-Icon.png";
 
 type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
 
@@ -158,6 +159,7 @@ export function Dashboard({
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [copiedDeposit, setCopiedDeposit] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showRewardCelebration, setShowRewardCelebration] = useState(false);
   const [hasRatedApp, setHasRatedApp] = useState(() => localStorage.getItem("hasRatedApp") === "true");
   const safeChange24h = change24h ?? 0;
@@ -249,21 +251,52 @@ export function Dashboard({
 
   return (
     <motion.div
-      className="flex flex-col gap-6 pb-6"
+      className="flex flex-col gap-6 pb-6 pt-safe"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.header
-        className="flex items-center justify-between gap-4"
+        className="flex items-center justify-between gap-4 px-4 pt-4"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <div>
-          <p className="text-sm text-muted-foreground">Welcome Back</p>
-          <h1 className="text-2xl font-bold text-foreground font-display">BlockMint</h1>
-        </div>
+        {/* Hamburger Menu */}
+        <motion.button
+          data-testid="button-menu"
+          onClick={() => setShowMenu(!showMenu)}
+          className="relative w-11 h-11 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform shadow-lg"
+          whileTap={{ scale: 0.95 }}
+          type="button"
+        >
+          <motion.div
+            animate={{ rotate: showMenu ? 90 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Menu className="w-5 h-5 text-muted-foreground" />
+          </motion.div>
+        </motion.button>
+
+        {/* Centered App Icon Logo */}
+        <motion.div 
+          className="absolute left-1/2 -translate-x-1/2"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+        >
+          <motion.img 
+            src={appIcon} 
+            alt="BlockMint" 
+            className="h-11 w-11 rounded-2xl shadow-2xl ring-2 ring-primary/20"
+            whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 0.3 }}
+            style={{
+              filter: "drop-shadow(0 0 20px rgba(16, 185, 129, 0.4))",
+              imageRendering: "-webkit-optimize-contrast"
+            }}
+          />
+        </motion.div>
         <div className="flex items-center gap-2">
           <motion.button
             data-testid="button-theme-toggle"
@@ -331,6 +364,133 @@ export function Dashboard({
               )}
             </motion.button>
           </div>
+        </div>
+      </motion.header>
+
+      {/* Hamburger Menu Panel */}
+      <AnimatePresence>
+        {showMenu && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+              onClick={() => setShowMenu(false)}
+              data-testid="menu-backdrop"
+            />
+            {/* Menu Panel */}
+            <motion.div
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed left-0 top-0 bottom-0 w-80 z-[101] liquid-glass bg-background/95 backdrop-blur-xl border-r border-white/10 shadow-2xl"
+              data-testid="menu-panel"
+            >
+              <div className="flex flex-col h-full p-6 pt-safe">
+                {/* Menu Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <img src={appIcon} alt="BlockMint" className="h-12 w-12 rounded-xl shadow-lg" />
+                    <div>
+                      <h2 className="font-display text-xl font-bold text-foreground">BlockMint</h2>
+                      <p className="text-xs text-muted-foreground">Mining Dashboard</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => setShowMenu(false)}
+                    className="w-9 h-9 rounded-lg liquid-glass flex items-center justify-center hover-elevate"
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                </div>
+
+                {/* User Stats */}
+                <div className="liquid-glass bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl p-4 mb-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Total Balance</p>
+                      <p className="text-xs text-muted-foreground">All Currencies</p>
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{getSymbol()}{convertedBalance.toFixed(2)}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className={`flex items-center gap-1 text-xs ${isPositiveChange ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {isPositiveChange ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {Math.abs(safeChange24h).toFixed(2)}%
+                    </div>
+                    <span className="text-xs text-muted-foreground">24h</span>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <nav className="flex-1 space-y-2">
+                  <motion.button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Home className="w-5 h-5 text-emerald-500" />
+                    <span className="text-sm font-medium text-foreground">Dashboard</span>
+                  </motion.button>
+                  <motion.button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Wallet className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm font-medium text-foreground">Wallet</span>
+                  </motion.button>
+                  <motion.button
+                    onClick={onNavigateToInvest}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <PieChart className="w-5 h-5 text-purple-500" />
+                    <span className="text-sm font-medium text-foreground">Invest</span>
+                  </motion.button>
+                  <motion.button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <History className="w-5 h-5 text-amber-500" />
+                    <span className="text-sm font-medium text-foreground">History</span>
+                  </motion.button>
+                  <motion.button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <HelpCircle className="w-5 h-5 text-cyan-500" />
+                    <span className="text-sm font-medium text-foreground">Support</span>
+                  </motion.button>
+                </nav>
+
+                {/* Footer */}
+                <div className="pt-4 border-t border-white/10">
+                  <motion.button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-500"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="text-sm font-medium">Sign Out</span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Notification Panel - Portal to body to avoid layout issues */}
       <AnimatePresence>

@@ -8,7 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import btcMine from "@assets/Bitcoin_Mine_1766014388617.webp";
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 import serverMining from "@assets/Server_Mining_1766014388610.webp";
-import appLogo from "@assets/App-Logo.png";
+import appLogo from "@assets/The-Full-Logo-For-Social-Media.png";
+import appIcon from "@assets/App-Icon.png";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -79,7 +80,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           <motion.img 
             src={appLogo} 
             alt="BlockMint Logo" 
-            className="h-12 w-auto"
+            className="h-16 w-auto drop-shadow-2xl"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -87,7 +88,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           <div className="absolute right-0 flex flex-col items-end gap-2">
             <motion.button
               onClick={() => onSkip ? onSkip() : onSignIn()}
-              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-2xl font-light text-muted-foreground hover:text-foreground"
               whileTap={{ scale: 0.95 }}
               data-testid="button-skip"
               type="button"
@@ -185,7 +186,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           >
             <Button
               onClick={handleNext}
-              className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/50 active:shadow-md active:shadow-emerald-500/40 transition-all duration-300 overflow-hidden group"
+              className="relative w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/50 active:shadow-md active:shadow-emerald-500/40 transition-all duration-300 overflow-hidden group"
               data-testid="button-next-onboarding"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
