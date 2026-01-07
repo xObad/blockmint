@@ -330,22 +330,20 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               <span className="text-foreground">Continue With Google</span>
             </Button>
 
-            {isIOS && (
-              <Button
-                onClick={() => handleSocialAuth("apple")}
-                variant="outline"
-                className="w-full h-14 text-base font-medium bg-black dark:bg-white border-white/20 gap-3"
-                data-testid="button-apple-auth"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
-                ) : (
-                  <SiApple className="w-5 h-5 text-white dark:text-black" />
-                )}
-                <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
-              </Button>
-            )}
+            <Button
+              onClick={() => handleSocialAuth("apple")}
+              variant="outline"
+              className="w-full h-14 text-base font-medium bg-black dark:bg-white border-white/20 gap-3"
+              data-testid="button-apple-auth"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
+              ) : (
+                <SiApple className="w-5 h-5 text-white dark:text-black" />
+              )}
+              <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
+            </Button>
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
@@ -408,11 +406,11 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               >
                 <Button
                   type="submit"
-                  className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/50 active:shadow-md active:shadow-emerald-500/40 transition-all duration-300 overflow-hidden group"
+                  className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
                   data-testid="button-email-auth"
                   disabled={isLoading}
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="absolute inset-0 bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <span className="relative z-10 flex items-center justify-center">
                     {isLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
