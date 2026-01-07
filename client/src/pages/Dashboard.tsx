@@ -572,8 +572,6 @@ export function Dashboard({
           </>
         )}
       </AnimatePresence>
-        </div>
-      </motion.header>
 
       <LiquidGlassCard glow="btc" delay={0.1} variant="strong" className="relative">
         <div className="absolute -right-4 -top-4 w-32 h-32 opacity-90 pointer-events-none">
