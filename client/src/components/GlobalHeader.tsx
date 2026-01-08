@@ -39,15 +39,23 @@ export function GlobalHeader({
         className="bg-transparent pt-[35px]"
       >
         <div className="flex items-center gap-4 px-4 h-16">
-          {/* Left Side - Hamburger Menu */}
-          <div className="flex items-center gap-2 w-[88px]">
+          {/* Left Side - Hamburger Menu & Settings */}
+          <div className="flex items-center gap-2">
             <motion.button
               onClick={() => setShowMenu(!showMenu)}
               className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
               whileTap={{ scale: 0.95 }}
               type="button"
             >
-              <Menu className="w-5 h-5 text-muted-foreground" />
+              <Menu className="w-[17px] h-[17px] text-muted-foreground" />
+            </motion.button>
+            <motion.button
+              onClick={onOpenSettings}
+              className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+              whileTap={{ scale: 0.95 }}
+              type="button"
+            >
+              <SettingsIcon className="w-[17px] h-[17px] text-muted-foreground" />
             </motion.button>
           </div>
 
@@ -71,9 +79,9 @@ export function GlobalHeader({
               type="button"
             >
               {theme === "dark" ? (
-                <Moon className="w-5 h-5 text-muted-foreground" />
+                <Moon className="w-[17px] h-[17px] text-muted-foreground" />
               ) : (
-                <Sun className="w-5 h-5 text-amber-500" />
+                <Sun className="w-[17px] h-[17px] text-amber-500" />
               )}
             </motion.button>
             <div className="relative">
@@ -82,7 +90,7 @@ export function GlobalHeader({
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
-                <Bell className="w-5 h-5 text-muted-foreground" />
+                <Bell className="w-[17px] h-[17px] text-muted-foreground" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/50" />
                 )}
