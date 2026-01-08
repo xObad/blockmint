@@ -632,7 +632,7 @@ export function Wallet({
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Available: {currentBalance.toFixed(8)} {selectedCrypto}
+                          Available: {(pricedBalances.find(b => b.symbol === selectedCrypto)?.balance ?? 0).toFixed(8)} {selectedCrypto}
                         </p>
                       </div>
 
