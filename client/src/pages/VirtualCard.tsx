@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, CreditCard, Shield, Zap, Globe, Lock, TrendingUp, Check, Mail } from "lucide-react";
+import { ArrowLeft, Shield, Zap, Globe, Lock, TrendingUp, Check, Mail } from "lucide-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,11 +126,31 @@ export function VirtualCard({ onBack }: VirtualCardProps) {
           <LiquidGlassCard className="relative overflow-hidden" variant="strong">
             {/* Content */}
             <div className="relative z-10 p-6 text-center">
-              {/* Large Lottie Animation - Shows First */}
+              {/* BlockMint Logo - Shows First */}
               <motion.div
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.6, type: "spring", stiffness: 100 }}
+                className="mb-6"
+              >
+                <div className="relative mx-auto w-32 h-32">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
+                  <img 
+                    src="/attached_assets/BlockMint-for-All.png" 
+                    alt="BlockMint" 
+                    className="w-full h-full object-contain relative z-10"
+                    style={{
+                      filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.25)) contrast(1.1) saturate(1.2)',
+                    }}
+                  />
+                </div>
+              </motion.div>
+              
+              {/* Large Lottie Animation - Shows Second */}
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 100 }}
                 className="mb-6"
               >
                 <div className="w-64 h-64 mx-auto">
@@ -147,7 +167,7 @@ export function VirtualCard({ onBack }: VirtualCardProps) {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.7 }}
               >
                 <h2 className="text-3xl font-bold text-foreground mb-3">
                   The Future of Crypto Payments
@@ -163,7 +183,7 @@ export function VirtualCard({ onBack }: VirtualCardProps) {
                 className="max-w-md mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.9 }}
               >
                 <div className="flex gap-2">
                   <Input
