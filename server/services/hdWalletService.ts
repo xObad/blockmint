@@ -82,7 +82,7 @@ export class HDWalletService {
 
     return {
       address,
-      publicKey: child.publicKey.toString('hex'),
+      publicKey: Buffer.from(child.publicKey).toString('hex'),
       derivationPath: path,
       index,
     };
@@ -127,7 +127,7 @@ export class HDWalletService {
 
     return {
       address,
-      publicKey: child.publicKey.toString('hex'),
+      publicKey: Buffer.from(child.publicKey).toString('hex'),
       derivationPath: path,
       index,
     };
@@ -194,7 +194,7 @@ export class HDWalletService {
 
     return {
       address,
-      publicKey: child.publicKey.toString('hex'),
+      publicKey: Buffer.from(child.publicKey).toString('hex'),
       derivationPath: path,
       index,
     };

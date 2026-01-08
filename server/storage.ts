@@ -241,7 +241,7 @@ export class MemStorage implements IStorage {
     
     // Clean up old history (keep only 25 hours of data)
     const oneDayAgo = now - 25 * 60 * 60 * 1000;
-    for (const [timestamp] of this.balanceHistory) {
+    for (const [timestamp] of Array.from(this.balanceHistory.entries())) {
       if (timestamp < oneDayAgo) {
         this.balanceHistory.delete(timestamp);
       }
@@ -264,7 +264,7 @@ export class MemStorage implements IStorage {
     let closestBalance = currentTotal;
     let closestDiff = Infinity;
     
-    for (const [timestamp, balance] of this.balanceHistory) {
+    for (const [timestamp, balance] of Array.from(this.balanceHistory.entries())) {
       const diff = Math.abs(timestamp - oneDayAgo);
       if (diff < closestDiff) {
         closestDiff = diff;
