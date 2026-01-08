@@ -37,9 +37,8 @@ import {
 // Crypto assets with their icons
 const cryptoAssets = [
   { symbol: "BTC", name: "Bitcoin", icon: "₿", color: "from-amber-500 to-orange-500", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  { symbol: "ETH", name: "Ethereum", icon: "Ξ", color: "from-blue-500 to-indigo-500", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  { symbol: "BNB", name: "Binance Coin", icon: "◆", color: "from-yellow-500 to-amber-500", bgColor: "bg-yellow-500/20", textColor: "text-yellow-400" },
   { symbol: "USDT", name: "Tether", icon: "₮", color: "from-emerald-500 to-green-500", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
-  { symbol: "USDC", name: "USD Coin", icon: "$", color: "from-blue-400 to-cyan-500", bgColor: "bg-blue-400/20", textColor: "text-blue-300" },
 ];
 
 // APR Rates by duration - REAL FIXED APR
@@ -59,12 +58,10 @@ const trustBadges = [
   { icon: Award, label: "19.25% APR", description: "Industry leading", color: "text-purple-400" },
 ];
 
-// Partner logos (trust indicators)
+// Partner logos (trust indicators) - well-known fund security services
 const partnerLogos = [
-  { name: "Chainlink", icon: "⬡" },
-  { name: "Fireblocks", icon: "🔥" },
-  { name: "BitGo", icon: "🔐" },
   { name: "Ledger", icon: "🛡️" },
+  { name: "Coinbase Custody", icon: "🔐" },
 ];
 
 // FAQ items - Admin can override these from dashboard
@@ -83,7 +80,7 @@ const defaultFaqItems = [
   },
   {
     question: "What cryptocurrencies can I invest?",
-    answer: "We support major cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), Tether (USDT), and USD Coin (USDC). Each asset earns the same competitive APR rates, allowing you to diversify your portfolio while maximizing returns."
+    answer: "We support major cryptocurrencies including Bitcoin (BTC), Binance Coin (BNB), and Tether (USDT). Each asset earns the same competitive APR rates, allowing you to diversify your portfolio while maximizing returns."
   },
   {
     question: "How does this differ from traditional staking?",
@@ -91,7 +88,7 @@ const defaultFaqItems = [
   },
   {
     question: "What is the minimum investment amount?",
-    answer: "The minimum investment varies by cryptocurrency. For BTC and ETH, the minimum is $50 equivalent. For stablecoins (USDT/USDC), the minimum is $100. There is no maximum limit—invest as much as you'd like to earn."
+    answer: "The minimum investment varies by cryptocurrency. For BTC and BNB, the minimum is $50 equivalent. For stablecoins (USDT), the minimum is $100. There is no maximum limit—invest as much as you'd like to earn."
   },
 ];
 
@@ -168,19 +165,22 @@ function APRCalculator() {
 
   const calculatedReturns = useMemo(() => {
     const rateData = currentRates[selectedDuration];
-    const rate = rateData.rate / 100;
+    const annualRate = rateData.rate / 100; // This is the annual rate (e.g., 18.25% for monthly)
     const period = rateData.period;
     
-    // Calculate returns based on duration
-    const dailyRate = rate / 365;
-    const periodReturn = investmentAmount * dailyRate * period;
-    const annualReturn = investmentAmount * rate;
+    // Calculate total return after the period using the annual rate
+    // Total = Principal + (Principal * AnnualRate * (Days/365))
+    const totalAfterPeriod = investmentAmount * (1 + (annualRate * period / 365));
+    const periodReturn = totalAfterPeriod - investmentAmount;
+    
+    // Daily earning is the period return divided by the number of days
+    const dailyEarning = periodReturn / period;
     
     return {
       periodReturn,
-      annualReturn,
-      total: investmentAmount + periodReturn,
-      dailyEarning: investmentAmount * dailyRate,
+      annualReturn: investmentAmount * annualRate,
+      total: totalAfterPeriod,
+      dailyEarning,
     };
   }, [investmentAmount, selectedDuration, currentRates]);
 
@@ -205,7 +205,7 @@ function APRCalculator() {
           {/* Crypto Selection */}
           <div>
             <Label className="text-sm text-muted-foreground mb-3 block">Select Asset</Label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 justify-center">
               {cryptoAssets.map((crypto) => (
                 <button
                   key={crypto.symbol}
