@@ -550,9 +550,6 @@ export function Dashboard({
         </div>
       </LiquidGlassCard>
 
-      {/* Promotional Offers Slider */}
-      <OffersSlider />
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -723,6 +720,9 @@ export function Dashboard({
           </GlassCard>
         </div>
       </motion.div>
+
+      {/* Promotional Offers Slider */}
+      <OffersSlider />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
