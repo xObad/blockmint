@@ -130,9 +130,9 @@ export function OffersSlider() {
           {/* Gradient Background */}
           <div className={`absolute inset-0 ${backgroundClass}`} />
           
-          {/* Lottie Animation (Small, positioned in top-right corner) */}
+          {/* Lottie Animation (Medium size, positioned in top-right corner) */}
           {isLottieUrl && currentOffer.imageUrl && (
-            <div className="absolute top-2 right-2 w-16 h-16 pointer-events-none z-20">
+            <div className="absolute top-2 right-2 w-32 h-32 pointer-events-none z-20">
               <DotLottieReact
                 src={currentOffer.imageUrl}
                 loop={shouldPlayLottie}
@@ -149,7 +149,7 @@ export function OffersSlider() {
           {/* Content - Centered with padding for arrows */}
           <div className="relative h-full flex flex-col justify-center px-12 py-4">
             <div className="space-y-1.5 max-w-full"
-              style={{ maxWidth: isLottieUrl ? 'calc(100% - 4rem)' : '100%' }}
+              style={{ maxWidth: isLottieUrl ? 'calc(100% - 9rem)' : '100%' }}
             >
               <div>
                 <h3 className="text-base font-bold text-white drop-shadow-lg leading-tight">

@@ -125,15 +125,15 @@ export function VirtualCard({ onBack }: VirtualCardProps) {
         >
           <LiquidGlassCard className="relative overflow-hidden" variant="strong">
             {/* Content */}
-            <div className="relative z-10 p-6 text-center">
+            <div className="relative z-10 p-4 text-center">
               {/* BlockMint Logo - Shows First */}
               <motion.div
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.6, type: "spring", stiffness: 100 }}
-                className="mb-6"
+                className="mb-3"
               >
-                <div className="relative mx-auto w-32 h-32">
+                <div className="relative mx-auto w-24 h-24">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
                   <img 
                     src="/attached_assets/BlockMint-for-All.png" 
@@ -146,14 +146,14 @@ export function VirtualCard({ onBack }: VirtualCardProps) {
                 </div>
               </motion.div>
               
-              {/* Large Lottie Animation - Shows Second */}
+              {/* High Quality Lottie Animation - Shows Second */}
               <motion.div
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 100 }}
-                className="mb-6"
+                className="mb-3"
               >
-                <div className="w-64 h-64 mx-auto">
+                <div className="w-72 h-72 mx-auto max-w-full">
                   <DotLottieReact
                     src="https://lottie.host/4495e92b-9f73-41a6-9a64-d28398d29566/vSLht88QDu.lottie"
                     loop
