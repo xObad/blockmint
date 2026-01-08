@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { OffersSlider } from "@/components/OffersSlider";
+import { EducationalSlider } from "@/components/EducationalSlider";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -775,6 +776,9 @@ export function Dashboard({
           </div>
         </GlassCard>
       </motion.div>
+
+      {/* Educational Slider */}
+      <EducationalSlider />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
