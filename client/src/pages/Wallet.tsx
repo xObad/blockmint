@@ -223,6 +223,13 @@ export function Wallet({
     return network?.estimatedTime || "Unknown";
   };
 
+  const getWithdrawReceiveAmount = () => {
+    const amount = parseFloat(withdrawAmount) || 0;
+    const fee = getSelectedNetworkFee();
+    const receive = amount - fee;
+    return receive > 0 ? receive.toFixed(8) : "0.00000000";
+  };
+
   const getCurrentBalance = (crypto: CryptoType) => {
     return balances.find(b => b.symbol === crypto)?.balance || 0;
   };
