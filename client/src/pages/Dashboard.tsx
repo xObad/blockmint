@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { OffersSlider } from "@/components/OffersSlider";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -259,325 +260,20 @@ export function Dashboard({
   };
 
   return (
-    <motion.div
-      className="flex flex-col gap-6 pb-6 pt-safe"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.header
-        className="flex items-center justify-between gap-4 px-4 pt-4"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+    <>
+      <GlobalHeader
+        onOpenSettings={onOpenSettings}
+        onNavigateToHome={() => {}}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={onNavigateToInvest}
+      />
+      <motion.div
+        className="flex flex-col gap-6 pb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
       >
-        {/* Hamburger Menu */}
-        <motion.button
-          data-testid="button-menu"
-          onClick={() => setShowMenu(!showMenu)}
-          className="relative w-11 h-11 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform shadow-lg"
-          whileTap={{ scale: 0.95 }}
-          type="button"
-        >
-          <motion.div
-            animate={{ rotate: showMenu ? 90 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Menu className="w-5 h-5 text-muted-foreground" />
-          </motion.div>
-        </motion.button>
-
-        {/* Right Side Icons */}
-        <div className="flex items-center gap-2">
-          <motion.button
-            data-testid="button-theme-toggle"
-            onClick={toggleTheme}
-            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
-            whileTap={{ scale: 0.95 }}
-            type="button"
-          >
-            <motion.div
-              initial={false}
-              animate={{ rotate: theme === "dark" ? 0 : 180 }}
-              transition={{ duration: 0.3 }}
-            >
-              {theme === "dark" ? (
-                <Moon className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <Sun className="w-5 h-5 text-amber-500" />
-              )}
-            </motion.div>
-          </motion.button>
-          <button
-            data-testid="button-settings"
-            onClick={onOpenSettings}
-            className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
-            type="button"
-          >
-            <Settings className="w-5 h-5 text-muted-foreground" />
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                data-testid="button-currency-shortcut"
-                className="relative h-10 px-3 rounded-xl liquid-glass flex items-center justify-center gap-1 hover-elevate transition-transform active:scale-95"
-                type="button"
-              >
-                <span className="text-sm font-medium text-foreground">{currency}</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="liquid-glass bg-background/95 backdrop-blur-xl border-white/10">
-              {currencies.map((curr) => (
-                <DropdownMenuItem
-                  key={curr.code}
-                  onClick={() => setCurrency(curr.code)}
-                  className={`cursor-pointer ${currency === curr.code ? 'bg-primary/20' : ''}`}
-                  data-testid={`option-currency-${curr.code.toLowerCase()}`}
-                >
-                  <span className="w-6">{curr.symbol}</span>
-                  <span>{curr.code}</span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className="relative">
-            <motion.button
-              data-testid="button-notifications"
-              className="relative w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowNotifications(!showNotifications)}
-            >
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-[10px] font-medium text-primary-foreground">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </motion.button>
-          </div>
-        </div>
-      </motion.header>
-
-      {/* Hamburger Menu Panel */}
-      <AnimatePresence>
-        {showMenu && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-              onClick={() => setShowMenu(false)}
-              data-testid="menu-backdrop"
-            />
-            {/* Menu Panel */}
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed left-0 top-0 bottom-0 w-80 z-[101] liquid-glass bg-background/95 backdrop-blur-xl border-r border-white/10 shadow-2xl"
-              data-testid="menu-panel"
-            >
-              <div className="flex flex-col h-full p-6 pt-safe">
-                {/* Menu Header */}
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <h2 className="font-display text-2xl font-bold text-foreground">BlockMint</h2>
-                      <p className="text-sm text-muted-foreground">Mining Dashboard</p>
-                    </div>
-                  </div>
-                  <motion.button
-                    onClick={() => setShowMenu(false)}
-                    className="w-9 h-9 rounded-lg liquid-glass flex items-center justify-center hover-elevate"
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
-                </div>
-
-                {/* User Stats */}
-                <div className="liquid-glass bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl p-4 mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Total Balance</p>
-                      <p className="text-xs text-muted-foreground">All Currencies</p>
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-foreground">{getSymbol()}{convertedBalance.toFixed(2)}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className={`flex items-center gap-1 text-xs ${isPositiveChange ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {isPositiveChange ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(safeChange24h).toFixed(2)}%
-                    </div>
-                    <span className="text-xs text-muted-foreground">24h</span>
-                  </div>
-                </div>
-
-                {/* Menu Items */}
-                <nav className="flex-1 space-y-2">
-                  {isAdmin && (
-                    <motion.button
-                      onClick={() => {
-                        setShowMenu(false);
-                          onNavigateToAdmin?.();
-                      }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-orange-500/10 transition-all border border-amber-500/20"
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Shield className="w-5 h-5 text-amber-500" />
-                      <span className="text-sm font-bold text-amber-500">Admin Panel</span>
-                    </motion.button>
-                  )}
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Home className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm font-medium text-foreground">Dashboard</span>
-                  </motion.button>
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Wallet className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium text-foreground">Wallet</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={onNavigateToInvest}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <PieChart className="w-5 h-5 text-purple-500" />
-                    <span className="text-sm font-medium text-foreground">Invest</span>
-                  </motion.button>
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <History className="w-5 h-5 text-amber-500" />
-                    <span className="text-sm font-medium text-foreground">History</span>
-                  </motion.button>
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <HelpCircle className="w-5 h-5 text-cyan-500" />
-                    <span className="text-sm font-medium text-foreground">Support</span>
-                  </motion.button>
-                </nav>
-
-                {/* Footer */}
-                <div className="pt-4 border-t border-white/10">
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-500"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span className="text-sm font-medium">Sign Out</span>
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Notification Panel - Portal to body to avoid layout issues */}
-      <AnimatePresence>
-        {showNotifications && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-              onClick={() => setShowNotifications(false)}
-              data-testid="notification-backdrop"
-            />
-            {/* Panel */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              className="fixed left-1/2 -translate-x-1/2 top-20 w-[calc(100%-2rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-              data-testid="panel-notifications"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <h3 className="font-semibold text-foreground">Notifications</h3>
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); markAllAsRead(); }}
-                      className="text-xs text-primary hover:underline"
-                      data-testid="button-mark-all-read"
-                    >
-                      Mark all read
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowNotifications(false)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
-                    data-testid="button-close-notifications"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-              {notifications.length > 0 ? (
-                <div className="max-h-80 overflow-y-auto overscroll-contain">
-                  {notifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
-                      className={`w-full text-left p-4 border-b border-border/50 hover:bg-muted/50 transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
-                      data-testid={`notification-item-${notif.id}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        {!notif.read && (
-                          <span className="w-2 h-2 mt-1.5 rounded-full bg-primary shrink-0" />
-                        )}
-                        <div className={!notif.read ? '' : 'pl-5'}>
-                          <p className="font-medium text-foreground text-sm">{notif.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
-                          <p className="text-xs text-muted-foreground/60 mt-2">{notif.time}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <Inbox className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                  <p className="text-sm font-medium text-foreground">No Notifications Yet</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Notifications will appear here when you have mining updates, payouts, or important alerts.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <LiquidGlassCard glow="btc" delay={0.1} variant="strong" className="relative">
+        <LiquidGlassCard glow="btc" delay={0.1} variant="strong" className="relative">
         <div className="absolute -right-4 -top-4 w-32 h-32 opacity-90 pointer-events-none">
           <motion.img 
             src={mixedMain}
@@ -590,32 +286,31 @@ export function Dashboard({
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm text-muted-foreground">Portfolio Value</span>
-            </div>
-            {onRefreshBalances && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRefreshBalances}
-                disabled={isFetching}
-                className="h-8 w-8 p-0 rounded-full liquid-glass border-0"
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-sm text-muted-foreground">Portfolio Value</span>
           </div>
 
           <div className="mb-1">
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-center gap-2">
               <span className="text-lg text-muted-foreground">{getSymbol()}</span>
               <AnimatedCounter
                 value={convertedBalance}
                 decimals={2}
                 className="text-3xl font-bold text-foreground tracking-tight"
               />
+              {onRefreshBalances && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRefreshBalances}
+                  disabled={isFetching}
+                  className="ml-2 h-7 w-7 p-0 rounded-full liquid-glass border border-primary/25 shadow-sm shrink-0"
+                  aria-label="Refresh balances"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1271,6 +966,7 @@ export function Dashboard({
           </GlassCard>
         </div>
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

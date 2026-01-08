@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { GlassCard } from "@/components/GlassCard";
 import { HashRateChart } from "@/components/HashRateChart";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,6 @@ import {
 import { useCurrency } from "@/contexts/CurrencyContext";
 import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
-import serverMiningImg from "@assets/Server_Mining_1766014388610.webp";
 import btcMineImg from "@assets/Bitcoin_Mine_1766014388617.webp";
 import ltcMineImg from "@assets/Gemini_Generated_Image_1ri2av1ri2av1ri2_(1)_1766014388604.webp";
 import btcMiningCart from "@assets/Bitcoin_Mining_Cart_1766014388619.webp";
@@ -632,40 +632,30 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   const ltcPackages = miningPackages.filter(p => p.crypto === "LTC");
 
   return (
-    <motion.div
-      className="flex flex-col gap-5 pb-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      data-testid="page-mining"
-    >
-      {/* Header */}
+    <>
+      <GlobalHeader
+        onNavigateToHome={() => {}}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={onNavigateToInvest}
+      />
       <motion.div
-        className="relative"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        className="flex flex-col gap-5 pb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        data-testid="page-mining"
       >
-        <div className="flex items-start gap-4">
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Mining</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Your hashpower & mining packages
-            </p>
-          </div>
-          <motion.img
-            src={serverMiningImg}
-            alt="Mining Server"
-            className="w-16 h-16 object-contain drop-shadow-2xl"
-            animate={{ 
-              y: [0, -5, 0],
-              rotateY: [0, 5, 0, -5, 0],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            data-testid="img-header-server"
-          />
-        </div>
-      </motion.div>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <h1 className="text-2xl font-bold text-foreground">Mining</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Your hashpower & mining packages
+          </p>
+        </motion.div>
 
       {/* Active Hashpower Card (Smaller) */}
       <GlassCard delay={0.1} variant="strong" className="relative py-4 px-5">
@@ -761,6 +751,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
           <PoolStatusCard status={poolStatus} />
         </>
       )}
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

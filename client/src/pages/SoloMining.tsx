@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { 
   Zap, 
   Target, 
@@ -103,12 +104,18 @@ export function SoloMining() {
   const isRecommended = hashpower[0] === 50 && duration[0] === 6;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6 pb-8"
-    >
+    <>
+      <GlobalHeader
+        onNavigateToHome={() => {}}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={() => {}}
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="space-y-6 pb-8"
+      >
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -374,6 +381,7 @@ export function SoloMining() {
           </Accordion>
         </GlassCard>
       </motion.section>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { 
   ArrowLeft, ArrowDownToLine, ArrowUpFromLine, RefreshCw, 
   Filter, Clock, CheckCircle2, XCircle, AlertCircle
@@ -142,7 +143,13 @@ export function History() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <GlobalHeader
+        onNavigateToHome={() => {}}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={() => {}}
+      />
+      <div className="min-h-screen bg-background">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
@@ -255,7 +262,8 @@ export function History() {
           </p>
         </div>
       </motion.div>
-    </div>
+      </div>
+    </>
   );
 }
 

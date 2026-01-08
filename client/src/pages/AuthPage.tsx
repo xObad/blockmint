@@ -116,6 +116,34 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       onComplete();
     } catch (error: any) {
       console.error("Auth error:", error);
+      let title = "Oops! Something Went Wrong";
+      let message = "Please try again in a moment.";
+      
+      if (error.code === "auth/email-already-in-use") {
+        title = "Email Already Registered";
+        message = "This email is already in use. Try signing in or use a different email.";
+      } else if (error.code === "auth/invalid-email") {
+        title = "Invalid Email";
+        message = "Please enter a valid email address.";
+      } else if (error.code === "auth/wrong-password") {
+        title = "Incorrect Password";
+        message = "The password you entered is incorrect. Try again or reset your password.";
+      } else if (error.code === "auth/user-not-found") {
+        title = "Account Not Found";
+        message = "No account exists with this email. Please sign up first.";
+      } else if (error.code === "auth/invalid-credential") {
+        title = "Invalid Login Details";
+        message = "Your email or password is incorrect. Please check and try again.";
+      } else if (error.code === "auth/too-many-requests") {
+        title = "Too Many Attempts";
+        message = "Please wait a few minutes before trying again.";
+      } else if (error.code === "auth/network-request-failed") {
+        title = "Connection Issue";
+        message = "Please check your internet connection and try again.";
+      } else if (error.code === "auth/weak-password") {
+        title = "Weak Password";
+        message = "Please choose a stronger password with at least 6 characters.";
+      }
       toast({
         title: "Authentication Failed",
         description: error.message || "Please try again.",
@@ -176,18 +204,37 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      let message = "Please try again.";
+      let title = "Oops! Something Went Wrong";
+      let message = "Please try again in a moment.";
+      
       if (error.code === "auth/email-already-in-use") {
-        message = "This email is already registered. Try signing in instead.";
+        title = "Email Already Registered";
+        message = "This email is already in use. Try signing in or use a different email.";
       } else if (error.code === "auth/invalid-email") {
+        title = "Invalid Email";
         message = "Please enter a valid email address.";
-      } else if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
-        message = "Invalid email or password.";
+      } else if (error.code === "auth/wrong-password") {
+        title = "Incorrect Password";
+        message = "The password you entered is incorrect. Try again or reset your password.";
+      } else if (error.code === "auth/user-not-found") {
+        title = "Account Not Found";
+        message = "No account exists with this email. Please sign up first.";
       } else if (error.code === "auth/invalid-credential") {
-        message = "Invalid email or password.";
+        title = "Invalid Login Details";
+        message = "Your email or password is incorrect. Please check and try again.";
+      } else if (error.code === "auth/too-many-requests") {
+        title = "Too Many Attempts";
+        message = "Please wait a few minutes before trying again.";
+      } else if (error.code === "auth/network-request-failed") {
+        title = "Connection Issue";
+        message = "Please check your internet connection and try again.";
+      } else if (error.code === "auth/weak-password") {
+        title = "Weak Password";
+        message = "Please choose a stronger password with at least 6 characters.";
       }
+      
       toast({
-        title: "Authentication Failed",
+        title,
         description: message,
         variant: "destructive",
       });
@@ -204,8 +251,8 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-16 pb-8">
-        <div className="flex items-center justify-between mb-8">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-8 pb-6 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => onBack()}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
@@ -216,9 +263,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="h-12 flex items-center">
-            <h1 className="text-xl font-display font-bold text-foreground">BlockMint</h1>
-          </div>
+          <div className="flex-1"></div>
           <ThemeToggle />
         </div>
 
@@ -232,7 +277,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               <Mail className="w-10 h-10 text-primary" />
             </div>
             <h1 
-              className="font-display text-2xl font-bold text-foreground mb-2"
+              className="font-display text-xl font-bold text-foreground mb-1"
               data-testid="heading-verification"
             >
               Verify Your Email
@@ -272,9 +317,9 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             animate={{ opacity: 1, y: 0 }}
             className="flex-1 flex flex-col"
           >
-            <div className="text-center mb-8">
+            <div className="text-center mb-4">
               <motion.div 
-                className="w-48 h-auto mx-auto mb-6 relative"
+                className="w-full h-32 mx-auto mb-3 relative flex items-center justify-center"
                 initial={{ y: -200, scale: 0.5, opacity: 0 }}
                 animate={{ y: 0, scale: 1, opacity: 1 }}
                 transition={{ 
@@ -284,17 +329,25 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   duration: 0.8
                 }}
               >
-                <div className="flex items-center justify-center w-full h-full">
-                  <h1 className="text-6xl font-display font-bold text-foreground">B</h1>
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-purple-500/10 rounded-full blur-3xl"></div>
+                <img
+                  src="/attached_assets/BlockMint-for-All.png"
+                  alt="BlockMint"
+                  className="h-28 w-auto object-contain relative z-10"
+                  style={{
+                    filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
               </motion.div>
               <h1 
-                className="font-display text-2xl font-bold text-foreground mb-2"
+                className="font-display text-xl font-bold text-foreground mb-1"
                 data-testid="heading-auth"
               >
                 {mode === "signin" ? "Welcome Back" : "Create Account"}
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {mode === "signin" 
                   ? "Sign in to continue mining" 
                   : "Start your mining journey today"}
@@ -305,7 +358,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             <Button
               onClick={() => handleSocialAuth("google")}
               variant="outline"
-              className="w-full h-14 text-base font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
+              className="w-full h-11 text-sm font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
               data-testid="button-google-auth"
               disabled={isLoading}
             >
@@ -320,7 +373,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             <Button
               onClick={() => handleSocialAuth("apple")}
               variant="outline"
-              className="w-full h-14 text-base font-medium bg-black dark:bg-white border-white/20 gap-3"
+              className="w-full h-11 text-sm font-medium bg-black dark:bg-white border-white/20 gap-3"
               data-testid="button-apple-auth"
               disabled={isLoading}
             >
@@ -332,7 +385,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
             </Button>
 
-            <div className="relative my-6">
+            <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
               </div>
@@ -349,7 +402,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                     placeholder="Full Name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="h-14 text-base bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                    className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
                     data-testid="input-name"
                     disabled={isLoading}
                   />
@@ -359,7 +412,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-14 text-base bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                  className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
                   data-testid="input-email"
                   disabled={isLoading}
                 />
@@ -368,7 +421,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-14 text-base bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                  className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
                   data-testid="input-password"
                   disabled={isLoading}
                 />
@@ -393,7 +446,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
               >
                 <Button
                   type="submit"
-                  className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
+                  className="relative w-full h-11 text-base font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
                   data-testid="button-email-auth"
                   disabled={isLoading}
                 >

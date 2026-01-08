@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeftRight, Copy, Check, AlertCircle, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Info } from "lucide-react";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { GlassCard } from "@/components/GlassCard";
 import { CryptoCard } from "@/components/CryptoCard";
 import { TransactionItem } from "@/components/TransactionItem";
@@ -29,7 +30,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import type { WalletBalance, Transaction } from "@/lib/types";
-import walletImage from "@assets/Bitcoin_Wallet_1766014388613.webp";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
 import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
@@ -348,29 +348,27 @@ export function Wallet({
   };
 
   return (
-    <motion.div
-      className="flex flex-col gap-6 pb-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex items-center gap-4"
+    <>
+      <GlobalHeader
+        onOpenSettings={onOpenSettings}
+        onNavigateToHome={onNavigateToHome}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={onNavigateToInvest}
+      />
+      <motion.div
+        className="flex flex-col gap-6 pb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
       >
-        <img 
-          src={walletImage} 
-          alt="Crypto Wallet" 
-          className="w-16 h-16 object-contain"
-          data-testid="img-wallet-hero"
-        />
-        <div>
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <h1 className="text-2xl font-bold text-foreground">Wallet</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Multi-crypto portfolio</p>
-        </div>
-      </motion.header>
+        </motion.header>
 
       <GlassCard delay={0.1} className="relative overflow-visible">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-2xl" />
@@ -876,6 +874,7 @@ export function Wallet({
           </div>
         </DialogContent>
       </Dialog>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

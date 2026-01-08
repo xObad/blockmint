@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1 2
+# syntax=docker/dockerfile:1
 
 FROM node:20-bookworm-slim AS deps
 WORKDIR /app

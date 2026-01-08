@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { GlobalHeader } from "@/components/GlobalHeader";
 import { 
   TrendingUp, 
   Shield, 
@@ -432,13 +433,19 @@ function FAQSection() {
 
 export function Invest() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6 pb-6"
-      data-testid="page-invest"
-    >
+    <>
+      <GlobalHeader
+        onNavigateToHome={() => {}}
+        onNavigateToWallet={() => {}}
+        onNavigateToInvest={() => {}}
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="space-y-6 pb-6"
+        data-testid="page-invest"
+      >
       {/* Header */}
       <motion.div 
         className="text-center py-4"
@@ -561,6 +568,7 @@ export function Invest() {
           Deposit & Earn Now
         </Button>
       </GlassCard>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

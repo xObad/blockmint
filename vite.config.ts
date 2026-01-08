@@ -39,8 +39,11 @@ export default defineConfig({
       overlay: false,
     },
     fs: {
-      strict: true,
-      deny: ["**/.*"],
+      strict: false,
+      allow: ['..'],
+    },
+    watch: {
+      usePolling: false,
     },
   },
 });

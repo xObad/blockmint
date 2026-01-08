@@ -23,54 +23,73 @@ interface PortfolioHistoryPoint {
   timestamp: string;
 }
 
+const stableQueryOptions = {
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
+
 export function useMiningData() {
   const miningStatsQuery = useQuery<MiningStats>({
+    ...stableQueryOptions,
     queryKey: ["/api/mining/stats"],
-    refetchInterval: 3000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
   });
 
   const walletQuery = useQuery<WalletResponse>({
+    ...stableQueryOptions,
     queryKey: ["/api/wallet/balances"],
     refetchInterval: 60000, // Refresh every minute
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData, // Prevents flickering
   });
 
   const transactionsQuery = useQuery<Transaction[]>({
+    ...stableQueryOptions,
     queryKey: ["/api/wallet/transactions"],
     placeholderData: keepPreviousData,
   });
 
   const poolsQuery = useQuery<MiningPool[]>({
+    ...stableQueryOptions,
     queryKey: ["/api/pools"],
     placeholderData: keepPreviousData,
   });
 
   const chartQuery = useQuery<ChartDataPoint[]>({
+    ...stableQueryOptions,
     queryKey: ["/api/chart"],
     placeholderData: keepPreviousData,
   });
 
   const portfolioHistoryQuery = useQuery<PortfolioHistoryPoint[]>({
+    ...stableQueryOptions,
     queryKey: ["/api/portfolio/history"],
     refetchInterval: 60000, // Refresh every minute
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
   });
 
   const settingsQuery = useQuery<UserSettings>({
+    ...stableQueryOptions,
     queryKey: ["/api/settings"],
     placeholderData: keepPreviousData,
   });
 
   const contractsQuery = useQuery<MiningContract[]>({
+    ...stableQueryOptions,
     queryKey: ["/api/mining/contracts"],
-    refetchInterval: 5000,
+    refetchInterval: 20000,
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
   });
 
   const poolStatusQuery = useQuery<PoolStatus>({
+    ...stableQueryOptions,
     queryKey: ["/api/mining/pool-status"],
-    refetchInterval: 10000,
+    refetchInterval: 20000,
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
   });
 

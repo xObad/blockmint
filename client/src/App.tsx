@@ -64,11 +64,11 @@ function MobileApp() {
 
   useEffect(() => {
     // Version check to reset localStorage on new app version
-    const currentVersion = "1.0.0";
+    const currentVersion = "1.0.1";
     const savedVersion = localStorage.getItem("appVersion");
     
     if (savedVersion !== currentVersion) {
-      localStorage.clear();
+      // Only clear version-related items, not all localStorage
       localStorage.setItem("appVersion", currentVersion);
     }
     
@@ -225,11 +225,16 @@ function MobileApp() {
           transition={{ delay: 0.6 }}
           className="mt-12 text-center space-y-4 pb-safe"
         >
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
             <img 
               src="/attached_assets/BlockMint-for-All.png" 
               alt="BlockMint" 
-              className="h-8 object-contain"
+              className="h-28 w-auto object-contain relative z-10"
+              style={{
+                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.25)) contrast(1.1) saturate(1.2)',
+                imageRendering: '-webkit-optimize-contrast',
+              }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
