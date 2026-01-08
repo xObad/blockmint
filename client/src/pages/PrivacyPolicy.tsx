@@ -115,7 +115,7 @@ export function PrivacyPolicy() {
                 <li>Withdraw consent for marketing communications</li>
                 <li>Data portability where applicable</li>
               </ul>
-              <p className="mt-3">To exercise these rights, please contact us at privacy@miningclub.pro</p>
+              <p className="mt-3">To exercise these rights, please contact us at info@hardisk.co</p>
             </div>
           </GlassCard>
 
@@ -160,8 +160,8 @@ export function PrivacyPolicy() {
               <p>If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
               <p><strong className="text-foreground">BlockMint</strong></p>
               <p>Operated by Hardisk UAE Mining Farms</p>
-              <p>Email: privacy@miningclub.pro</p>
-              <p>Website: miningclub.pro</p>
+              <p>Email: info@hardisk.co</p>
+              <p>Website: hardisk.co</p>
             </div>
           </GlassCard>
         </motion.div>

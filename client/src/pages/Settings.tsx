@@ -748,7 +748,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             icon={Mail}
             label="Contact Support"
             description="Get Help With Your Account"
-            onClick={() => window.open('mailto:support@miningclub.app', '_blank')}
+            onClick={() => window.open('mailto:info@hardisk.co', '_blank')}
             testId="button-contact-support"
           />
         </GlassCard>

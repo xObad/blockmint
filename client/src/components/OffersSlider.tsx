@@ -120,7 +120,7 @@ export function OffersSlider() {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Zap className="w-4 h-4 text-white" />
-              <h3 className="text-sm font-bold text-white">Welcome to Mining Club</h3>
+              <h3 className="text-sm font-bold text-white">Welcome to BlockMint</h3>
             </div>
             <p className="text-xs text-white/80 leading-tight">
               Start mining BTC & LTC today!
