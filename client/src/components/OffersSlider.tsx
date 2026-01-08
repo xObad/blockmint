@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Rocket } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +29,7 @@ export function OffersSlider() {
       if (!res.ok) throw new Error("Failed to fetch offers");
       return res.json();
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
   });
 
   const goToNext = useCallback(() => {
@@ -44,20 +44,18 @@ export function OffersSlider() {
     setProgress(0);
   }, [offers.length]);
 
-  // Auto-rotate every 30 seconds with progress bar
+  // Auto-rotate every 5 seconds with progress bar
   useEffect(() => {
     if (!isAutoPlaying || offers.length <= 1) return;
     
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
-          return 0;
-        }
-        return prev + (100 / 300); // 300 intervals for 30 seconds (100ms each)
+        if (prev >= 100) return 0;
+        return prev + (100 / 50); // 50 intervals for 5 seconds (100ms each)
       });
     }, 100);
 
-    const slideInterval = setInterval(goToNext, 30000);
+    const slideInterval = setInterval(goToNext, 5000);
     
     return () => {
       clearInterval(progressInterval);
@@ -65,10 +63,8 @@ export function OffersSlider() {
     };
   }, [isAutoPlaying, goToNext, offers.length]);
 
-  // Pause auto-play on interaction
   const handleInteraction = () => {
     setIsAutoPlaying(false);
-    // Resume after 10 seconds
     setTimeout(() => setIsAutoPlaying(true), 10000);
   };
 
@@ -80,7 +76,7 @@ export function OffersSlider() {
 
   return (
     <div 
-      className="relative overflow-hidden rounded-2xl h-28"
+      className="relative overflow-hidden rounded-2xl h-48"
       onMouseEnter={handleInteraction}
       onTouchStart={handleInteraction}
     >
@@ -93,73 +89,75 @@ export function OffersSlider() {
           transition={{ duration: 0.3 }}
           className="absolute inset-0"
         >
-          {/* Background */}
-          {currentOffer.imageUrl ? (
-            <div 
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${currentOffer.imageUrl})` }}
-            >
-              <div className="absolute inset-0 bg-black/40" />
-            </div>
-          ) : (
-            <div className={`absolute inset-0 ${backgrou40 bg-card border"
-      onMouseEnter={handleInteraction}
-      onTouchStart={handleInteraction}
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentOffer.id}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-          className="absolute inset-0"
-        >
-          {/* Background Image */}
+          {/* Image Only - No Background Gradients */}
           {currentOffer.imageUrl && (
             <div 
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${currentOffer.imageUrl})` }}
             >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              {/* Dark gradient overlay at bottom for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
             </div>
           )}
           
-          {/* Content */}
-          <div className="relative h-full flex flex-col justify-end p-4">
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-white drop-shadow-lg">
+          {/* Content - Positioned at bottom with proper spacing */}
+          <div className="relative h-full flex flex-col justify-end p-5">
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-white drop-shadow-2xl leading-tight">
                 {currentOffer.title}
               </h3>
               {currentOffer.subtitle && (
-                <p className="text-sm text-white/95 font-medium drop-shadow-md">
+                <p className="text-sm text-white/95 font-semibold drop-shadow-lg leading-snug">
                   {currentOffer.subtitle}
                 </p>
               )}
               {currentOffer.description && (
-                <p className="text-xs text-white/85 leading-relaxed line-clamp-2 drop-shadow-md">
+                <p className="text-xs text-white/90 leading-relaxed line-clamp-2 drop-shadow-md">
                   {currentOffer.description}
                 </p>
               )}
               {currentOffer.ctaText && currentOffer.ctaLink && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 text-xs bg-white/90 hover:bg-white text-black font-semibold"
-                  onClick={() => window.open(currentOffer.ctaLink!, '_blank')}
-                >
-                  {currentOffer.ctaText}
-                </Button>
+                <div className="pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-4 text-xs bg-white hover:bg-white/90 text-black font-bold shadow-lg"
+                    onClick={() => window.open(currentOffer.ctaLink!, '_blank')}
+                  >
+                    {currentOffer.ctaText}
+                  </Button>
+                </div>
               )}
-          {/* Progress Bars - Story Style */}
-          <div className="absolute top-2 left-2 right-2 flex gap-1 z-10">
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation Controls */}
+      {offers.length > 1 && (
+        <>
+          <button
+            onClick={() => { handleInteraction(); goToPrev(); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors z-10 backdrop-blur-sm"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          <button
+            onClick={() => { handleInteraction(); goToNext(); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors z-10 backdrop-blur-sm"
+          >
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
+
+          {/* Progress Bars */}
+          <div className="absolute top-3 left-3 right-3 flex gap-1.5 z-10">
             {offers.map((_, idx) => (
               <div
                 key={idx}
-                className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm"
+                className="flex-1 h-1 bg-white/25 rounded-full overflow-hidden backdrop-blur-sm"
               >
                 <motion.div
-                  className="h-full bg-white rounded-full"
+                  className="h-full bg-white rounded-full shadow-lg"
                   initial={{ width: idx < currentIndex ? "100%" : "0%" }}
                   animate={{ 
                     width: idx < currentIndex ? "100%" : idx === currentIndex ? `${progress}%` : "0%"
