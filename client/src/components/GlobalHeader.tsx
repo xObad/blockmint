@@ -37,19 +37,21 @@ export function GlobalHeader({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex items-center justify-between gap-4 px-4 h-16">
-          {/* Hamburger Menu */}
-          <motion.button
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
-            whileTap={{ scale: 0.95 }}
-            type="button"
-          >
-            <Menu className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
+        <div className="flex items-center gap-4 px-4 h-16">
+          {/* Left Side - Hamburger Menu */}
+          <div className="flex items-center gap-2 w-[88px]">
+            <motion.button
+              onClick={() => setShowMenu(!showMenu)}
+              className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+              whileTap={{ scale: 0.95 }}
+              type="button"
+            >
+              <Menu className="w-5 h-5 text-muted-foreground" />
+            </motion.button>
+          </div>
 
           {/* Centered Logo */}
-          <div className="flex-1 flex items-center justify-center">
+          <div className="absolute left-1/2 -translate-x-1/2">
             <img
               src="/attached_assets/App-Icon-New.png"
               alt="BlockMint"
@@ -60,7 +62,7 @@ export function GlobalHeader({
           </div>
 
           {/* Right Side Icons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-auto">
             <motion.button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
