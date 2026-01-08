@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 
 interface Offer {
   id: number;
@@ -112,30 +111,32 @@ export function OffersSlider() {
           <div className="relative h-full flex flex-col justify-center px-12 py-4">
             <div className="space-y-1.5 max-w-full">
               <h3 className="text-base font-bold text-white drop-shadow-lg leading-tight truncate">
-                {currentOffer.title}
-              </h3>
+               div>
+                <h3 className="text-base font-bold text-white drop-shadow-lg leading-tight">
+                  {currentOffer.title}
+                  {currentOffer.ctaLink && (
+                    <a
+                      href={currentOffer.ctaLink}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.open(currentOffer.ctaLink!, '_blank');
+                      }}
+                      className="ml-1.5 text-sm font-normal text-white/90 hover:text-white underline decoration-white/50 hover:decoration-white transition-colors cursor-pointer"
+                    >
+                      Learn More...
+                    </a>
+                  )}
+                </h3>
+              </div>
               {currentOffer.subtitle && (
-                <p className="text-sm text-white/95 font-medium drop-shadow-md leading-snug truncate">
+                <p className="text-sm text-white/95 font-medium drop-shadow-md leading-snug line-clamp-1">
                   {currentOffer.subtitle}
                 </p>
               )}
               {currentOffer.description && (
                 <p className="text-xs text-white/90 leading-relaxed line-clamp-2 drop-shadow-md">
                   {currentOffer.description}
-                </p>
-              )}
-              {currentOffer.ctaText && currentOffer.ctaLink && (
-                <div className="pt-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-3 text-xs bg-white/20 hover:bg-white/30 text-white border border-white/30 font-semibold"
-                    onClick={() => window.open(currentOffer.ctaLink!, '_blank')}
-                  >
-                    {currentOffer.ctaText}
-                  </Button>
-                </div>
-              )}
+                </p
             </div>
           </div>
         </motion.div>
