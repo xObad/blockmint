@@ -157,13 +157,15 @@ export function Wallet({
   const [exchangeTo, setExchangeTo] = useState<CryptoType>("USDT");
   const [exchangeAmount, setExchangeAmount] = useState("");
 
-  const cryptoPrices: Record<CryptoType, number> = {
+  const cryptoPrices: Record<string, number> = {
     BTC: cryptoPricesData.BTC?.price || 67000,
     LTC: cryptoPricesData.LTC?.price || 85,
     ETH: cryptoPricesData.ETH?.price || 3500,
     USDT: cryptoPricesData.USDT?.price || 1,
     USDC: cryptoPricesData.USDC?.price || 1,
     TON: cryptoPricesData.TON?.price || 5.5,
+    ZCASH: cryptoPricesData.ZCASH?.price || 30,
+    BNB: cryptoPricesData.BNB?.price || 600,
   };
 
   const pricedBalances = useMemo(() => {
