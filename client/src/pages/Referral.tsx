@@ -32,7 +32,7 @@ export function Referral() {
   const [copied, setCopied] = useState(false);
   
   const referralCode = "MINING" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const referralLink = `https://miningclub.app/ref/${referralCode}`;
+  const referralLink = `https://hardisk.co/ref/${referralCode}`;
   const myReferrals = 0;
   const myEarnings = 0;
   const rewardPerReferral = 5;

@@ -620,7 +620,7 @@ export function Dashboard({
               <path d="M0,120 Q100,80 200,100 T400,120 L400,200 L0,200 Z" fill="#3b82f6" fillOpacity="0.08"/>
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-              <Users className="w-8 h-8 text-blue-300" />
+              <img src="https://cdn3d.iconscout.com/3d/premium/thumb/user-referral-3d-icon-png-download-9801460.png" alt="Referral" className="w-16 h-16" />
               <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
                 Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$5 In BTC</span>
               </p>
@@ -660,7 +660,7 @@ export function Dashboard({
               </>
             ) : (
               <>
-                <Star className="w-8 h-8 text-amber-300 fill-amber-300" />
+                <img src="https://cdn3d.iconscout.com/3d/premium/thumb/5-star-3d-icon-png-download-10200199.png" alt="5 Stars" className="w-16 h-16" />
                 <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
                   Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
                 </p>
