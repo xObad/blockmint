@@ -398,7 +398,7 @@ export function Dashboard({
 
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs text-muted-foreground space-y-1">
-                      <p>Live price: {getSymbol()}{convert(cryptoPrices[selectedCrypto]?.price ?? 0).toFixed(2)}</p>
+                      <p>Live price: {getSymbol()}{convert(cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 0).toFixed(2)}</p>
                       <p className="text-amber-400">Warning: Sending on the wrong network can result in permanent loss.</p>
                     </div>
                     <Button

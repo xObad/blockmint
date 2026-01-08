@@ -239,9 +239,6 @@ function MobileApp() {
               contracts={contracts}
               poolStatus={poolStatus}
               onNavigateToInvest={() => setActiveTab("invest")}
-              onNavigateToHome={() => setActiveTab("home")}
-              onNavigateToWallet={() => setActiveTab("wallet")}
-              onOpenSettings={() => setShowSettings(true)}
             />
           )}
           {activeTab === "admin" && isAdmin && (
@@ -368,14 +365,7 @@ function App() {
                   {() => <VirtualCard onBack={() => window.history.back()} />}
                 </Route>
                 <Route path="/history">
-                  {() => (
-                    <History
-                      onNavigateToHome={() => setActiveTab("home")}
-                      onNavigateToWallet={() => setActiveTab("wallet")}
-                      onNavigateToInvest={() => setActiveTab("invest")}
-                      onOpenSettings={() => setShowSettings(true)}
-                    />
-                  )}
+                  {() => <History />}
                 </Route>
                 <Route path="/admin">
                   {() => <Admin onBack={() => window.history.back()} />}

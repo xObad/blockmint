@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Shield, Zap, Globe, Lock, TrendingUp, Check, Mail } from "lucide-react";
+import { ArrowLeft, CreditCard, Shield, Zap, Globe, Lock, TrendingUp, Check, Mail } from "lucide-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

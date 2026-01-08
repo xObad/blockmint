@@ -137,9 +137,6 @@ export function OffersSlider() {
                 src={currentOffer.imageUrl}
                 loop={shouldPlayLottie}
                 autoplay={shouldPlayLottie}
-                onLoadError={() => {
-                  console.error('Lottie load error');
-                }}
                 onLoad={() => {
                   if (shouldPlayLottie) {
                     incrementLottiePlayCount(lottieKey);
