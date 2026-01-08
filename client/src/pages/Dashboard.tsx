@@ -265,7 +265,7 @@ export function Dashboard({
         <LiquidGlassCard glow="btc" delay={0.1} variant="strong" className="relative">
         <div className="absolute -right-4 -top-4 w-32 h-32 pointer-events-none">
           <DotLottieReact
-            src="https://lottie.host/1b4e9aaa-0aef-437e-85c1-87779979301f/iaAaanflWb.lottie"
+            src="https://lottie.host/fe692048-2d8f-4966-a2d0-8f9973ce2b3c/9cdpzaKRwx.lottie"
             loop
             autoplay
           />
