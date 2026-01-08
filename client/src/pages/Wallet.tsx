@@ -32,10 +32,10 @@ import { Link } from "wouter";
 import type { WalletBalance, Transaction } from "@/lib/types";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
-import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
-import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
+import ethLogo from "@assets/ethereum-eth-logo.png";
+import zcashLogo from "@assets/zcash-zec-logo.png";
 
-type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
+type CryptoType = "BTC" | "LTC" | "ETH" | "ZCASH" | "TON";
 
 interface NetworkOption {
   id: string;
@@ -57,18 +57,8 @@ const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
     { id: "eth-arbitrum", name: "Arbitrum", fee: 0.0005, estimatedTime: "1-5 min" },
     { id: "eth-optimism", name: "Optimism", fee: 0.0005, estimatedTime: "1-5 min" },
   ],
-  USDT: [
-    { id: "usdt-erc20", name: "Ethereum (ERC-20)", fee: 5, estimatedTime: "5-15 min" },
-    { id: "usdt-trc20", name: "Tron (TRC-20)", fee: 1, estimatedTime: "1-3 min" },
-    { id: "usdt-bep20", name: "BSC (BEP-20)", fee: 0.5, estimatedTime: "1-5 min" },
-    { id: "usdt-ton", name: "TON Network", fee: 0.3, estimatedTime: "1-2 min" },
-  ],
-  USDC: [
-    { id: "usdc-erc20", name: "Ethereum (ERC-20)", fee: 5, estimatedTime: "5-15 min" },
-    { id: "usdc-trc20", name: "Tron (TRC-20)", fee: 1, estimatedTime: "1-3 min" },
-    { id: "usdc-bep20", name: "BSC (BEP-20)", fee: 0.5, estimatedTime: "1-5 min" },
-    { id: "usdc-polygon", name: "Polygon", fee: 0.1, estimatedTime: "1-3 min" },
-    { id: "usdc-arbitrum", name: "Arbitrum", fee: 0.5, estimatedTime: "1-5 min" },
+  ZCASH: [
+    { id: "zcash-native", name: "Zcash (Native)", fee: 0.0001, estimatedTime: "5-10 min" },
   ],
   TON: [
     { id: "ton-native", name: "TON Network", fee: 0.01, estimatedTime: "1-2 min" },
@@ -83,15 +73,7 @@ const generateDepositAddress = (crypto: CryptoType, network: string): string => 
     "eth-erc20": "0x",
     "eth-arbitrum": "0x",
     "eth-optimism": "0x",
-    "usdt-erc20": "0x",
-    "usdt-trc20": "T",
-    "usdt-bep20": "0x",
-    "usdt-ton": "UQ",
-    "usdc-erc20": "0x",
-    "usdc-trc20": "T",
-    "usdc-bep20": "0x",
-    "usdc-polygon": "0x",
-    "usdc-arbitrum": "0x",
+    "zcash-native": "t1",
     "ton-native": "UQ",
   };
   
@@ -115,8 +97,7 @@ const cryptoConfig: Record<CryptoType, { name: string; color: string; iconBg: st
   BTC: { name: "Bitcoin", color: "text-amber-400", iconBg: "bg-amber-500/20" },
   LTC: { name: "Litecoin", color: "text-blue-300", iconBg: "bg-blue-400/20" },
   ETH: { name: "Ethereum", color: "text-purple-400", iconBg: "bg-purple-500/20" },
-  USDT: { name: "Tether", color: "text-emerald-400", iconBg: "bg-emerald-500/20" },
-  USDC: { name: "USD Coin", color: "text-blue-400", iconBg: "bg-blue-500/20" },
+  ZCASH: { name: "Zcash", color: "text-amber-400", iconBg: "bg-amber-500/20" },
   TON: { name: "Toncoin", color: "text-cyan-400", iconBg: "bg-cyan-500/20" },
 };
 
@@ -234,8 +215,8 @@ export function Wallet({
   const logoMap: Record<string, string> = {
     BTC: btcLogo,
     LTC: ltcLogo,
-    USDT: usdtLogo,
-    USDC: usdcLogo,
+    ETH: ethLogo,
+    ZCASH: zcashLogo,
   };
 
   const openDepositModal = (crypto?: string) => {
@@ -482,7 +463,7 @@ export function Wallet({
                   <SelectValue placeholder="Select crypto" />
                 </SelectTrigger>
                 <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                  {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((crypto) => (
+                  {(["BTC", "LTC", "ETH", "ZCASH", "TON"] as CryptoType[]).map((crypto) => (
                     <SelectItem key={crypto} value={crypto} data-testid={`option-deposit-crypto-${crypto.toLowerCase()}`}>
                       <div className="flex items-center gap-2">
                         <CryptoIcon crypto={crypto} className="w-4 h-4" />
@@ -612,7 +593,7 @@ export function Wallet({
                   <SelectValue placeholder="Select crypto" />
                 </SelectTrigger>
                 <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                  {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((crypto) => (
+                  {(["BTC", "LTC", "ETH", "ZCASH", "TON"] as CryptoType[]).map((crypto) => (
                     <SelectItem key={crypto} value={crypto} data-testid={`option-withdraw-crypto-${crypto.toLowerCase()}`}>
                       <div className="flex items-center gap-2">
                         <CryptoIcon crypto={crypto} className="w-4 h-4" />
@@ -780,7 +761,7 @@ export function Wallet({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                    {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((crypto) => (
+                    {(["BTC", "LTC", "ETH", "ZCASH", "TON"] as CryptoType[]).map((crypto) => (
                       <SelectItem key={crypto} value={crypto} data-testid={`option-exchange-from-${crypto.toLowerCase()}`}>
                         <div className="flex items-center gap-2">
                           <CryptoIcon crypto={crypto} className="w-4 h-4" />
@@ -832,7 +813,7 @@ export function Wallet({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                    {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).filter(c => c !== exchangeFrom).map((crypto) => (
+                    {(["BTC", "LTC", "ETH", "ZCASH", "TON"] as CryptoType[]).filter(c => c !== exchangeFrom).map((crypto) => (
                       <SelectItem key={crypto} value={crypto} data-testid={`option-exchange-to-${crypto.toLowerCase()}`}>
                         <div className="flex items-center gap-2">
                           <CryptoIcon crypto={crypto} className="w-4 h-4" />

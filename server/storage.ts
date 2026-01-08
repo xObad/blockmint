@@ -88,21 +88,21 @@ export class MemStorage implements IStorage {
       },
       {
         id: "3",
-        symbol: "USDT",
-        name: "Tether",
+        symbol: "ETH",
+        name: "Ethereum",
         balance: 0,
         usdValue: 0,
         change24h: 0,
-        icon: "usdt",
+        icon: "eth",
       },
       {
         id: "4",
-        symbol: "USDC",
-        name: "USD Coin",
+        symbol: "ZCASH",
+        name: "Zcash",
         balance: 0,
         usdValue: 0,
         change24h: 0,
-        icon: "usdc",
+        icon: "zcash",
       },
     ];
 

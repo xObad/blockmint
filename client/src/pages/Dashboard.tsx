@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check, Menu, Home, Wallet, PieChart, History, HelpCircle, LogOut, Shield, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bell, ArrowDownToLine, ArrowUpFromLine, Settings, DollarSign, User, Users, Star, X, Inbox, Gift, TrendingUp, TrendingDown, Sparkles, ExternalLink, Sun, Moon, BarChart3, Copy, Check, Menu, Home, Wallet, PieChart, History, HelpCircle, LogOut, Shield, RefreshCw, ChevronLeft, ChevronRight, Fan, Minus, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
@@ -40,10 +40,10 @@ import serverMining from "@assets/Server_Mining_1766014388610.webp";
 import btcShop from "@assets/Bitcoin_shop_1766014388611.webp";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
-import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
-import usdcLogo from "@assets/usd-coin-3d-icon-png-download-4102016_1766038596188.webp";
+import ethLogo from "@assets/ethereum-eth-logo.png";
+import zcashLogo from "@assets/zcash-zec-logo.png";
 
-type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
+type CryptoType = "BTC" | "LTC" | "ETH" | "ZCASH" | "TON";
 
 interface NetworkOption {
   id: string;
@@ -61,19 +61,7 @@ const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
     { id: "eth-arbitrum", name: "Arbitrum" },
     { id: "eth-optimism", name: "Optimism" },
   ],
-  USDT: [
-    { id: "usdt-erc20", name: "Ethereum (ERC-20)" },
-    { id: "usdt-trc20", name: "Tron (TRC-20)" },
-    { id: "usdt-bep20", name: "BSC (BEP-20)" },
-    { id: "usdt-ton", name: "TON Network" },
-  ],
-  USDC: [
-    { id: "usdc-erc20", name: "Ethereum (ERC-20)" },
-    { id: "usdc-trc20", name: "Tron (TRC-20)" },
-    { id: "usdc-bep20", name: "BSC (BEP-20)" },
-    { id: "usdc-polygon", name: "Polygon" },
-    { id: "usdc-arbitrum", name: "Arbitrum" },
-  ],
+  ZCASH: [{ id: "zcash-native", name: "Zcash (Native)" }],
   TON: [{ id: "ton-native", name: "TON Network" }],
 };
 
@@ -85,15 +73,7 @@ const generateDepositAddress = (crypto: CryptoType, network: string): string => 
     "eth-erc20": "0x",
     "eth-arbitrum": "0x",
     "eth-optimism": "0x",
-    "usdt-erc20": "0x",
-    "usdt-trc20": "T",
-    "usdt-bep20": "0x",
-    "usdt-ton": "EQ",
-    "usdc-erc20": "0x",
-    "usdc-trc20": "T",
-    "usdc-bep20": "0x",
-    "usdc-polygon": "0x",
-    "usdc-arbitrum": "0x",
+    "zcash-native": "t1",
     "ton-native": "EQ",
   };
 
@@ -102,7 +82,7 @@ const generateDepositAddress = (crypto: CryptoType, network: string): string => 
   const address = `${prefix}${randomPart}`;
 
   if (crypto === "BTC" && network === "btc-lightning") return `${prefix}${randomPart.substring(0, 20)}`;
-  if (crypto === "ETH" || crypto === "USDT" || crypto === "USDC") return `${prefix}${randomPart.substring(0, 40)}`;
+  if (crypto === "ETH" || crypto === "ZCASH") return `${prefix}${randomPart.substring(0, 40)}`;
   if (crypto === "TON") return `${prefix}${randomPart.substring(0, 46)}`;
   return address;
 };
@@ -321,18 +301,17 @@ export function Dashboard({
             <span className="text-sm text-muted-foreground">24H Change</span>
           </div>
 
-          <div className="flex gap-3">
-            <Popover open={depositOpen} onOpenChange={setDepositOpen}>
+          <div className="flex gap-2">
+            <Popover open={withdrawOpen} onOpenChange={setWithdrawOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  data-testid="button-deposit"
-                  onClick={openDeposit}
-                  className="flex-1 liquid-glass border-0 bg-primary/20 text-foreground gap-2"
+                  data-testid="button-withdraw"
+                  onClick={openWithdraw}
+                  className="flex-1 liquid-glass border-0 bg-red-500/10 hover:bg-red-500/20 text-red-500 gap-2 h-12"
                   variant="ghost"
                   type="button"
                 >
-                  <ArrowDownToLine className="w-4 h-4" />
-                  Deposit
+                  <Minus className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -428,18 +407,17 @@ export function Dashboard({
                 </div>
               </PopoverContent>
             </Popover>
-
-            <Popover open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+            
+            <Popover open={depositOpen} onOpenChange={setDepositOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  data-testid="button-withdraw"
-                  onClick={openWithdraw}
-                  className="flex-1 liquid-glass border-0 bg-white/5 text-foreground gap-2"
+                  data-testid="button-deposit"
+                  onClick={openDeposit}
+                  className="flex-1 liquid-glass border-0 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 gap-2 h-12"
                   variant="ghost"
                   type="button"
                 >
-                  <ArrowUpFromLine className="w-4 h-4" />
-                  Withdraw
+                  <Plus className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent
@@ -463,7 +441,7 @@ export function Dashboard({
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                          {(["BTC", "LTC", "ETH", "USDT", "USDC", "TON"] as CryptoType[]).map((c) => (
+                          {(["BTC", "LTC", "ETH", "ZCASH", "TON"] as CryptoType[]).map((c) => (
                             <SelectItem key={c} value={c}>{c}</SelectItem>
                           ))}
                         </SelectContent>
@@ -538,6 +516,29 @@ export function Dashboard({
                 </div>
               </PopoverContent>
             </Popover>
+            
+            <Link href="/mining" className="flex-1">
+              <Button
+                data-testid="button-create-miner"
+                className="w-full liquid-glass border-0 bg-primary/20 hover:bg-primary/30 text-foreground gap-2 h-12"
+                variant="ghost"
+                type="button"
+              >
+                <Fan className="w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="flex gap-2 mt-2">
+            <div className="flex-1 text-center">
+              <p className="text-xs text-muted-foreground">Withdraw</p>
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-xs text-muted-foreground">Deposit</p>
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-xs text-muted-foreground">Create Miner</p>
+            </div>
           </div>
         </div>
       </LiquidGlassCard>
@@ -739,10 +740,10 @@ export function Dashboard({
                       src={
                         balance.symbol === 'BTC' ? btcLogo : 
                         balance.symbol === 'LTC' ? ltcLogo :
-                        balance.symbol === 'USDT' ? usdtLogo : usdcLogo
+                        balance.symbol === 'ETH' ? ethLogo : zcashLogo
                       } 
                       alt={balance.symbol}
-                      className={`shrink-0 object-contain ${balance.symbol === 'USDT' ? 'w-12 h-12' : 'w-10 h-10'}`}
+                      className="shrink-0 object-contain w-10 h-10"
                     />
                     <div>
                       <p className="font-medium text-foreground">{balance.name}</p>
@@ -804,10 +805,10 @@ export function Dashboard({
                     src={
                       balance.symbol === 'BTC' ? btcLogo : 
                       balance.symbol === 'LTC' ? ltcLogo :
-                      balance.symbol === 'USDT' ? usdtLogo : usdcLogo
+                      balance.symbol === 'ETH' ? ethLogo : zcashLogo
                     } 
                     alt={balance.symbol}
-                    className={`object-contain ${balance.symbol === 'USDT' ? 'w-10 h-10' : 'w-8 h-8'}`}
+                    className={`object-contain w-8 h-8`}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground text-sm truncate">{balance.symbol}</p>

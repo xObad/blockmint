@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-export type CryptoType = "BTC" | "LTC" | "ETH" | "USDT" | "USDC" | "TON";
+export type CryptoType = "BTC" | "LTC" | "ETH" | "ZCASH" | "TON";
 
 export interface CryptoPrice {
   symbol: CryptoType;
@@ -15,7 +15,7 @@ export interface CryptoPrice {
 async function fetchCryptoPrices(): Promise<Record<CryptoType, CryptoPrice>> {
   try {
     // Fetch from CoinGecko
-    const ids = "bitcoin,litecoin,ethereum,tether,usd-coin,the-open-network";
+    const ids = "bitcoin,litecoin,ethereum,zcash,the-open-network";
     const response = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=false&include_24hr_vol=false&include_24hr_change=true&include_last_updated_at=false`,
       { 
@@ -52,21 +52,13 @@ async function fetchCryptoPrices(): Promise<Record<CryptoType, CryptoPrice>> {
         logo: "eth",
         color: "bg-purple-500",
       },
-      USDT: {
-        symbol: "USDT",
-        name: "Tether",
-        price: data.tether?.usd || 1,
-        change24h: data.tether?.usd_24h_change || 0,
-        logo: "usdt",
-        color: "bg-emerald-500",
-      },
-      USDC: {
-        symbol: "USDC",
-        name: "USD Coin",
-        price: data["usd-coin"]?.usd || 1,
-        change24h: data["usd-coin"]?.usd_24h_change || 0,
-        logo: "usdc",
-        color: "bg-blue-500",
+      ZCASH: {
+        symbol: "ZCASH",
+        name: "Zcash",
+        price: data.zcash?.usd || 0,
+        change24h: data.zcash?.usd_24h_change || 0,
+        logo: "zcash",
+        color: "bg-amber-500",
       },
       TON: {
         symbol: "TON",
@@ -84,8 +76,7 @@ async function fetchCryptoPrices(): Promise<Record<CryptoType, CryptoPrice>> {
       BTC: { symbol: "BTC", name: "Bitcoin", price: 97245.32, change24h: 2.45, logo: "btc", color: "bg-amber-500" },
       LTC: { symbol: "LTC", name: "Litecoin", price: 102.34, change24h: 3.12, logo: "ltc", color: "bg-slate-400" },
       ETH: { symbol: "ETH", name: "Ethereum", price: 3450, change24h: -1.23, logo: "eth", color: "bg-purple-500" },
-      USDT: { symbol: "USDT", name: "Tether", price: 1.00, change24h: 0.01, logo: "usdt", color: "bg-emerald-500" },
-      USDC: { symbol: "USDC", name: "USD Coin", price: 1.00, change24h: -0.02, logo: "usdc", color: "bg-blue-500" },
+      ZCASH: { symbol: "ZCASH", name: "Zcash", price: 45.20, change24h: 1.15, logo: "zcash", color: "bg-amber-500" },
       TON: { symbol: "TON", name: "Toncoin", price: 5.20, change24h: 1.56, logo: "ton", color: "bg-cyan-500" },
     };
   }
