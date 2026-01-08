@@ -575,7 +575,7 @@ export function Dashboard({
         </div>
 
         <div onClick={onNavigateToMining} className="cursor-pointer">
-          <GlassCard delay={0.3} className="p-4 hover-elevate cursor-pointer" data-testid="card-active-contracts">
+          <GlassCard delay={0.3} className="p-4 hover-elevate cursor-pointer" glow="primary" data-testid="card-active-contracts">
             <div className="flex flex-col items-center text-center gap-3">
               <motion.img 
                 src={serverMining}
