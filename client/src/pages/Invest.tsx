@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
   AccordionContent,
@@ -151,8 +152,9 @@ function TrustMarketingSection() {
 function APRCalculator() {
   const { convert, getSymbol } = useCurrency();
   const [selectedCrypto, setSelectedCrypto] = useState(cryptoAssets[0]);
-  const [selectedDuration, setSelectedDuration] = useState<keyof typeof aprRates>("monthly");
+  const [selectedDuration, setSelectedDuration] = useState<keyof typeof aprRates>("yearly"); // Default to annual (yearly)
   const [investmentAmount, setInvestmentAmount] = useState(1000);
+  const { toast } = useToast();
 
   // Fetch admin-configured APR rates
   const { data: adminRates } = useQuery<typeof aprRates>({
@@ -309,8 +311,26 @@ function APRCalculator() {
             </div>
           </div>
 
+          {/* Investment Protection Disclaimer */}
+          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-2">
+              <Shield className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-400 leading-relaxed">
+                <strong>Investment Protection:</strong> Your initial investment is fully returned after the period ends. 
+                Unlike cloud mining, this works like bank deposits or stock yields - you keep your principal and earn returns on top.
+              </p>
+            </div>
+          </div>
+
           {/* CTA Button */}
           <Button 
+            onClick={() => {
+              toast({
+                title: "Insufficient Balance",
+                description: "Please add funds to your wallet to start investing.",
+                variant: "destructive",
+              });
+            }}
             className={`w-full bg-gradient-to-r ${selectedCrypto.color} text-white border-0 h-12 text-base`}
             size="lg"
             data-testid="btn-start-earning"
@@ -496,19 +516,6 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
 
       {/* APR Calculator Card */}
       <APRCalculator />
-
-      {/* Crypto Yield Cards */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Available Assets</h2>
-        </div>
-        <div className="space-y-4">
-          {cryptoAssets.map((crypto, index) => (
-            <CryptoYieldCard key={crypto.symbol} crypto={crypto} index={index} />
-          ))}
-        </div>
-      </div>
 
       {/* Key Features */}
       <GlassCard className="p-5">
