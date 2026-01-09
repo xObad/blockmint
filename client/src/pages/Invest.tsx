@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getCurrentUser } from "@/lib/firebase";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { 
   TrendingUp, 
@@ -155,6 +156,86 @@ function APRCalculator() {
   const [selectedDuration, setSelectedDuration] = useState<keyof typeof aprRates>("yearly"); // Default to annual (yearly)
   const [investmentAmount, setInvestmentAmount] = useState(1000);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const currentUser = getCurrentUser();
+
+  // Fetch user's wallet balance
+  const { data: wallets } = useQuery({
+    queryKey: ["/api/wallets", currentUser?.uid],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const response = await fetch(`/api/users/${currentUser.uid}/wallets`);
+      if (!response.ok) throw new Error("Failed to fetch wallets");
+      return response.json();
+    },
+    enabled: !!currentUser,
+  });
+
+  // Create earn subscription mutation
+  const createSubscription = useMutation({
+    mutationFn: async () => {
+      if (!currentUser) throw new Error("Not authenticated");
+      
+      const response = await fetch("/api/earn/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUser.uid,
+          planId: "default", // You can map this to specific plan IDs
+          amount: investmentAmount,
+          symbol: selectedCrypto.symbol,
+          durationType: selectedDuration,
+          aprRate: aprRates[selectedDuration].rate,
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create investment");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Investment Created!",
+        description: `Successfully invested ${getSymbol()}${convert(investmentAmount).toFixed(2)} in ${selectedCrypto.symbol}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Investment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStartEarning = () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to start investing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user has sufficient balance
+    const wallet = wallets?.find((w: any) => w.symbol === selectedCrypto.symbol);
+    if (!wallet || wallet.balance < investmentAmount) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${getSymbol()}${convert(investmentAmount).toFixed(2)} in your ${selectedCrypto.symbol} wallet to invest.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createSubscription.mutate();
+  };
 
   // Fetch admin-configured APR rates
   const { data: adminRates } = useQuery<typeof aprRates>({
@@ -324,18 +405,13 @@ function APRCalculator() {
 
           {/* CTA Button */}
           <Button 
-            onClick={() => {
-              toast({
-                title: "Insufficient Balance",
-                description: "Please add funds to your wallet to start investing.",
-                variant: "destructive",
-              });
-            }}
+            onClick={handleStartEarning}
+            disabled={createSubscription.isPending}
             className={`w-full bg-gradient-to-r ${selectedCrypto.color} text-white border-0 h-12 text-base`}
             size="lg"
             data-testid="btn-start-earning"
           >
-            Start Earning with {selectedCrypto.symbol}
+            {createSubscription.isPending ? "Processing..." : `Start Earning with ${selectedCrypto.symbol}`}
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
 
@@ -406,6 +482,142 @@ function CryptoYieldCard({ crypto, index }: { crypto: typeof cryptoAssets[0]; in
           </div>
         </div>
       </GlassCard>
+    </motion.div>
+  );
+}
+
+function ActiveInvestments() {
+  const { convert, getSymbol } = useCurrency();
+  const currentUser = getCurrentUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Fetch user's active earn subscriptions
+  const { data: subscriptions, isLoading } = useQuery({
+    queryKey: ["/api/users/earn-subscriptions", currentUser?.uid],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const response = await fetch(`/api/users/${currentUser.uid}/earn-subscriptions`);
+      if (!response.ok) throw new Error("Failed to fetch investments");
+      return response.json();
+    },
+    enabled: !!currentUser,
+  });
+
+  // Withdraw mutation
+  const withdrawMutation = useMutation({
+    mutationFn: async (subscriptionId: string) => {
+      const response = await fetch(`/api/earn/withdraw/${subscriptionId}`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to withdraw");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallets"] });
+      toast({
+        title: "Withdrawal Successful",
+        description: "Funds have been returned to your wallet.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Withdrawal Failed",
+        description: "Unable to process withdrawal.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const activeInvestments = subscriptions?.filter((s: any) => s.status === "active") || [];
+
+  if (isLoading || activeInvestments.length === 0) {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="space-y-3"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp className="w-5 h-5 text-emerald-400" />
+        <h2 className="text-lg font-semibold text-foreground">Your Active Investments</h2>
+      </div>
+
+      {activeInvestments.map((sub: any, index: number) => {
+        const crypto = cryptoAssets.find(c => c.symbol === sub.symbol) || cryptoAssets[0];
+        const dailyReturn = (sub.amount * (sub.aprRate / 100)) / 365;
+        const annualReturn = sub.amount * (sub.aprRate / 100);
+        
+        return (
+          <motion.div
+            key={sub.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 * index }}
+          >
+            <GlassCard className="p-4" animate={false}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-lg ${crypto.bgColor} flex items-center justify-center`}>
+                    <span className={`text-xl font-bold ${crypto.textColor}`}>{crypto.icon}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{crypto.name}</h3>
+                    <span className="text-xs text-muted-foreground capitalize">{sub.durationType} Plan</span>
+                  </div>
+                </div>
+                <Badge className={`${crypto.bgColor} ${crypto.textColor} border-0`}>
+                  {sub.aprRate}% APR
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Investment</span>
+                  <p className="text-sm font-bold text-foreground">
+                    {getSymbol()}{convert(sub.amount).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Daily Return</span>
+                  <p className="text-sm font-bold text-emerald-400">
+                    +{getSymbol()}{convert(dailyReturn).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Annual Return</span>
+                  <p className="text-sm font-bold text-emerald-400">
+                    +{getSymbol()}{convert(annualReturn).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-border/30">
+                <div>
+                  <span className="text-[10px] text-muted-foreground block">Total Earned</span>
+                  <p className="text-sm font-bold text-emerald-400">
+                    +{getSymbol()}{convert(sub.totalEarned || 0).toFixed(2)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => withdrawMutation.mutate(sub.id)}
+                  disabled={withdrawMutation.isPending}
+                  className="text-xs"
+                >
+                  {withdrawMutation.isPending ? "Processing..." : "Withdraw"}
+                </Button>
+              </div>
+            </GlassCard>
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 }
@@ -513,6 +725,9 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
 
       {/* Trust & Marketing Section */}
       <TrustMarketingSection />
+
+      {/* Active Investments */}
+      <ActiveInvestments />
 
       {/* APR Calculator Card */}
       <APRCalculator />
