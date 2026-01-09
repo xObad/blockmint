@@ -629,9 +629,7 @@ export function Dashboard({
         </Link>
 
         <motion.div
-          className="relative overflow-hidden rounded-2xl cursor-pointer hover-elevate h-40"
-          whileTap={{ scale: 0.98 }}
-          onClick={handleRateApp}
+          className="relative overflow-hidden rounded-2xl h-40"
           data-testid="card-rate-app"
         >
           <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-amber-950/60 dark:via-slate-900/80 dark:to-slate-950 bg-gradient-to-br from-amber-100/80 via-slate-50/90 to-amber-50" />

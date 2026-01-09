@@ -36,7 +36,7 @@ export function GlobalHeader({
   return (
     <>
       <header
-        className="bg-transparent pt-[35px]"
+        className="bg-transparent pt-[17.5px]"
       >
         <div className="flex items-center gap-4 px-4 h-16">
           {/* Left Side - Hamburger Menu & Settings */}
