@@ -743,21 +743,18 @@ export function Dashboard({
                   data-testid={`asset-row-${balance.id}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-white/60 dark:bg-transparent rounded-full blur-md"></div>
-                      <img 
-                        src={
-                          balance.symbol === 'BTC' ? btcLogo : 
-                          balance.symbol === 'LTC' ? ltcLogo :
-                          balance.symbol === 'ETH' ? ethLogo :
-                          balance.symbol === 'ZCASH' ? zcashLogo :
-                          balance.symbol === 'TON' ? tonLogo :
-                          balance.symbol === 'BNB' ? bnbLogo : ethLogo
-                        } 
-                        alt={balance.symbol}
-                        className="shrink-0 object-contain w-10 h-10 relative z-10"
-                      />
-                    </div>
+                    <img 
+                      src={
+                        balance.symbol === 'BTC' ? btcLogo : 
+                        balance.symbol === 'LTC' ? ltcLogo :
+                        balance.symbol === 'ETH' ? ethLogo :
+                        balance.symbol === 'ZCASH' ? zcashLogo :
+                        balance.symbol === 'TON' ? tonLogo :
+                        balance.symbol === 'BNB' ? bnbLogo : ethLogo
+                      } 
+                      alt={balance.symbol}
+                      className="shrink-0 object-contain w-10 h-10"
+                    />
                     <div>
                       <p className="font-medium text-foreground">{balance.name}</p>
                       <p className="text-sm text-muted-foreground">{(balance.balance ?? 0).toFixed(6)} {balance.symbol}</p>
@@ -817,21 +814,18 @@ export function Dashboard({
                 data-testid={`trending-crypto-${balance.symbol.toLowerCase()}`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-white/60 dark:bg-transparent rounded-full blur-md"></div>
-                    <img 
-                      src={
-                        balance.symbol === 'BTC' ? btcLogo : 
-                        balance.symbol === 'LTC' ? ltcLogo :
-                        balance.symbol === 'ETH' ? ethLogo :
-                        balance.symbol === 'ZCASH' ? zcashLogo :
-                        balance.symbol === 'TON' ? tonLogo :
-                        balance.symbol === 'BNB' ? bnbLogo : ethLogo
-                      } 
-                      alt={balance.symbol}
-                      className="object-contain w-8 h-8 relative z-10"
-                    />
-                  </div>
+                  <img 
+                    src={
+                      balance.symbol === 'BTC' ? btcLogo : 
+                      balance.symbol === 'LTC' ? ltcLogo :
+                      balance.symbol === 'ETH' ? ethLogo :
+                      balance.symbol === 'ZCASH' ? zcashLogo :
+                      balance.symbol === 'TON' ? tonLogo :
+                      balance.symbol === 'BNB' ? bnbLogo : ethLogo
+                    } 
+                    alt={balance.symbol}
+                    className="object-contain w-8 h-8"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground text-sm truncate">{balance.symbol}</p>
                     <p className="text-xs text-muted-foreground truncate">{balance.name}</p>
