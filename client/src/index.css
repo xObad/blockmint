@@ -515,7 +515,7 @@ body.admin-mode,
 
 /* Padding utilities for safe areas */
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top, 1rem), 1rem);
+  padding-top: max(env(safe-area-inset-top, 0.5rem), 0.5rem);
 }
 
 .pb-safe {

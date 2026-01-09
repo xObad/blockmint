@@ -173,7 +173,7 @@ function MobileApp() {
         onNavigateToAdmin={() => setActiveTab("admin")}
       />
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-[20px] pb-48">
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-[10px] pb-48">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
