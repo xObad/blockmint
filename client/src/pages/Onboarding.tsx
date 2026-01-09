@@ -83,7 +83,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-emerald-500/10 rounded-full blur-2xl"></div>
             <img
-              src="/attached_assets/BlockMint-for-All.png"
+              src="/attached_assets/BlockMint-Logo.svg"
               alt="BlockMint"
               className="h-48 w-auto object-contain relative z-10"
               style={{
