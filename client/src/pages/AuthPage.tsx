@@ -329,7 +329,8 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   duration: 0.8
                 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-purple-500/10 rounded-full blur-3xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-purple-500/10 dark:from-primary/20 dark:via-transparent dark:to-purple-500/10 rounded-full blur-3xl"></div>
+                <div className="absolute inset-0 bg-white/40 dark:bg-transparent rounded-full blur-2xl"></div>
                 <img
                   src="/attached_assets/BlockMint-Logo.svg"
                   alt="BlockMint"
