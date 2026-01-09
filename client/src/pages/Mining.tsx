@@ -582,6 +582,16 @@ function HashRateCalculator() {
             </p>
           </div>
           
+          <div className="pt-2 border-t border-border/30 bg-blue-500/10 p-2 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Shield className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] text-blue-400 leading-relaxed">
+                <strong>Investment Protection:</strong> Your initial investment is fully returned after the period ends. 
+                Unlike cloud mining, this works like bank deposits or stock yields - you keep your principal and earn returns on top.
+              </p>
+            </div>
+          </div>
+          
           <div className="pt-2 border-t border-border/30">
             <div className="flex justify-between items-center">
               <span className="text-[10px] text-amber-400">If BTC reaches $150,000:</span>
