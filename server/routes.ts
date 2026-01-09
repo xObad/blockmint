@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { 
   users, depositAddresses, ledgerEntries, withdrawalRequests, 
-  adminActions, networkConfig, blockchainDeposits, interestPayments 
+  adminActions, networkConfig, blockchainDeposits, interestPayments,
+  miningPurchases
 } from "@shared/schema";
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
@@ -1096,6 +1097,124 @@ export async function registerRoutes(
       res.json(subs);
     } catch (error) {
       res.status(500).json({ error: "Failed to get earn subscriptions" });
+    }
+  });
+
+  // Mining purchase - buy hashpower or device
+  app.post("/api/mining/purchase", async (req, res) => {
+    try {
+      const { 
+        userId, 
+        packageName, 
+        crypto, 
+        amount, 
+        hashrate, 
+        hashrateUnit, 
+        efficiency,
+        dailyReturnBTC, 
+        returnPercent,
+        paybackMonths
+      } = req.body;
+      const { miningPurchases, wallets } = await import("@shared/schema");
+      
+      // Check user has sufficient USDT balance
+      const userWallets = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, "USDT")));
+      
+      if (userWallets.length === 0 || userWallets[0].balance < amount) {
+        return res.status(400).json({ error: "Insufficient USDT balance" });
+      }
+
+      // Deduct from wallet
+      await db.update(wallets)
+        .set({ balance: userWallets[0].balance - amount })
+        .where(eq(wallets.id, userWallets[0].id));
+
+      // Create mining purchase
+      const purchase = await db.insert(miningPurchases).values({
+        userId,
+        packageName,
+        crypto,
+        amount,
+        hashrate,
+        hashrateUnit,
+        efficiency,
+        dailyReturnBTC,
+        returnPercent,
+        paybackMonths,
+        status: "active",
+      }).returning();
+
+      res.json(purchase[0]);
+    } catch (error) {
+      console.error("Error creating mining purchase:", error);
+      res.status(500).json({ error: "Failed to create mining purchase" });
+    }
+  });
+
+  // Get user's mining purchases
+  app.get("/api/users/:userId/mining-purchases", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { miningPurchases } = await import("@shared/schema");
+      
+      const purchases = await db.select()
+        .from(miningPurchases)
+        .where(eq(miningPurchases.userId, userId))
+        .orderBy(desc(miningPurchases.purchaseDate));
+      
+      res.json(purchases);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get mining purchases" });
+    }
+  });
+
+  // Cancel/withdraw from mining purchase
+  app.post("/api/mining/withdraw/:purchaseId", async (req, res) => {
+    try {
+      const { purchaseId } = req.params;
+      const { miningPurchases, wallets } = await import("@shared/schema");
+      
+      // Get purchase
+      const purchases = await db.select()
+        .from(miningPurchases)
+        .where(eq(miningPurchases.id, purchaseId));
+      
+      if (purchases.length === 0) {
+        return res.status(404).json({ error: "Mining purchase not found" });
+      }
+
+      const purchase = purchases[0];
+      if (purchase.status !== "active") {
+        return res.status(400).json({ error: "Mining purchase is not active" });
+      }
+
+      // Return principal + earnings to wallet (as USDT)
+      const btcEarned = purchase.totalEarned;
+      // Convert BTC to USDT at current rate (simplified - should fetch real rate)
+      const btcPrice = 95000; // Placeholder - in real implementation, fetch from API
+      const totalAmount = purchase.amount + (btcEarned * btcPrice);
+      
+      const userWallets = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, purchase.userId), eq(wallets.symbol, "USDT")));
+      
+      if (userWallets.length > 0) {
+        await db.update(wallets)
+          .set({ balance: userWallets[0].balance + totalAmount })
+          .where(eq(wallets.id, userWallets[0].id));
+      }
+
+      // Mark as completed/cancelled
+      await db.update(miningPurchases)
+        .set({ status: "completed" })
+        .where(eq(miningPurchases.id, purchaseId));
+
+      res.json({ success: true, amountReturned: totalAmount });
+    } catch (error) {
+      console.error("Error withdrawing from mining purchase:", error);
+      res.status(500).json({ error: "Failed to withdraw" });
     }
   });
 

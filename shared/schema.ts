@@ -279,6 +279,36 @@ export const insertMinerPricingSchema = createInsertSchema(minerPricing).omit({
 export type InsertMinerPricing = z.infer<typeof insertMinerPricingSchema>;
 export type MinerPricing = typeof minerPricing.$inferSelect;
 
+// User mining purchases (hashpower purchases)
+export const miningPurchases = pgTable("mining_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  packageName: text("package_name").notNull(), // Pro, Premium, Premium+, Custom
+  crypto: text("crypto").notNull().default("BTC"), // BTC, LTC
+  amount: real("amount").notNull(), // Purchase price
+  hashrate: real("hashrate").notNull(),
+  hashrateUnit: text("hashrate_unit").notNull().default("TH/s"),
+  efficiency: text("efficiency"), // 15W/TH
+  dailyReturnBTC: real("daily_return_btc").notNull(),
+  returnPercent: real("return_percent").notNull(), // ROI percentage
+  paybackMonths: integer("payback_months"), // Expected payback period
+  status: text("status").notNull().default("active"), // active, completed, cancelled
+  totalEarned: real("total_earned").notNull().default(0),
+  lastEarningAt: timestamp("last_earning_at"),
+  purchaseDate: timestamp("purchase_date").defaultNow(),
+  expiryDate: timestamp("expiry_date"), // null for lifetime/one-time
+});
+
+export const insertMiningPurchaseSchema = createInsertSchema(miningPurchases).omit({
+  id: true,
+  purchaseDate: true,
+  totalEarned: true,
+  lastEarningAt: true,
+});
+
+export type InsertMiningPurchase = z.infer<typeof insertMiningPurchaseSchema>;
+export type MiningPurchase = typeof miningPurchases.$inferSelect;
+
 // App content (pages, popups, banners)
 export const appContent = pgTable("app_content", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

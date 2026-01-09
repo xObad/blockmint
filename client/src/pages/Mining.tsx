@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "@/components/GlassCard";
 import { HashRateChart } from "@/components/HashRateChart";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { getCurrentUser } from "@/lib/firebase";
 import { 
   Wifi, 
   Clock, 
@@ -331,7 +334,107 @@ function PoolStatusCard({ status }: { status: PoolStatus }) {
   );
 }
 
-function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
+// Active Mining Purchases Component
+function ActiveMiningPurchases({ 
+  purchases, 
+  btcPrice 
+}: { 
+  purchases: any[]; 
+  btcPrice: number;
+}) {
+  const { convert, getSymbol } = useCurrency();
+  
+  if (!purchases || purchases.length === 0) return null;
+
+  const activePurchases = purchases.filter((p) => p.status === "active");
+  
+  if (activePurchases.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+    >
+      <GlassCard variant="strong" className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+              <Cpu className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Active Mining Purchases</h3>
+              <p className="text-xs text-muted-foreground">{activePurchases.length} active</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {activePurchases.map((purchase) => {
+            const dailyUSD = purchase.dailyReturnBTC * btcPrice;
+            const totalEarnedUSD = purchase.totalEarned * btcPrice;
+
+            return (
+              <motion.div
+                key={purchase.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="p-3 rounded-xl bg-white/5 border border-white/10"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                        {purchase.crypto}
+                      </span>
+                      <span className="text-sm font-medium text-foreground">
+                        {purchase.packageName}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {purchase.hashrate} {purchase.hashrateUnit}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-amber-400">
+                      +{getSymbol()}{convert(dailyUSD).toFixed(2)}/day
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      ₿{purchase.dailyReturnBTC.toFixed(8)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Investment</p>
+                    <p className="text-xs font-medium text-foreground">
+                      {getSymbol()}{convert(purchase.amount).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground">Total Earned</p>
+                    <p className="text-xs font-medium text-green-400">
+                      +{getSymbol()}{convert(totalEarnedUSD).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground">ROI</p>
+                    <p className="text-xs font-medium text-amber-400">
+                      {purchase.returnPercent}%
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
+function PackageCard({ pkg, index, onPurchase }: { pkg: MiningPackage; index: number; onPurchase: (pkg: MiningPackage) => void }) {
   const { convert, getSymbol } = useCurrency();
   const { btcPrice } = useBTCPrice();
   const isBTC = pkg.crypto === "BTC";
@@ -430,6 +533,7 @@ function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
                 ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 h-8 text-xs w-full" 
                 : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 h-8 text-xs w-full"
               }
+              onClick={() => onPurchase(pkg)}
               data-testid={`button-buy-${pkg.id}`}
             >
               Buy Now
@@ -442,7 +546,7 @@ function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
   );
 }
 
-function HashRateCalculator() {
+function HashRateCalculator({ onPurchase }: { onPurchase: (data: { hashrate: number; cost: number; dailyReturnBTC: number; returnPercent: number }) => void }) {
   const { convert, getSymbol } = useCurrency();
   const { btcPrice } = useBTCPrice();
   
@@ -603,6 +707,12 @@ function HashRateCalculator() {
         <Button 
           className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
           size="default"
+          onClick={() => onPurchase({
+            hashrate: btcHashrate,
+            cost: estimatedCost,
+            dailyReturnBTC,
+            returnPercent: 20,
+          })}
           data-testid="button-buy-custom"
         >
           Buy Custom Hashpower
@@ -646,7 +756,125 @@ function EmptyState({ onNavigateToInvest }: { onNavigateToInvest: () => void }) 
 
 export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }: MiningProps) {
   const [activeTab, setActiveTab] = useState<"devices" | "hot">("devices");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const user = getCurrentUser();
+  
   const hasContracts = contracts.length > 0;
+  
+  // Fetch user's wallet balances
+  const { data: wallets = [] } = useQuery({
+    queryKey: ["/api/wallets", user?.uid],
+    enabled: !!user?.uid,
+  });
+
+  // Fetch user's mining purchases
+  const { data: miningPurchases = [] } = useQuery({
+    queryKey: [`/api/users/${user?.uid}/mining-purchases`],
+    enabled: !!user?.uid,
+  });
+
+  // Create mining purchase mutation
+  const createPurchase = useMutation({
+    mutationFn: async (purchaseData: any) => {
+      const res = await fetch("/api/mining/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(purchaseData),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to purchase");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wallets"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.uid}/mining-purchases`] });
+      toast({
+        title: "Purchase Successful!",
+        description: "Your mining package is now active.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Purchase Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const usdtWallet = wallets.find((w: any) => w.symbol === "USDT");
+  const availableBalance = usdtWallet?.balance || 0;
+  
+  // Handle package purchase
+  const handlePackagePurchase = (pkg: MiningPackage) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to purchase mining packages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (availableBalance < pkg.cost) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${pkg.cost.toFixed(2)} USDT but only have ${availableBalance.toFixed(2)} USDT available.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createPurchase.mutate({
+      userId: user.uid,
+      packageName: pkg.name,
+      crypto: pkg.crypto,
+      amount: pkg.cost,
+      hashrate: pkg.hashrateValue,
+      hashrateUnit: pkg.hashrateUnit,
+      efficiency: pkg.efficiency,
+      dailyReturnBTC: pkg.dailyReturnBTC,
+      returnPercent: pkg.returnPercent,
+      paybackMonths: pkg.paybackMonths,
+    });
+  };
+
+  // Handle custom hashpower purchase
+  const handleCustomPurchase = (data: { hashrate: number; cost: number; dailyReturnBTC: number; returnPercent: number }) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to purchase mining packages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (availableBalance < data.cost) {
+      toast({
+        title: "Insufficient Balance",
+        description: `You need ${data.cost.toFixed(2)} USDT but only have ${availableBalance.toFixed(2)} USDT available.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createPurchase.mutate({
+      userId: user.uid,
+      packageName: "Custom",
+      crypto: "BTC",
+      amount: data.cost,
+      hashrate: data.hashrate,
+      hashrateUnit: "TH/s",
+      efficiency: "15W/TH",
+      dailyReturnBTC: data.dailyReturnBTC,
+      returnPercent: data.returnPercent,
+      paybackMonths: Math.ceil((data.cost / (data.dailyReturnBTC * 95000)) / 30), // Rough estimate
+    });
+  };
   
   const totalHashrate = contracts.reduce((sum, c) => {
     if (c.hashrateUnit === "TH/s") return sum + c.hashrate;
@@ -699,6 +927,9 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
           </div>
         </div>
       </GlassCard>
+
+      {/* Active Mining Purchases */}
+      <ActiveMiningPurchases purchases={miningPurchases} btcPrice={useBTCPrice().btcPrice} />
 
       {/* Tabs */}
       <motion.div
@@ -788,7 +1019,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
               </div>
               <div className="space-y-3">
                 {btcPackages.map((pkg, index) => (
-                  <PackageCard key={pkg.id} pkg={pkg} index={index} />
+                  <PackageCard key={pkg.id} pkg={pkg} index={index} onPurchase={handlePackagePurchase} />
                 ))}
               </div>
             </div>
@@ -802,7 +1033,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
             transition={{ duration: 0.3 }}
             className="space-y-5"
           >
-            <HashRateCalculator />
+            <HashRateCalculator onPurchase={handleCustomPurchase} />
             {hasContracts && (
               <>
                 <HashRateChart data={chartData} title="Earnings Over Time" />
