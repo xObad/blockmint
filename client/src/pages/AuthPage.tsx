@@ -329,7 +329,6 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   duration: 0.8
                 }}
               >
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-40 h-12 bg-slate-100/90 dark:bg-transparent rounded-lg blur-md"></div>
                 <img
                   src="/attached_assets/BlockMint-Logo.svg"
                   alt="BlockMint"
