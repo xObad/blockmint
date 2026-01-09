@@ -269,20 +269,36 @@ function MobileApp() {
           </div>
           <div className="flex items-center justify-center gap-4">
             <a
-              href="https://x.com/miningclub"
+              href="https://x.com/BlockMintApp"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
               data-testid="link-social-x"
+              onClick={(e) => {
+                e.preventDefault();
+                // Try to open in Twitter app first, fallback to browser
+                window.location.href = 'twitter://user?screen_name=BlockMintApp';
+                setTimeout(() => {
+                  window.location.href = 'https://x.com/BlockMintApp';
+                }, 500);
+              }}
             >
               <SiX className="w-5 h-5 text-foreground" />
             </a>
             <a
-              href="https://instagram.com/miningclub"
+              href="https://www.instagram.com/blockmint.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
               data-testid="link-social-instagram"
+              onClick={(e) => {
+                e.preventDefault();
+                // Try to open in Instagram app first, fallback to browser
+                window.location.href = 'instagram://user?username=blockmint.app';
+                setTimeout(() => {
+                  window.location.href = 'https://www.instagram.com/blockmint.app/';
+                }, 500);
+              }}
             >
               <SiInstagram className="w-5 h-5 text-foreground" />
             </a>

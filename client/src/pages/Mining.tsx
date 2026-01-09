@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useBTCPrice } from "@/hooks/useBTCPrice";
 import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
 import btcMineImg from "@assets/Bitcoin_Mine_1766014388617.webp";
@@ -64,84 +65,59 @@ interface MiningPackage {
   hashrateUnit: string;
   duration: number;
   returnPercent: number;
+  dailyReturnBTC: number;
+  paybackMonths: number;
+  efficiency: string;
   image: string;
   popular?: boolean;
 }
 
 const miningPackages: MiningPackage[] = [
   {
-    id: "btc-starter",
-    name: "Starter",
-    crypto: "BTC",
-    cost: 99,
-    hashrate: "10 TH/s",
-    hashrateValue: 10,
-    hashrateUnit: "TH/s",
-    duration: 30,
-    returnPercent: 22,
-    image: btcMiningCart,
-  },
-  {
     id: "btc-pro",
     name: "Pro",
     crypto: "BTC",
-    cost: 499,
-    hashrate: "60 TH/s",
-    hashrateValue: 60,
+    cost: 79.99,
+    hashrate: "6 TH/s",
+    hashrateValue: 6,
     hashrateUnit: "TH/s",
-    duration: 60,
-    returnPercent: 28,
+    duration: 0, // Lifetime
+    returnPercent: 34,
+    dailyReturnBTC: 0.00000390,
+    paybackMonths: 8,
+    efficiency: "15W/TH",
+    image: btcMiningCart,
+  },
+  {
+    id: "btc-premium",
+    name: "Premium",
+    crypto: "BTC",
+    cost: 219.99,
+    hashrate: "14 TH/s",
+    hashrateValue: 14,
+    hashrateUnit: "TH/s",
+    duration: 0, // Lifetime
+    returnPercent: 38,
+    dailyReturnBTC: 0.0000088,
+    paybackMonths: 7,
+    efficiency: "15W/TH",
     image: btcMineImg,
     popular: true,
   },
   {
-    id: "btc-enterprise",
-    name: "Enterprise",
+    id: "btc-premium-plus",
+    name: "Premium+",
     crypto: "BTC",
-    cost: 1999,
-    hashrate: "300 TH/s",
-    hashrateValue: 300,
+    cost: 419.99,
+    hashrate: "30 TH/s",
+    hashrateValue: 30,
     hashrateUnit: "TH/s",
-    duration: 90,
-    returnPercent: 35,
+    duration: 0, // Lifetime
+    returnPercent: 38,
+    dailyReturnBTC: 0.00002,
+    paybackMonths: 6,
+    efficiency: "15W/TH",
     image: btcMiningCart,
-  },
-  {
-    id: "ltc-starter",
-    name: "Starter",
-    crypto: "LTC",
-    cost: 49,
-    hashrate: "500 MH/s",
-    hashrateValue: 500,
-    hashrateUnit: "MH/s",
-    duration: 30,
-    returnPercent: 20,
-    image: ltcMiningCart,
-  },
-  {
-    id: "ltc-pro",
-    name: "Pro",
-    crypto: "LTC",
-    cost: 249,
-    hashrate: "3 GH/s",
-    hashrateValue: 3,
-    hashrateUnit: "GH/s",
-    duration: 60,
-    returnPercent: 26,
-    image: ltcMiningCart,
-    popular: true,
-  },
-  {
-    id: "ltc-enterprise",
-    name: "Enterprise",
-    crypto: "LTC",
-    cost: 999,
-    hashrate: "15 GH/s",
-    hashrateValue: 15,
-    hashrateUnit: "GH/s",
-    duration: 90,
-    returnPercent: 32,
-    image: ltcMiningCart,
   },
 ];
 
@@ -357,7 +333,11 @@ function PoolStatusCard({ status }: { status: PoolStatus }) {
 
 function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
   const { convert, getSymbol } = useCurrency();
+  const { btcPrice } = useBTCPrice();
   const isBTC = pkg.crypto === "BTC";
+  
+  // Calculate daily return in USD
+  const dailyReturnUSD = pkg.dailyReturnBTC * btcPrice;
   
   return (
     <motion.div
@@ -401,41 +381,60 @@ function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
                 {pkg.crypto}
               </span>
               <h3 className="font-semibold text-foreground text-sm">{pkg.name}</h3>
+              <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30 px-1.5 py-0">
+                LIFETIME
+              </Badge>
             </div>
             
             <div className="text-xl font-bold text-foreground mb-2">
-              {getSymbol()}{convert(pkg.cost).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              {getSymbol()}{convert(pkg.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             
-            <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+            <div className="grid grid-cols-3 gap-2 text-[10px] mb-2">
               <div>
                 <span className="text-muted-foreground">Hashrate</span>
-                <p className="font-medium text-foreground">{pkg.hashrate}</p>
+                <p className="font-medium text-foreground text-xs">{pkg.hashrate}</p>
               </div>
               <div>
-                <span className="text-muted-foreground">Duration</span>
-                <p className="font-medium text-foreground">{pkg.duration} days</p>
+                <span className="text-muted-foreground">Efficiency</span>
+                <p className="font-medium text-foreground text-xs">{pkg.efficiency}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">ROI</span>
+                <p className="font-medium text-foreground text-xs">{pkg.returnPercent}%</p>
               </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className={`text-base font-bold ${
-                isBTC ? "text-amber-400" : "text-blue-400"
-              }`}>
-                +{pkg.returnPercent}% Return
+            <div className="mb-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-muted-foreground">Daily Return:</span>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-amber-400">
+                    {getSymbol()}{convert(dailyReturnUSD).toFixed(2)}/day
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    ₿{pkg.dailyReturnBTC.toFixed(8)}
+                  </p>
+                </div>
               </div>
-              <Button 
-                size="sm"
-                className={isBTC 
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 h-8 text-xs" 
-                  : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 h-8 text-xs"
-                }
-                data-testid={`button-buy-${pkg.id}`}
-              >
-                Buy Now
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
+              <div className="mt-1 pt-1 border-t border-border/30">
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Payback in ~{pkg.paybackMonths} months
+                </p>
+              </div>
             </div>
+            
+            <Button 
+              size="sm"
+              className={isBTC 
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 h-8 text-xs w-full" 
+                : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 h-8 text-xs w-full"
+              }
+              data-testid={`button-buy-${pkg.id}`}
+            >
+              Buy Now
+              <ArrowRight className="w-3 h-3 ml-1" />
+            </Button>
           </div>
         </div>
       </GlassCard>
@@ -445,44 +444,36 @@ function PackageCard({ pkg, index }: { pkg: MiningPackage; index: number }) {
 
 function HashRateCalculator() {
   const { convert, getSymbol } = useCurrency();
-  const [crypto, setCrypto] = useState<"BTC" | "LTC">("BTC");
-  const [duration, setDuration] = useState<number>(30);
+  const { btcPrice } = useBTCPrice();
   
-  const isBTC = crypto === "BTC";
+  const [btcHashrate, setBtcHashrate] = useState<number>(1);
   
-  const [btcHashrate, setBtcHashrate] = useState<number>(50);
-  const [ltcHashrate, setLtcHashrate] = useState<number>(1000);
+  // Base price is $18 per 1TH
+  const basePrice = 18;
   
-  const hashrate = isBTC ? btcHashrate : ltcHashrate;
-  const setHashrate = isBTC ? setBtcHashrate : setLtcHashrate;
+  // Calculate discount based on hashrate - more hashrate = lower price per TH
+  const getPricePerTH = (hashrate: number) => {
+    if (hashrate >= 100) return basePrice * 0.70; // 30% discount
+    if (hashrate >= 50) return basePrice * 0.75; // 25% discount
+    if (hashrate >= 30) return basePrice * 0.80; // 20% discount
+    if (hashrate >= 20) return basePrice * 0.85; // 15% discount
+    if (hashrate >= 10) return basePrice * 0.90; // 10% discount
+    if (hashrate >= 5) return basePrice * 0.95; // 5% discount
+    return basePrice; // No discount
+  };
   
-  const hashrateDisplay = useMemo(() => {
-    if (isBTC) {
-      return `${btcHashrate} TH/s`;
-    } else {
-      if (ltcHashrate >= 1000) {
-        return `${(ltcHashrate / 1000).toFixed(1)} GH/s`;
-      }
-      return `${ltcHashrate} MH/s`;
-    }
-  }, [isBTC, btcHashrate, ltcHashrate]);
+  const pricePerTH = getPricePerTH(btcHashrate);
+  const estimatedCost = btcHashrate * pricePerTH;
   
-  const estimatedCost = useMemo(() => {
-    if (isBTC) {
-      const basePrice = 9.9;
-      return btcHashrate * basePrice * (duration / 30);
-    } else {
-      const basePrice = 0.098;
-      return ltcHashrate * basePrice * (duration / 30);
-    }
-  }, [isBTC, btcHashrate, ltcHashrate, duration]);
+  // Annual return in BTC (0.00028 BTC per 1TH annually, scales with volume)
+  const baseAnnualBTCPerTH = 0.00028;
+  const annualBTCReturn = btcHashrate * baseAnnualBTCPerTH * (btcHashrate >= 10 ? 1.1 : 1); // 10% bonus for 10+ TH
+  const annualUSDReturn = annualBTCReturn * btcPrice;
   
-  const estimatedProfit = useMemo(() => {
-    const returnRate = duration === 30 ? 0.22 : duration === 60 ? 0.28 : 0.35;
-    return estimatedCost * returnRate;
-  }, [estimatedCost, duration]);
+  const dailyBTCReturn = annualBTCReturn / 365;
+  const dailyUSDReturn = dailyBTCReturn * btcPrice;
   
-  const totalReturn = estimatedCost + estimatedProfit;
+  const hashrateDisplay = `${btcHashrate} TH/s`;
   
   return (
     <GlassCard className="p-5" variant="strong">
@@ -492,92 +483,94 @@ function HashRateCalculator() {
         </div>
         <div>
           <h2 className="text-base font-semibold text-foreground">Custom Hashrate Calculator</h2>
-          <p className="text-xs text-muted-foreground">Build your own mining package</p>
+          <p className="text-xs text-muted-foreground">Build your own lifetime mining package</p>
         </div>
       </div>
       
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Cryptocurrency</Label>
-            <Select 
-              value={crypto} 
-              onValueChange={(v) => setCrypto(v as "BTC" | "LTC")}
-            >
-              <SelectTrigger data-testid="select-crypto" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                <SelectItem value="LTC">Litecoin (LTC)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Duration</Label>
-            <Select 
-              value={duration.toString()} 
-              onValueChange={(v) => setDuration(parseInt(v))}
-            >
-              <SelectTrigger data-testid="select-duration" className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30">30 Days</SelectItem>
-                <SelectItem value="60">60 Days</SelectItem>
-                <SelectItem value="90">90 Days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="mb-4">
+          <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+            LIFETIME CONTRACT
+          </Badge>
         </div>
         
         <div>
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-xs text-muted-foreground">Hashrate</Label>
-            <span className={`text-base font-bold ${isBTC ? "text-amber-400" : "text-blue-400"}`}>
+            <Label className="text-xs text-muted-foreground">Bitcoin Hashrate</Label>
+            <span className="text-base font-bold text-amber-400">
               {hashrateDisplay}
             </span>
           </div>
           <Slider
-            value={[hashrate]}
-            onValueChange={(v) => setHashrate(v[0])}
-            min={isBTC ? 1 : 100}
-            max={isBTC ? 500 : 50000}
-            step={isBTC ? 1 : 100}
+            value={[btcHashrate]}
+            onValueChange={(v) => setBtcHashrate(v[0])}
+            min={1}
+            max={500}
+            step={1}
             className="py-2"
             data-testid="slider-hashrate"
           />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>{isBTC ? "1 TH/s" : "100 MH/s"}</span>
-            <span>{isBTC ? "500 TH/s" : "50 GH/s"}</span>
+            <span>1 TH/s</span>
+            <span>500 TH/s</span>
           </div>
         </div>
         
-        <div className="p-3 rounded-xl border border-white/[0.08]">
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <span className="text-xs text-muted-foreground">Estimated Cost</span>
-              <p className="text-lg font-bold text-foreground">{getSymbol()}{convert(estimatedCost).toFixed(2)}</p>
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Expected Profit</span>
-              <p className="text-lg font-bold text-green-400">+{getSymbol()}{convert(estimatedProfit).toFixed(2)}</p>
-            </div>
+        <div className="p-3 rounded-xl border border-white/[0.08] space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Price per TH/s</span>
+            <p className="text-sm font-bold text-foreground">
+              {getSymbol()}{convert(pricePerTH).toFixed(2)}
+              {pricePerTH < basePrice && (
+                <span className="text-green-400 text-xs ml-1">
+                  (-{Math.round((1 - pricePerTH/basePrice) * 100)}%)
+                </span>
+              )}
+            </p>
           </div>
+          
           <div className="border-t border-white/[0.08] pt-3">
-            <span className="text-xs text-muted-foreground">Total Return</span>
-            <p className={`text-xl font-bold ${isBTC ? "text-amber-400" : "text-blue-400"}`}>
-              {getSymbol()}{convert(totalReturn).toFixed(2)}
+            <span className="text-xs text-muted-foreground">Total Cost (Lifetime)</span>
+            <p className="text-2xl font-bold text-foreground">
+              {getSymbol()}{convert(estimatedCost).toFixed(2)}
             </p>
           </div>
         </div>
         
+        <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 space-y-2">
+          <div className="flex justify-between">
+            <span className="text-xs text-muted-foreground">Daily Return</span>
+            <div className="text-right">
+              <p className="text-sm font-bold text-amber-400">
+                {getSymbol()}{convert(dailyUSDReturn).toFixed(2)}/day
+              </p>
+              <p className="text-[9px] text-muted-foreground">
+                ₿{dailyBTCReturn.toFixed(8)}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-border/30">
+            <span className="text-xs text-muted-foreground">Annual Return</span>
+            <div className="text-right">
+              <p className="text-sm font-bold text-green-400">
+                {getSymbol()}{convert(annualUSDReturn).toFixed(2)}
+              </p>
+              <p className="text-[9px] text-muted-foreground">
+                ₿{annualBTCReturn.toFixed(8)}
+              </p>
+            </div>
+          </div>
+          {btcHashrate >= 10 && (
+            <div className="pt-2 border-t border-border/30">
+              <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30">
+                +10% Volume Bonus Applied
+              </Badge>
+            </div>
+          )}
+        </div>
+        
         <Button 
-          className={`w-full ${isBTC 
-            ? "bg-gradient-to-r from-amber-500 to-orange-500" 
-            : "bg-gradient-to-r from-blue-500 to-indigo-500"
-          } text-white border-0`}
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
           size="default"
           data-testid="button-buy-custom"
         >
@@ -586,7 +579,7 @@ function HashRateCalculator() {
         </Button>
         
         <p className="text-center text-[10px] text-muted-foreground">
-          Payments accepted in cryptocurrency only
+          Lifetime contract • All rewards paid in BTC
         </p>
       </div>
     </GlassCard>
@@ -631,7 +624,6 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   }, 0);
 
   const btcPackages = miningPackages.filter(p => p.crypto === "BTC");
-  const ltcPackages = miningPackages.filter(p => p.crypto === "LTC");
 
   return (
     <>
@@ -759,24 +751,13 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
                   <span className="text-amber-400 font-bold text-sm">₿</span>
                 </div>
                 <h2 className="text-base font-semibold text-foreground">Bitcoin Mining Devices</h2>
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
+                  LIFETIME
+                </Badge>
               </div>
               <div className="space-y-3">
-                {btcPackages.slice(0, 4).map((pkg, index) => (
+                {btcPackages.map((pkg, index) => (
                   <PackageCard key={pkg.id} pkg={pkg} index={index} />
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-400 font-bold text-sm">Ł</span>
-                </div>
-                <h2 className="text-base font-semibold text-foreground">Litecoin Mining Devices</h2>
-              </div>
-              <div className="space-y-3">
-                {ltcPackages.slice(0, 4).map((pkg, index) => (
-                  <PackageCard key={pkg.id} pkg={pkg} index={index + 3} />
                 ))}
               </div>
             </div>
