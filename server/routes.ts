@@ -1533,5 +1533,236 @@ export async function registerRoutes(
     }
   });
 
+  // ============ DATABASE ADMIN ROUTES ============
+
+  // Get pending deposits for admin
+  app.get("/api/admin/deposits/pending", async (_req, res) => {
+    try {
+      const { depositRequests } = await import("@shared/schema");
+      const pending = await db.select()
+        .from(depositRequests)
+        .where(eq(depositRequests.status, "pending"))
+        .orderBy(desc(depositRequests.createdAt));
+      
+      res.json(pending);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get pending deposits" });
+    }
+  });
+
+  // Get all deposits for admin
+  app.get("/api/admin/deposits/all", async (_req, res) => {
+    try {
+      const { depositRequests } = await import("@shared/schema");
+      const deposits = await db.select()
+        .from(depositRequests)
+        .orderBy(desc(depositRequests.createdAt))
+        .limit(100);
+      
+      res.json(deposits);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get deposits" });
+    }
+  });
+
+  // Confirm a deposit (admin action)
+  app.post("/api/admin/deposits/:depositId/confirm", async (req, res) => {
+    try {
+      const { depositId } = req.params;
+      const { depositRequests, wallets, notifications } = await import("@shared/schema");
+      
+      // Get deposit request
+      const [deposit] = await db.select()
+        .from(depositRequests)
+        .where(eq(depositRequests.id, depositId));
+      
+      if (!deposit) {
+        return res.status(404).json({ error: "Deposit request not found" });
+      }
+      
+      if (deposit.status !== "pending") {
+        return res.status(400).json({ error: "Deposit already processed" });
+      }
+
+      // Update deposit status
+      await db.update(depositRequests)
+        .set({ status: "confirmed", confirmedAt: new Date() })
+        .where(eq(depositRequests.id, depositId));
+
+      // Credit user's wallet
+      const [existingWallet] = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, deposit.userId), eq(wallets.symbol, deposit.currency)));
+      
+      if (existingWallet) {
+        await db.update(wallets)
+          .set({ balance: existingWallet.balance + deposit.amount })
+          .where(eq(wallets.id, existingWallet.id));
+      } else {
+        // Create new wallet for this currency
+        await db.insert(wallets).values({
+          userId: deposit.userId,
+          symbol: deposit.currency,
+          name: deposit.currency,
+          balance: deposit.amount,
+          usdValue: deposit.amount, // Will be updated by price sync
+        });
+      }
+
+      // Create notification for user
+      await db.insert(notifications).values({
+        userId: deposit.userId,
+        type: "deposit",
+        category: "user",
+        title: "Deposit Confirmed!",
+        message: `Your deposit of ${deposit.amount} ${deposit.currency} has been confirmed and credited to your account.`,
+        priority: "high",
+        data: { depositId, amount: deposit.amount, currency: deposit.currency },
+      });
+
+      res.json({ success: true, message: "Deposit confirmed and balance credited" });
+    } catch (error) {
+      console.error("Error confirming deposit:", error);
+      res.status(500).json({ error: "Failed to confirm deposit" });
+    }
+  });
+
+  // Reject a deposit (admin action)
+  app.post("/api/admin/deposits/:depositId/reject", async (req, res) => {
+    try {
+      const { depositId } = req.params;
+      const { reason } = req.body;
+      const { depositRequests, notifications } = await import("@shared/schema");
+      
+      // Get deposit request
+      const [deposit] = await db.select()
+        .from(depositRequests)
+        .where(eq(depositRequests.id, depositId));
+      
+      if (!deposit) {
+        return res.status(404).json({ error: "Deposit request not found" });
+      }
+      
+      if (deposit.status !== "pending") {
+        return res.status(400).json({ error: "Deposit already processed" });
+      }
+
+      // Update deposit status
+      await db.update(depositRequests)
+        .set({ 
+          status: "rejected", 
+          rejectedAt: new Date(),
+          rejectionReason: reason || "Deposit could not be verified"
+        })
+        .where(eq(depositRequests.id, depositId));
+
+      // Create notification for user
+      await db.insert(notifications).values({
+        userId: deposit.userId,
+        type: "deposit",
+        category: "user",
+        title: "Deposit Request Rejected",
+        message: `Your deposit request for ${deposit.amount} ${deposit.currency} was rejected. Reason: ${reason || "Could not verify transaction"}`,
+        priority: "high",
+        data: { depositId, amount: deposit.amount, currency: deposit.currency, reason },
+      });
+
+      res.json({ success: true, message: "Deposit rejected and user notified" });
+    } catch (error) {
+      console.error("Error rejecting deposit:", error);
+      res.status(500).json({ error: "Failed to reject deposit" });
+    }
+  });
+
+  // Get all users for admin
+  app.get("/api/admin/users", async (_req, res) => {
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        createdAt: users.createdAt,
+      })
+        .from(users)
+        .orderBy(desc(users.createdAt))
+        .limit(100);
+      
+      res.json(allUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  // Get all config for admin
+  app.get("/api/admin/config", async (_req, res) => {
+    try {
+      const { appConfig } = await import("@shared/schema");
+      const configs = await db.select()
+        .from(appConfig)
+        .orderBy(appConfig.key);
+      
+      res.json(configs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get config" });
+    }
+  });
+
+  // Add new config (admin)
+  app.post("/api/admin/config", async (req, res) => {
+    try {
+      const { key, value, category, description } = req.body;
+      const { appConfig } = await import("@shared/schema");
+      
+      if (!key || !value) {
+        return res.status(400).json({ error: "Key and value are required" });
+      }
+
+      // Check if key already exists
+      const existing = await db.select()
+        .from(appConfig)
+        .where(eq(appConfig.key, key));
+      
+      if (existing.length > 0) {
+        // Update existing
+        await db.update(appConfig)
+          .set({ value, category, description, updatedAt: new Date() })
+          .where(eq(appConfig.key, key));
+        res.json({ success: true, message: "Config updated" });
+      } else {
+        // Insert new
+        const [config] = await db.insert(appConfig).values({
+          key,
+          value,
+          category: category || "settings",
+          description,
+          isActive: true,
+        }).returning();
+        res.json({ success: true, config });
+      }
+    } catch (error) {
+      console.error("Error adding config:", error);
+      res.status(500).json({ error: "Failed to add config" });
+    }
+  });
+
+  // Broadcast notification to all users
+  app.post("/api/admin/notifications/broadcast", async (req, res) => {
+    try {
+      const { title, message } = req.body;
+      
+      if (!title || !message) {
+        return res.status(400).json({ error: "Title and message are required" });
+      }
+
+      const { notificationService } = await import("./services/notificationService");
+      const count = await notificationService.createBroadcast(title, message, "promotion");
+      
+      res.json({ success: true, count, message: `Notification sent to ${count} users` });
+    } catch (error) {
+      console.error("Error sending broadcast:", error);
+      res.status(500).json({ error: "Failed to send broadcast" });
+    }
+  });
+
   return httpServer;
 }

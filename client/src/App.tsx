@@ -26,6 +26,7 @@ import Exchange from "@/pages/Exchange";
 import { Referral } from "@/pages/Referral";
 import { History } from "@/pages/History";
 import { VirtualCard } from "@/pages/VirtualCard";
+import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
@@ -354,6 +355,7 @@ function App() {
                 <Route path="/privacy" component={PrivacyPolicy} />
                 <Route path="/exchange" component={Exchange} />
                 <Route path="/referral" component={Referral} />
+                <Route path="/db-admin" component={DatabaseAdmin} />
                 <Route path="/virtual-card">
                   {() => <VirtualCard onBack={() => window.history.back()} />}
                 </Route>
