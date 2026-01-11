@@ -44,6 +44,9 @@ import {
   ArrowDownToLine,
   Eye,
   AlertTriangle,
+  Edit2,
+  Trash2,
+  Save,
 } from "lucide-react";
 
 // Admin password - in production, this should be environment variable
@@ -93,6 +96,9 @@ export function DatabaseAdmin() {
   const [newConfigDescription, setNewConfigDescription] = useState("");
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [editingConfig, setEditingConfig] = useState<AppConfig | null>(null);
+  const [editConfigValue, setEditConfigValue] = useState("");
+  const [deleteConfigId, setDeleteConfigId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -238,6 +244,53 @@ export function DatabaseAdmin() {
     },
   });
 
+  // Update config mutation
+  const updateConfigMutation = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: string }) => {
+      const res = await fetch(`/api/admin/config/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update config");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchConfig();
+      toast({ title: "Config Updated", description: "Configuration has been updated." });
+      setEditingConfig(null);
+      setEditConfigValue("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Delete config mutation
+  const deleteConfigMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/config/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete config");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchConfig();
+      toast({ title: "Config Deleted", description: "Configuration has been removed." });
+      setDeleteConfigId(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Broadcast notification mutation
   const broadcastMutation = useMutation({
     mutationFn: async (data: { title: string; message: string }) => {
@@ -354,43 +407,52 @@ export function DatabaseAdmin() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-white/10 pb-2">
-          <Button
-            variant={activeTab === "deposits" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("deposits")}
-          >
-            <ArrowDownToLine className="w-4 h-4 mr-2" />
-            Deposits
-            {pendingDeposits.length > 0 && (
-              <Badge className="ml-2 bg-amber-500">{pendingDeposits.length}</Badge>
-            )}
-          </Button>
-          <Button
-            variant={activeTab === "users" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("users")}
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Users
-          </Button>
-          <Button
-            variant={activeTab === "config" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("config")}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Config
-          </Button>
-          <Button
-            variant={activeTab === "notifications" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("notifications")}
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            Notifications
-          </Button>
+        {/* Tabs - Mobile scrollable */}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-2 border-b border-white/10 pb-2 min-w-max">
+            <Button
+              variant={activeTab === "deposits" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("deposits")}
+              className="whitespace-nowrap"
+            >
+              <ArrowDownToLine className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Deposits</span>
+              <span className="sm:hidden">Dep</span>
+              {pendingDeposits.length > 0 && (
+                <Badge className="ml-1 md:ml-2 bg-amber-500 text-xs">{pendingDeposits.length}</Badge>
+              )}
+            </Button>
+            <Button
+              variant={activeTab === "users" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("users")}
+              className="whitespace-nowrap"
+            >
+              <Users className="w-4 h-4 mr-1 md:mr-2" />
+              Users
+            </Button>
+            <Button
+              variant={activeTab === "config" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("config")}
+              className="whitespace-nowrap"
+            >
+              <Settings className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Config</span>
+              <span className="sm:hidden">Cfg</span>
+            </Button>
+            <Button
+              variant={activeTab === "notifications" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("notifications")}
+              className="whitespace-nowrap"
+            >
+              <Bell className="w-4 h-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Notifications</span>
+              <span className="sm:hidden">Notify</span>
+            </Button>
+          </div>
         </div>
 
         {/* Deposits Tab */}
@@ -403,6 +465,9 @@ export function DatabaseAdmin() {
                   <Clock className="w-5 h-5 text-amber-400" />
                   Pending Deposits
                 </h2>
+                <Button variant="outline" size="sm" onClick={() => refetchDeposits()}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
               </div>
               
               {loadingDeposits ? (
@@ -413,56 +478,50 @@ export function DatabaseAdmin() {
                   <p>No pending deposits</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User ID</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Network</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pendingDeposits.map((deposit: DepositRequest) => (
-                        <TableRow key={deposit.id}>
-                          <TableCell className="font-mono text-xs">{deposit.userId.slice(0, 12)}...</TableCell>
-                          <TableCell className="font-semibold">{deposit.amount} {deposit.currency}</TableCell>
-                          <TableCell>{deposit.network}</TableCell>
-                          <TableCell className="text-xs">{formatDate(deposit.createdAt)}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"
-                                onClick={() => {
-                                  setSelectedDeposit(deposit);
-                                  setConfirmDialogOpen(true);
-                                }}
-                              >
-                                <CheckCircle2 className="w-4 h-4 mr-1" />
-                                Confirm
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30"
-                                onClick={() => {
-                                  setSelectedDeposit(deposit);
-                                  setRejectDialogOpen(true);
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Reject
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-3">
+                  {pendingDeposits.map((deposit: DepositRequest) => (
+                    <div key={deposit.id} className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-lg">{deposit.amount} {deposit.currency}</span>
+                            <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            User: <span className="font-mono">{deposit.userId.slice(0, 16)}...</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(deposit.createdAt)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 md:flex-none"
+                            onClick={() => {
+                              setSelectedDeposit(deposit);
+                              setConfirmDialogOpen(true);
+                            }}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Confirm
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30 flex-1 md:flex-none"
+                            onClick={() => {
+                              setSelectedDeposit(deposit);
+                              setRejectDialogOpen(true);
+                            }}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </GlassCard>
@@ -476,30 +535,28 @@ export function DatabaseAdmin() {
               
               {loadingAllDeposits ? (
                 <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              ) : allDeposits.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No deposit history yet.</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User ID</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Network</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allDeposits.slice(0, 20).map((deposit: DepositRequest) => (
-                        <TableRow key={deposit.id}>
-                          <TableCell className="font-mono text-xs">{deposit.userId.slice(0, 12)}...</TableCell>
-                          <TableCell className="font-semibold">{deposit.amount} {deposit.currency}</TableCell>
-                          <TableCell>{deposit.network}</TableCell>
-                          <TableCell>{getStatusBadge(deposit.status)}</TableCell>
-                          <TableCell className="text-xs">{formatDate(deposit.createdAt)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-2">
+                  {allDeposits.slice(0, 20).map((deposit: DepositRequest) => (
+                    <div key={deposit.id} className="p-3 bg-muted/30 rounded-lg border border-white/5">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">{deposit.amount} {deposit.currency}</span>
+                          <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
+                          {getStatusBadge(deposit.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-mono">{deposit.userId.slice(0, 12)}...</span>
+                          <span className="mx-2">•</span>
+                          <span>{formatDate(deposit.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </GlassCard>
@@ -509,35 +566,48 @@ export function DatabaseAdmin() {
         {/* Users Tab */}
         {activeTab === "users" && (
           <GlassCard>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              All Users
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Registered Users
+              </h2>
+              <Badge variant="outline">{users.length} users</Badge>
+            </div>
+            
+            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-xs text-blue-300">
+                <strong>Note:</strong> Users appear here after signing up through the app. 
+                Firebase handles authentication, while user data is stored in the Neon database.
+              </p>
+            </div>
             
             {loadingUsers ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No users registered yet.</p>
+                <p className="text-xs mt-1">Users will appear here after signing up.</p>
+              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Display Name</TableHead>
-                      <TableHead>Joined</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user: User) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-mono text-xs">{user.id.slice(0, 12)}...</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.displayName || "-"}</TableCell>
-                        <TableCell className="text-xs">{formatDate(user.createdAt)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="space-y-2">
+                {users.map((user: User) => (
+                  <div key={user.id} className="p-3 bg-muted/30 rounded-lg border border-white/5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{user.email}</p>
+                        {user.displayName && (
+                          <p className="text-sm text-muted-foreground">{user.displayName}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-mono">{user.id.slice(0, 8)}...</span>
+                        <span>•</span>
+                        <span>{formatDate(user.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </GlassCard>
@@ -610,7 +680,12 @@ export function DatabaseAdmin() {
 
             {/* Existing Config */}
             <GlassCard>
-              <h2 className="text-lg font-semibold mb-4">Current Configuration</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Current Configuration</h2>
+                <Button variant="outline" size="sm" onClick={() => refetchConfig()}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
               {loadingConfig ? (
                 <div className="text-center py-8 text-muted-foreground">Loading...</div>
               ) : configs.length === 0 ? (
@@ -618,37 +693,86 @@ export function DatabaseAdmin() {
                   <p>No configuration entries yet. Add wallet addresses above.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Key</TableHead>
-                        <TableHead>Value</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Active</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {configs.map((config: AppConfig) => (
-                        <TableRow key={config.id}>
-                          <TableCell className="font-mono text-xs">{config.key}</TableCell>
-                          <TableCell className="font-mono text-xs max-w-xs truncate">{config.value}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{config.category}</Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{config.description}</TableCell>
-                          <TableCell>
+                <div className="space-y-3">
+                  {configs.map((config: AppConfig) => (
+                    <div key={config.id} className="p-3 md:p-4 bg-muted/30 rounded-lg border border-white/5">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs md:text-sm text-primary font-semibold">{config.key}</span>
+                            <Badge variant="outline" className="text-xs">{config.category}</Badge>
                             {config.isActive ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             ) : (
-                              <XCircle className="w-4 h-4 text-red-400" />
+                              <XCircle className="w-3 h-3 text-red-400" />
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                          {config.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
+                          )}
+                          
+                          {editingConfig?.id === config.id ? (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Input
+                                value={editConfigValue}
+                                onChange={(e) => setEditConfigValue(e.target.value)}
+                                placeholder="New value..."
+                                className="liquid-glass border-white/10 text-xs flex-1"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => updateConfigMutation.mutate({ id: config.id, value: editConfigValue })}
+                                disabled={updateConfigMutation.isPending}
+                                className="bg-emerald-500 hover:bg-emerald-600"
+                              >
+                                <Save className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingConfig(null);
+                                  setEditConfigValue("");
+                                }}
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="font-mono text-xs mt-2 break-all bg-background/50 p-2 rounded">
+                              {config.value}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {editingConfig?.id !== config.id && (
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
+                              onClick={() => {
+                                setEditingConfig(config);
+                                setEditConfigValue(config.value);
+                              }}
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-400 border-red-500/30 hover:bg-red-500/20"
+                              onClick={() => setDeleteConfigId(config.id)}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </GlassCard>
@@ -766,6 +890,31 @@ export function DatabaseAdmin() {
               variant="destructive"
             >
               {rejectDepositMutation.isPending ? "Processing..." : "Reject Deposit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Config Dialog */}
+      <Dialog open={!!deleteConfigId} onOpenChange={() => setDeleteConfigId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-400" />
+              Delete Configuration
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this configuration? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfigId(null)}>Cancel</Button>
+            <Button
+              onClick={() => deleteConfigId && deleteConfigMutation.mutate(deleteConfigId)}
+              disabled={deleteConfigMutation.isPending}
+              variant="destructive"
+            >
+              {deleteConfigMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

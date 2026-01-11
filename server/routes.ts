@@ -1745,6 +1745,43 @@ export async function registerRoutes(
     }
   });
 
+  // Update config by ID (admin)
+  app.put("/api/admin/config/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { value } = req.body;
+      const { appConfig } = await import("@shared/schema");
+      
+      if (!value) {
+        return res.status(400).json({ error: "Value is required" });
+      }
+
+      await db.update(appConfig)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(appConfig.id, id));
+      
+      res.json({ success: true, message: "Config updated" });
+    } catch (error) {
+      console.error("Error updating config:", error);
+      res.status(500).json({ error: "Failed to update config" });
+    }
+  });
+
+  // Delete config by ID (admin)
+  app.delete("/api/admin/config/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { appConfig } = await import("@shared/schema");
+      
+      await db.delete(appConfig).where(eq(appConfig.id, id));
+      
+      res.json({ success: true, message: "Config deleted" });
+    } catch (error) {
+      console.error("Error deleting config:", error);
+      res.status(500).json({ error: "Failed to delete config" });
+    }
+  });
+
   // Broadcast notification to all users
   app.post("/api/admin/notifications/broadcast", async (req, res) => {
     try {
