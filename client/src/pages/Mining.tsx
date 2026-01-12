@@ -554,8 +554,8 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
   const [btcHashrate, setBtcHashrate] = useState<number>(1);
   const [period, setPeriod] = useState<"daily" | "annual">("annual");
   
-  // Base price is $18 per 1TH
-  const basePrice = 18;
+  // Base price is $30 per 1TH
+  const basePrice = 30;
   
   // Calculate discount based on hashrate - more hashrate = lower price per TH
   const getPricePerTH = (hashrate: number) => {
@@ -599,9 +599,12 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
       </div>
       
       <div className="space-y-4">
-        <div className="mb-4">
+        <div className="mb-4 space-y-2">
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
             ONE-TIME PAYMENT
+          </Badge>
+          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+            VALID FOR 7 YEARS
           </Badge>
         </div>
         

@@ -38,8 +38,6 @@ import {
 
 // Crypto assets with their icons
 const cryptoAssets = [
-  { symbol: "BTC", name: "Bitcoin", icon: "₿", color: "from-amber-500 to-orange-500", bgColor: "bg-amber-500/20", textColor: "text-amber-400" },
-  { symbol: "BNB", name: "Binance Coin", icon: "◆", color: "from-yellow-500 to-amber-500", bgColor: "bg-yellow-500/20", textColor: "text-yellow-400" },
   { symbol: "USDT", name: "Tether", icon: "₮", color: "from-emerald-500 to-green-500", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
 ];
 
@@ -82,7 +80,7 @@ const defaultFaqItems = [
   },
   {
     question: "What cryptocurrencies can I invest?",
-    answer: "We support major cryptocurrencies including Bitcoin (BTC), Binance Coin (BNB), and Tether (USDT). Each asset earns the same competitive APR rates, allowing you to diversify your portfolio while maximizing returns."
+    answer: "We currently support Tether (USDT) for our investment platform. This provides a stable, predictable investment experience with no volatility risk, allowing you to focus on consistent returns with our competitive APR rates."
   },
   {
     question: "How does this differ from traditional staking?",
@@ -90,7 +88,7 @@ const defaultFaqItems = [
   },
   {
     question: "What is the minimum investment amount?",
-    answer: "The minimum investment varies by cryptocurrency. For BTC and BNB, the minimum is $50 equivalent. For stablecoins (USDT), the minimum is $100. There is no maximum limit—invest as much as you'd like to earn."
+    answer: "The minimum investment for USDT is $100. There is no maximum limit—invest as much as you'd like to earn. All mining contracts are valid for 7 years from the purchase date."
   },
 ];
 
