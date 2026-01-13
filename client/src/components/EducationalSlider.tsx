@@ -19,9 +19,11 @@ export function EducationalSlider() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [, navigate] = useLocation();
 
-  const { data: articles = [], isLoading } = useQuery<Article[]>({
+  const { data, isLoading } = useQuery<{ articles: Article[] }>({
     queryKey: ["/api/articles"],
   });
+
+  const articles = data?.articles || [];
 
   // Filter and sort active articles
   const activeArticles = articles
