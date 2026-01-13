@@ -33,8 +33,10 @@ import ethLogo from "@assets/ethereum-eth-3d-logo.png";
 import zcashLogo from "@assets/zcash-zec-3d-logo.png";
 import tonLogo from "@assets/ton-coin-3d-logo.png";
 import bnbLogo from "@assets/bnb-binance-3d-logo.png";
+import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
+import usdcLogo from "@assets/usd-coin-usdc-logo_1766038726866.png";
 
-type CryptoType = "BTC" | "LTC" | "ETH" | "ZCASH" | "TON" | "BNB";
+type CryptoType = "USDT" | "USDC" | "BTC" | "LTC" | "ETH" | "ZCASH" | "TON" | "BNB";
 
 interface NetworkOption {
   id: string;
@@ -44,6 +46,17 @@ interface NetworkOption {
 }
 
 const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
+  USDT: [
+    { id: "usdt-trc20", name: "Tron (TRC-20)", fee: 1, estimatedTime: "1-3 min" },
+    { id: "usdt-erc20", name: "Ethereum (ERC-20)", fee: 5, estimatedTime: "5-15 min" },
+    { id: "usdt-bsc", name: "BNB Smart Chain (BSC/BEP-20)", fee: 0.5, estimatedTime: "1-3 min" },
+    { id: "usdt-ton", name: "TON Network", fee: 0.5, estimatedTime: "1-2 min" },
+  ],
+  USDC: [
+    { id: "usdc-erc20", name: "Ethereum (ERC-20)", fee: 5, estimatedTime: "5-15 min" },
+    { id: "usdc-bsc", name: "BNB Smart Chain (BSC/BEP-20)", fee: 0.5, estimatedTime: "1-3 min" },
+    { id: "usdc-ton", name: "TON Network", fee: 0.5, estimatedTime: "1-2 min" },
+  ],
   BTC: [
     { id: "btc-native", name: "Bitcoin (Native)", fee: 0.0001, estimatedTime: "30-60 min" },
     { id: "btc-lightning", name: "Lightning Network", fee: 0.000001, estimatedTime: "Instant" },
@@ -75,6 +88,13 @@ const generateDepositAddress = (crypto: CryptoType, network: string): string => 
 
 // Wallet address mapping from network to config key
 const networkToConfigKey: Record<string, string> = {
+  "usdt-trc20": "wallet_usdt_trc20",
+  "usdt-erc20": "wallet_usdt_erc20",
+  "usdt-bsc": "wallet_usdt_bsc",
+  "usdt-ton": "wallet_usdt_ton",
+  "usdc-erc20": "wallet_usdc_erc20",
+  "usdc-bsc": "wallet_usdc_bsc",
+  "usdc-ton": "wallet_usdc_ton",
   "btc-native": "wallet_btc_native",
   "btc-lightning": "wallet_btc_lightning",
   "ltc-native": "wallet_ltc_native",
@@ -88,6 +108,8 @@ const networkToConfigKey: Record<string, string> = {
 };
 
 const cryptoConfig: Record<CryptoType, { name: string; color: string; iconBg: string }> = {
+  USDT: { name: "Tether", color: "text-emerald-400", iconBg: "bg-emerald-500/20" },
+  USDC: { name: "USD Coin", color: "text-blue-400", iconBg: "bg-blue-500/20" },
   BTC: { name: "Bitcoin", color: "text-amber-400", iconBg: "bg-amber-500/20" },
   LTC: { name: "Litecoin", color: "text-blue-300", iconBg: "bg-blue-400/20" },
   ETH: { name: "Ethereum", color: "text-purple-400", iconBg: "bg-purple-500/20" },
@@ -136,7 +158,7 @@ export function Wallet({
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [exchangeOpen, setExchangeOpen] = useState(false);
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("BTC");
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("USDT");
   const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
@@ -255,6 +277,21 @@ export function Wallet({
       return;
     }
     
+    // Calculate USD value and check minimum deposit of $20
+    const amount = parseFloat(depositAmount);
+    const price = cryptoPrices[selectedCrypto] || 0;
+    const usdValue = amount * price;
+    
+    if (usdValue < 20) {
+      const minAmount = (20 / price).toFixed(8);
+      toast({
+        title: "Minimum Deposit Not Met",
+        description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     submitDepositMutation.mutate({
       amount: depositAmount,
       currency: selectedCrypto,
@@ -344,6 +381,8 @@ export function Wallet({
   };
 
   const logoMap: Record<string, string> = {
+    USDT: usdtLogo,
+    USDC: usdcLogo,
     BTC: btcLogo,
     LTC: ltcLogo,
     ETH: ethLogo,
@@ -353,7 +392,7 @@ export function Wallet({
   };
 
   const openDepositModal = (crypto?: string) => {
-    const cryptoType = (crypto as CryptoType) || "BTC";
+    const cryptoType = (crypto as CryptoType) || "USDT";
     setSelectedCrypto(cryptoType);
     const networks = cryptoNetworks[cryptoType];
     if (networks && networks.length > 0) {
@@ -557,7 +596,7 @@ export function Wallet({
                             <SelectValue placeholder="Select crypto" />
                           </SelectTrigger>
                           <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                            {(["BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
+                            {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
                               <SelectItem key={crypto} value={crypto} data-testid={`option-deposit-crypto-${crypto.toLowerCase()}`}>
                                 <div className="flex items-center gap-2">
                                   <CryptoIcon crypto={crypto} className="w-4 h-4" />
@@ -623,20 +662,7 @@ export function Wallet({
                                 Copy Address
                               </>
                             )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Estimated Arrival</span>
-                          <span>{getSelectedNetworkTime()}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Minimum Deposit</span>
-                          <span>{getSelectedNetworkFee() * 2} {selectedCrypto}</span>
-                        </div>
-                      </div>
+                          </Button>\n                          \n                          {/* QR Code */}\n                          {depositAddress && depositAddress !== \"Select network to generate address\" && (\n                            <div className=\"flex flex-col items-center gap-2 mt-4 pt-4 border-t border-white/10\">\n                              <div className=\"relative group\">\n                                <img\n                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}\n                                  alt=\"Deposit QR Code\"\n                                  className=\"w-40 h-40 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform\"\n                                  onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}\n                                />\n                                <div className=\"absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none\">\n                                  <div className=\"bg-black/60 text-white text-xs px-3 py-1 rounded-full\">\n                                    Click to enlarge\n                                  </div>\n                                </div>\n                              </div>\n                              <p className=\"text-xs text-center text-muted-foreground\">\n                                Scan QR code with your wallet app\n                              </p>\n                            </div>\n                          )}\n                        </div>\n                      </div>\n\n                      <div className=\"space-y-2\">\n                        <div className=\"flex items-center justify-between text-sm\">\n                          <span className=\"text-muted-foreground\">Estimated Arrival</span>\n                          <span>{getSelectedNetworkTime()}</span>\n                        </div>\n                        <div className=\"flex items-center justify-between text-sm\">\n                          <span className=\"text-muted-foreground\">Minimum Deposit</span>\n                          <span className=\"text-emerald-400\">{getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto] || 1))).toFixed(8)} {selectedCrypto})</span>\n                        </div>\n                      </div>
 
                       <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/20">
                         <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -745,7 +771,7 @@ export function Wallet({
                             <SelectValue placeholder="Select crypto" />
                           </SelectTrigger>
                           <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                            {(["BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
+                            {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
                               <SelectItem key={crypto} value={crypto} data-testid={`option-withdraw-crypto-${crypto.toLowerCase()}`}>
                                 <div className="flex items-center gap-2">
                                   <CryptoIcon crypto={crypto} className="w-4 h-4" />
