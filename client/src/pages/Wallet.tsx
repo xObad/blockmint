@@ -662,7 +662,42 @@ export function Wallet({
                                 Copy Address
                               </>
                             )}
-                          </Button>\n                          \n                          {/* QR Code */}\n                          {depositAddress && depositAddress !== \"Select network to generate address\" && (\n                            <div className=\"flex flex-col items-center gap-2 mt-4 pt-4 border-t border-white/10\">\n                              <div className=\"relative group\">\n                                <img\n                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}\n                                  alt=\"Deposit QR Code\"\n                                  className=\"w-40 h-40 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform\"\n                                  onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}\n                                />\n                                <div className=\"absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none\">\n                                  <div className=\"bg-black/60 text-white text-xs px-3 py-1 rounded-full\">\n                                    Click to enlarge\n                                  </div>\n                                </div>\n                              </div>\n                              <p className=\"text-xs text-center text-muted-foreground\">\n                                Scan QR code with your wallet app\n                              </p>\n                            </div>\n                          )}\n                        </div>\n                      </div>\n\n                      <div className=\"space-y-2\">\n                        <div className=\"flex items-center justify-between text-sm\">\n                          <span className=\"text-muted-foreground\">Estimated Arrival</span>\n                          <span>{getSelectedNetworkTime()}</span>\n                        </div>\n                        <div className=\"flex items-center justify-between text-sm\">\n                          <span className=\"text-muted-foreground\">Minimum Deposit</span>\n                          <span className=\"text-emerald-400\">{getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto] || 1))).toFixed(8)} {selectedCrypto})</span>\n                        </div>\n                      </div>
+                          </Button>
+                          
+                          {/* QR Code */}
+                          {depositAddress && depositAddress !== "Select network to generate address" && (
+                            <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-white/10">
+                              <div className="relative group">
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
+                                  alt="Deposit QR Code"
+                                  className="w-40 h-40 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform"
+                                  onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  <div className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                                    Click to enlarge
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-xs text-center text-muted-foreground">
+                                Scan QR code with your wallet app
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Estimated Arrival</span>
+                          <span>{getSelectedNetworkTime()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Minimum Deposit</span>
+                          <span className="text-emerald-400">{getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto] || 1))).toFixed(8)} {selectedCrypto})</span>
+                        </div>
+                      </div>
 
                       <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/20">
                         <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
