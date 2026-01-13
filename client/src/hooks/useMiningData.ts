@@ -54,8 +54,24 @@ export function useMiningData() {
       if (!res.ok) return { balances: [], totalBalance: 0, change24h: 0, pending: {} };
       const data = await res.json();
       
+      // Fetch crypto prices
+      const pricesRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,ethereum,tether,usd-coin&vs_currencies=usd");
+      const prices = await pricesRes.json();
+      
+      // Map symbols to CoinGecko IDs
+      const priceMap: Record<string, number> = {
+        BTC: prices.bitcoin?.usd || 0,
+        LTC: prices.litecoin?.usd || 0,
+        ETH: prices.ethereum?.usd || 0,
+        USDT: prices.tether?.usd || 1,
+        USDC: prices["usd-coin"]?.usd || 1,
+      };
+      
       // Calculate total balance from wallet balances
-      const totalBalance = data.balances?.reduce((sum: number, wallet: any) => sum + (wallet.usdValue || 0), 0) || 0;
+      const totalBalance = data.balances?.reduce((sum: number, wallet: any) => {
+        const price = priceMap[wallet.symbol] || 0;
+        return sum + (wallet.balance * price);
+      }, 0) || 0;
       
       return {
         balances: data.balances || [],
