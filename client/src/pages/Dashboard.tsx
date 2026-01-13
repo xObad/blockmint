@@ -292,6 +292,21 @@ export function Dashboard({
       return;
     }
     
+    // Calculate USD value and check minimum deposit of $20
+    const amount = parseFloat(depositAmount);
+    const price = cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 0;
+    const usdValue = amount * price;
+    
+    if (usdValue < 20) {
+      const minAmount = (20 / price).toFixed(8);
+      toast({
+        title: "Minimum Deposit Not Met",
+        description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     submitDepositMutation.mutate({
       amount: depositAmount,
       currency: selectedCrypto,
@@ -524,14 +539,22 @@ export function Dashboard({
                         {copiedDeposit ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                     </div>
-                    <div className="flex items-center gap-3 pt-2">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(depositAddress)}`}
-                        alt="Deposit QR"
-                        className="w-24 h-24 rounded-lg border border-white/10"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Scan to deposit. Ensure the network matches exactly to avoid loss of funds.
+                    <div className="flex flex-col items-center gap-2 pt-3">
+                      <div className="relative group">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
+                          alt="Deposit QR Code"
+                          className="w-48 h-48 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <div className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                            Click to enlarge
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-center text-muted-foreground max-w-[280px]">
+                        Scan QR code to deposit. Click to view larger. Ensure network matches exactly to avoid loss of funds.
                       </p>
                     </div>
                   </div>
@@ -545,11 +568,14 @@ export function Dashboard({
                       className="liquid-glass border-white/10"
                       inputMode="decimal"
                     />
+                    <p className="text-xs text-emerald-400">
+                      Minimum deposit: {getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 1))).toFixed(8)} {selectedCrypto})
+                    </p>
                   </div>
 
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p>Live price: {getSymbol()}{convert(cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 0).toFixed(2)}</p>
-                    <p className="text-amber-400">Warning: Sending on the wrong network can result in permanent loss.</p>
+                    <p className="text-amber-400">⚠️ Warning: Sending on the wrong network can result in permanent loss.</p>
                   </div>
 
                   {/* Deposit Confirmation Button */}
