@@ -46,8 +46,10 @@ import ethLogo from "@assets/ethereum-eth-3d-logo.png";
 import zcashLogo from "@assets/zcash-zec-3d-logo.png";
 import tonLogo from "@assets/ton-coin-3d-logo.png";
 import bnbLogo from "@assets/bnb-binance-3d-logo.png";
+import usdtLogo from "@assets/tether-usdt-coin-3d-icon-png-download-3478983@0_1766038564971.webp";
+import usdcLogo from "@assets/usd-coin-usdc-logo_1766038726866.png";
 
-type CryptoType = "BTC" | "LTC" | "ETH" | "ZCASH" | "TON" | "BNB";
+type CryptoType = "USDT" | "USDC" | "BTC" | "LTC" | "ETH" | "ZCASH" | "TON" | "BNB";
 
 interface NetworkOption {
   id: string;
@@ -55,6 +57,17 @@ interface NetworkOption {
 }
 
 const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
+  USDT: [
+    { id: "usdt-trc20", name: "Tron (TRC-20)" },
+    { id: "usdt-erc20", name: "Ethereum (ERC-20)" },
+    { id: "usdt-bsc", name: "BNB Smart Chain (BSC/BEP-20)" },
+    { id: "usdt-ton", name: "TON Network" },
+  ],
+  USDC: [
+    { id: "usdc-erc20", name: "Ethereum (ERC-20)" },
+    { id: "usdc-bsc", name: "BNB Smart Chain (BSC/BEP-20)" },
+    { id: "usdc-ton", name: "TON Network" },
+  ],
   BTC: [
     { id: "btc-native", name: "Bitcoin (Native)" },
     { id: "btc-lightning", name: "Lightning Network" },
@@ -80,6 +93,13 @@ const generateDepositAddress = (crypto: CryptoType, network: string): string => 
 
 // Wallet address mapping from network to config key
 const networkToConfigKey: Record<string, string> = {
+  "usdt-trc20": "wallet_usdt_trc20",
+  "usdt-erc20": "wallet_usdt_erc20",
+  "usdt-bsc": "wallet_usdt_bsc",
+  "usdt-ton": "wallet_usdt_ton",
+  "usdc-erc20": "wallet_usdc_erc20",
+  "usdc-bsc": "wallet_usdc_bsc",
+  "usdc-ton": "wallet_usdc_ton",
   "btc-native": "wallet_btc_native",
   "btc-lightning": "wallet_btc_lightning",
   "ltc-native": "wallet_ltc_native",
@@ -149,9 +169,9 @@ export function Dashboard({
   const { prices: cryptoPrices } = useCryptoPrices();
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("BTC");
-  const [selectedNetwork, setSelectedNetwork] = useState<string>(cryptoNetworks.BTC[0].id);
-  const [depositAddress, setDepositAddress] = useState<string>(() => generateDepositAddress("BTC", cryptoNetworks.BTC[0].id));
+  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("USDT");
+  const [selectedNetwork, setSelectedNetwork] = useState<string>(cryptoNetworks.USDT[0].id);
+  const [depositAddress, setDepositAddress] = useState<string>(() => generateDepositAddress("USDT", cryptoNetworks.USDT[0].id));
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -294,7 +314,7 @@ export function Dashboard({
   const handleSelectCrypto = (value: string) => {
     const crypto = value as CryptoType;
     setSelectedCrypto(crypto);
-    const firstNetwork = cryptoNetworks[crypto]?.[0]?.id ?? cryptoNetworks.BTC[0].id;
+    const firstNetwork = cryptoNetworks[crypto]?.[0]?.id ?? cryptoNetworks.USDT[0].id;
     setSelectedNetwork(firstNetwork);
     // Address will be set by useEffect
     setDepositSubmitted(false);
@@ -474,7 +494,7 @@ export function Dashboard({
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                          {(["BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((c) => (
+                          {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((c) => (
                             <SelectItem key={c} value={c}>{c}</SelectItem>
                           ))}
                         </SelectContent>
@@ -621,7 +641,7 @@ export function Dashboard({
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                          {(["BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((c) => (
+                          {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((c) => (
                             <SelectItem key={c} value={c}>{c}</SelectItem>
                           ))}
                         </SelectContent>
@@ -904,6 +924,8 @@ export function Dashboard({
                   <div className="flex items-center gap-3">
                     <img 
                       src={
+                        balance.symbol === 'USDT' ? usdtLogo :
+                        balance.symbol === 'USDC' ? usdcLogo :
                         balance.symbol === 'BTC' ? btcLogo : 
                         balance.symbol === 'LTC' ? ltcLogo :
                         balance.symbol === 'ETH' ? ethLogo :
@@ -978,6 +1000,8 @@ export function Dashboard({
                 <div className="flex items-center gap-2 mb-2">
                   <img 
                     src={
+                      balance.symbol === 'USDT' ? usdtLogo :
+                      balance.symbol === 'USDC' ? usdcLogo :
                       balance.symbol === 'BTC' ? btcLogo : 
                       balance.symbol === 'LTC' ? ltcLogo :
                       balance.symbol === 'ETH' ? ethLogo :
