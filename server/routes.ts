@@ -5,10 +5,11 @@ import { db } from "./db";
 import { 
   users, depositAddresses, ledgerEntries, withdrawalRequests, 
   adminActions, networkConfig, blockchainDeposits, interestPayments,
-  miningPurchases
+  miningPurchases, notifications
 } from "@shared/schema";
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
+import { authService } from "./services/authService";
 import { eq, and, desc } from "drizzle-orm";
 
 export async function registerRoutes(
@@ -1304,9 +1305,56 @@ export async function registerRoutes(
         walletMap[w.key] = w.value;
       });
       
-      res.json(walletMap);
+      res.json({
+        map: walletMap,
+        entries: wallets.map((w) => ({
+          id: w.id,
+          key: w.key,
+          value: w.value,
+          description: w.description,
+          category: w.category,
+          isActive: w.isActive,
+        })),
+      });
     } catch (error) {
       res.status(500).json({ error: "Failed to get wallet addresses" });
+    }
+  });
+
+  // Sync Firebase user into database so admin can manage
+  app.post("/api/auth/sync", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization || "";
+      const tokenFromHeader = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+      const idToken = tokenFromHeader || req.body?.idToken;
+
+      if (!idToken) {
+        console.warn("Auth sync: No ID token provided");
+        return res.status(401).json({ error: "Missing auth token" });
+      }
+
+      const payload = await authService.verifyToken(idToken);
+      if (!payload?.uid || !payload.email) {
+        console.warn("Auth sync: Invalid token payload", { uid: payload?.uid, email: payload?.email });
+        return res.status(400).json({ error: "Invalid auth token" });
+      }
+
+      const displayName = (payload as any).name;
+      const photoUrl = (payload as any).picture;
+      console.log("Auth sync: Creating/updating user", { uid: payload.uid, email: payload.email });
+      
+      const result = await authService.getOrCreateUser(payload.uid, payload.email, displayName, photoUrl);
+
+      if (!result.success || !result.user) {
+        console.error("Auth sync failed:", result.error);
+        return res.status(500).json({ error: result.error || "Failed to sync user" });
+      }
+
+      console.log("Auth sync: User created/updated", { userId: result.user.id, email: result.user.email });
+      res.json({ user: result.user });
+    } catch (error) {
+      console.error("Error syncing auth user:", error);
+      res.status(500).json({ error: "Failed to sync user" });
     }
   });
 
@@ -1538,9 +1586,21 @@ export async function registerRoutes(
   // Get pending deposits for admin
   app.get("/api/admin/deposits/pending", async (_req, res) => {
     try {
-      const { depositRequests } = await import("@shared/schema");
-      const pending = await db.select()
+      const { depositRequests, users: usersTable } = await import("@shared/schema");
+      const pending = await db.select({
+        id: depositRequests.id,
+        userId: depositRequests.userId,
+        amount: depositRequests.amount,
+        currency: depositRequests.currency,
+        network: depositRequests.network,
+        walletAddress: depositRequests.walletAddress,
+        status: depositRequests.status,
+        createdAt: depositRequests.createdAt,
+        userEmail: usersTable.email,
+        userDisplayName: usersTable.displayName,
+      })
         .from(depositRequests)
+        .leftJoin(usersTable, eq(depositRequests.userId, usersTable.id))
         .where(eq(depositRequests.status, "pending"))
         .orderBy(desc(depositRequests.createdAt));
       
@@ -1553,9 +1613,22 @@ export async function registerRoutes(
   // Get all deposits for admin
   app.get("/api/admin/deposits/all", async (_req, res) => {
     try {
-      const { depositRequests } = await import("@shared/schema");
-      const deposits = await db.select()
+      const { depositRequests, users: usersTable } = await import("@shared/schema");
+      const deposits = await db.select({
+        id: depositRequests.id,
+        userId: depositRequests.userId,
+        amount: depositRequests.amount,
+        currency: depositRequests.currency,
+        network: depositRequests.network,
+        walletAddress: depositRequests.walletAddress,
+        status: depositRequests.status,
+        createdAt: depositRequests.createdAt,
+        confirmedAt: depositRequests.confirmedAt,
+        userEmail: usersTable.email,
+        userDisplayName: usersTable.displayName,
+      })
         .from(depositRequests)
+        .leftJoin(usersTable, eq(depositRequests.userId, usersTable.id))
         .orderBy(desc(depositRequests.createdAt))
         .limit(100);
       
@@ -1569,7 +1642,7 @@ export async function registerRoutes(
   app.post("/api/admin/deposits/:depositId/confirm", async (req, res) => {
     try {
       const { depositId } = req.params;
-      const { depositRequests, wallets, notifications } = await import("@shared/schema");
+      const { depositRequests, wallets } = await import("@shared/schema");
       
       // Get deposit request
       const [deposit] = await db.select()
@@ -1605,7 +1678,6 @@ export async function registerRoutes(
           symbol: deposit.currency,
           name: deposit.currency,
           balance: deposit.amount,
-          usdValue: deposit.amount, // Will be updated by price sync
         });
       }
 
@@ -1614,8 +1686,8 @@ export async function registerRoutes(
         userId: deposit.userId,
         type: "deposit",
         category: "user",
-        title: "Deposit Confirmed!",
-        message: `Your deposit of ${deposit.amount} ${deposit.currency} has been confirmed and credited to your account.`,
+        title: "🎉 Deposit Confirmed!",
+        message: `✅ Your deposit of ${deposit.amount} ${deposit.currency} has been confirmed and credited to your account. 🚀 Start mining now!`,
         priority: "high",
         data: { depositId, amount: deposit.amount, currency: deposit.currency },
       });
@@ -1632,7 +1704,7 @@ export async function registerRoutes(
     try {
       const { depositId } = req.params;
       const { reason } = req.body;
-      const { depositRequests, notifications } = await import("@shared/schema");
+      const { depositRequests } = await import("@shared/schema");
       
       // Get deposit request
       const [deposit] = await db.select()
@@ -1651,8 +1723,7 @@ export async function registerRoutes(
       await db.update(depositRequests)
         .set({ 
           status: "rejected", 
-          rejectedAt: new Date(),
-          rejectionReason: reason || "Deposit could not be verified"
+          adminNote: reason || "Deposit could not be verified"
         })
         .where(eq(depositRequests.id, depositId));
 
@@ -1661,8 +1732,8 @@ export async function registerRoutes(
         userId: deposit.userId,
         type: "deposit",
         category: "user",
-        title: "Deposit Request Rejected",
-        message: `Your deposit request for ${deposit.amount} ${deposit.currency} was rejected. Reason: ${reason || "Could not verify transaction"}`,
+        title: "❌ Deposit Request Rejected",
+        message: `Your deposit request for ${deposit.amount} ${deposit.currency} was rejected. Reason: ${reason || "Could not verify transaction"} 📧 Please contact support for assistance.`,
         priority: "high",
         data: { depositId, amount: deposit.amount, currency: deposit.currency, reason },
       });
@@ -1677,10 +1748,13 @@ export async function registerRoutes(
   // Get all users for admin
   app.get("/api/admin/users", async (_req, res) => {
     try {
+      const { wallets: walletsTable } = await import("@shared/schema");
       const allUsers = await db.select({
         id: users.id,
         email: users.email,
         displayName: users.displayName,
+        isActive: users.isActive,
+        role: users.role,
         createdAt: users.createdAt,
       })
         .from(users)
@@ -1690,6 +1764,112 @@ export async function registerRoutes(
       res.json(allUsers);
     } catch (error) {
       res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  // Block/unblock user (admin action)
+  app.post("/api/admin/users/:userId/block", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { block } = req.body;
+      
+      if (!userId || block === undefined) {
+        return res.status(400).json({ error: "Missing userId or block parameter" });
+      }
+
+      const [updatedUser] = await db.update(users)
+        .set({ isActive: !block })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Log admin action
+      await db.insert(adminActions).values({
+        adminId: "system",
+        targetUserId: userId,
+        actionType: block ? "block_user" : "unblock_user",
+        details: { blocked: block },
+      }).catch(() => {}); // Ignore if adminActions table doesn't exist
+
+      res.json({ success: true, user: updatedUser });
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      res.status(500).json({ error: "Failed to block user" });
+    }
+  });
+
+  // Adjust user balance (admin action)
+  app.post("/api/admin/users/:userId/adjust-balance", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { symbol, amount, type, reason } = req.body; // type: 'add' or 'deduct'
+      
+      if (!userId || !symbol || amount === undefined || !type) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (type !== "add" && type !== "deduct") {
+        return res.status(400).json({ error: "Type must be 'add' or 'deduct'" });
+      }
+
+      // Get or create wallet
+      const { wallets: walletsTable } = await import("@shared/schema");
+      const existing = await db.select()
+        .from(walletsTable)
+        .where(and(eq(walletsTable.userId, userId), eq(walletsTable.symbol, symbol)));
+      
+      let wallet;
+      if (existing.length > 0) {
+        const newBalance = type === "add" 
+          ? existing[0].balance + amount 
+          : existing[0].balance - amount;
+        
+        if (newBalance < 0) {
+          return res.status(400).json({ error: "Insufficient balance to deduct" });
+        }
+
+        [wallet] = await db.update(walletsTable)
+          .set({ balance: newBalance })
+          .where(eq(walletsTable.id, existing[0].id))
+          .returning();
+      } else {
+        if (type === "deduct") {
+          return res.status(400).json({ error: "User has no wallet for this currency" });
+        }
+        [wallet] = await db.insert(walletsTable).values({
+          userId,
+          symbol,
+          name: symbol,
+          balance: amount,
+        }).returning();
+      }
+
+      // Create notification for user
+      await db.insert(notifications).values({
+        userId,
+        type: "balance",
+        category: "user",
+        title: type === "add" ? "💰 Balance Added!" : "⚠️ Balance Adjusted",
+        message: `${type === "add" ? "✅ Admin added" : "⚠️ Admin deducted"} ${amount} ${symbol} ${type === "add" ? "to" : "from"} your account${reason ? ": " + reason : ". Thank you!"}.`,
+        priority: "normal",
+        data: { symbol, amount, type, reason },
+      });
+
+      // Log admin action
+      await db.insert(adminActions).values({
+        adminId: "system",
+        targetUserId: userId,
+        actionType: "adjust_balance",
+        details: { symbol, amount, type, reason },
+      }).catch(() => {});
+
+      res.json({ success: true, wallet });
+    } catch (error) {
+      console.error("Error adjusting balance:", error);
+      res.status(500).json({ error: "Failed to adjust balance" });
     }
   });
 

@@ -195,11 +195,11 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
         onComplete();
       } else {
         await registerWithEmail(email, password, name.trim());
-        setRegisteredEmail(email);
-        setShowVerification(true);
+        // Skip email verification - user can go directly to app
+        onComplete();
         toast({
-          title: "Verification Email Sent!",
-          description: "Please check your inbox to verify your email.",
+          title: "Account Created! 🎉",
+          description: "Welcome to BlockMint Mining!",
         });
       }
     } catch (error: any) {

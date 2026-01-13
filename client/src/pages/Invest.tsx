@@ -627,7 +627,8 @@ function FAQSection() {
     staleTime: 60000,
   });
 
-  const faqItems = adminFaqs && adminFaqs.length > 0 ? adminFaqs : defaultFaqItems;
+  const faqItems: Array<{ question: string; answer: string }> =
+    adminFaqs && adminFaqs.length > 0 ? adminFaqs : defaultFaqItems;
 
   return (
     <motion.div

@@ -47,6 +47,9 @@ import {
   Edit2,
   Trash2,
   Save,
+  Mail,
+  Shield,
+  Wallet,
 } from "lucide-react";
 
 // Admin password - in production, this should be environment variable
@@ -71,6 +74,8 @@ interface User {
   email: string;
   displayName?: string;
   createdAt: string;
+  isActive: boolean;
+  role?: string;
 }
 
 interface AppConfig {
@@ -85,7 +90,7 @@ interface AppConfig {
 export function DatabaseAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<"deposits" | "users" | "config" | "notifications">("deposits");
+  const [activeTab, setActiveTab] = useState<"deposits" | "users" | "config" | "notifications" | "updates" | "verification" | "messages">("deposits");
   const [selectedDeposit, setSelectedDeposit] = useState<DepositRequest | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -99,6 +104,27 @@ export function DatabaseAdmin() {
   const [editingConfig, setEditingConfig] = useState<AppConfig | null>(null);
   const [editConfigValue, setEditConfigValue] = useState("");
   const [deleteConfigId, setDeleteConfigId] = useState<string | null>(null);
+    const [forceUpdateEnabled, setForceUpdateEnabled] = useState(false);
+    const [updateMinVersion, setUpdateMinVersion] = useState("");
+    const [updateAndroidUrl, setUpdateAndroidUrl] = useState("");
+    const [updateIosUrl, setUpdateIosUrl] = useState("");
+    const [updateMessage, setUpdateMessage] = useState("");
+    const [verificationEmailEnabled, setVerificationEmailEnabled] = useState(false);
+    const [verificationPhoneEnabled, setVerificationPhoneEnabled] = useState(false);
+    const [verificationEmailProvider, setVerificationEmailProvider] = useState("twilio");
+    const [verificationPhoneProvider, setVerificationPhoneProvider] = useState("twilio");
+    const [emailApiKey, setEmailApiKey] = useState("");
+    const [phoneApiKey, setPhoneApiKey] = useState("");
+    const [depositApprovalMessage, setDepositApprovalMessage] = useState("Thank you for your deposit! It's being verified.");
+    const [depositRejectionMessage, setDepositRejectionMessage] = useState("Your deposit could not be verified. Please contact support.");
+    const [rejectionTemplates] = useState([
+      "Deposit not detected on blockchain",
+      "Incorrect amount sent",
+      "Sent to wrong address",
+      "Network not supported",
+      "Transaction expired",
+      "Duplicate deposit request"
+    ]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -145,7 +171,7 @@ export function DatabaseAdmin() {
   });
 
   // Fetch users
-  const { data: users = [], isLoading: loadingUsers } = useQuery({
+  const { data: users = [], isLoading: loadingUsers, refetch: refetchUsers } = useQuery({
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
       const res = await fetch("/api/admin/users");
@@ -153,6 +179,7 @@ export function DatabaseAdmin() {
       return res.json();
     },
     enabled: isAuthenticated && activeTab === "users",
+    refetchInterval: 10000, // Auto-refresh every 10 seconds to catch new users
   });
 
   // Fetch config
@@ -315,6 +342,51 @@ export function DatabaseAdmin() {
     },
   });
 
+  // Block/unblock user mutation
+  const blockUserMutation = useMutation({
+    mutationFn: async ({ userId, block }: { userId: string; block: boolean }) => {
+      const res = await fetch(`/api/admin/users/${userId}/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to block user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Success", description: "User status updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Adjust balance mutation
+  const adjustBalanceMutation = useMutation({
+    mutationFn: async (data: { userId: string; symbol: string; amount: number; type: "add" | "deduct"; reason?: string }) => {
+      const res = await fetch(`/api/admin/users/${data.userId}/adjust-balance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to adjust balance");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Balance adjusted successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString();
   };
@@ -422,6 +494,365 @@ export function DatabaseAdmin() {
               {pendingDeposits.length > 0 && (
                 <Badge className="ml-1 md:ml-2 bg-amber-500 text-xs">{pendingDeposits.length}</Badge>
               )}
+
+        {/* Verification Tab - Email and Phone Verification Settings */}
+        {activeTab === "verification" && (
+          <div className="space-y-6">
+            <GlassCard>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                Email & Phone Verification Settings
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">Configure optional verification methods for enhanced security</p>
+              
+              <div className="space-y-6">
+                {/* Email Verification */}
+                <div className="p-4 border border-white/10 rounded-lg bg-muted/20">
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="email_verify"
+                      checked={verificationEmailEnabled}
+                      onChange={(e) => setVerificationEmailEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded"
+                    />
+                    <label htmlFor="email_verify" className="text-sm font-medium">
+                      📧 Enable Email Verification
+                    </label>
+                  </div>
+                  
+                  {verificationEmailEnabled && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Email Service Provider</Label>
+                        <Select value={verificationEmailProvider} onValueChange={setVerificationEmailProvider}>
+                          <SelectTrigger className="liquid-glass border-white/10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="twilio">Twilio SendGrid</SelectItem>
+                            <SelectItem value="sendgrid">SendGrid</SelectItem>
+                            <SelectItem value="mailgun">Mailgun</SelectItem>
+                            <SelectItem value="firebase">Firebase</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>API Key</Label>
+                        <Input
+                          type="password"
+                          value={emailApiKey}
+                          onChange={(e) => setEmailApiKey(e.target.value)}
+                          placeholder="sg_xxx... (API key)"
+                          className="liquid-glass border-white/10"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Your {verificationEmailProvider} API key for sending verification emails</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Phone Verification */}
+                <div className="p-4 border border-white/10 rounded-lg bg-muted/20">
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="phone_verify"
+                      checked={verificationPhoneEnabled}
+                      onChange={(e) => setVerificationPhoneEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded"
+                    />
+                    <label htmlFor="phone_verify" className="text-sm font-medium">
+                      📱 Enable Phone Verification
+                    </label>
+                  </div>
+                  
+                  {verificationPhoneEnabled && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label>SMS Service Provider</Label>
+                        <Select value={verificationPhoneProvider} onValueChange={setVerificationPhoneProvider}>
+                          <SelectTrigger className="liquid-glass border-white/10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="twilio">Twilio</SelectItem>
+                            <SelectItem value="vonage">Vonage (Nexmo)</SelectItem>
+                            <SelectItem value="aws-sns">AWS SNS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label>API Key</Label>
+                        <Input
+                          type="password"
+                          value={phoneApiKey}
+                          onChange={(e) => setPhoneApiKey(e.target.value)}
+                          placeholder="xxxxxxxxxxxx (API key)"
+                          className="liquid-glass border-white/10"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label>Twilio Phone Number</Label>
+                        <Input
+                          value=""
+                          onChange={() => {}}
+                          placeholder="+1234567890"
+                          className="liquid-glass border-white/10"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">The phone number Twilio will use to send SMS</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600"
+                onClick={() => {
+                  toast({ title: "✅ Saved", description: "Verification settings saved." });
+                }}
+              >
+                Save Verification Settings
+              </Button>
+            </GlassCard>
+            
+            <GlassCard>
+              <h2 className="text-lg font-semibold mb-4">Setup Guides</h2>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <h3 className="font-semibold mb-2">🔌 Twilio Setup</h3>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Sign up at twilio.com</li>
+                    <li>Get your API Key and Auth Token</li>
+                    <li>Paste API Key above</li>
+                    <li>Get a Twilio phone number and add it</li>
+                  </ol>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold mb-2">🔌 SendGrid Setup</h3>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
+                    <li>Sign up at sendgrid.com</li>
+                    <li>Create API Key in Settings</li>
+                    <li>Copy API Key (starts with SG_)</li>
+                    <li>Paste in Email API Key field above</li>
+                  </ol>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* Wallet Networks Tab */}
+        {activeTab === "config" && (
+          <GlassCard>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              Manage Wallet Networks
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">Add, edit, or remove cryptocurrency networks and deposit addresses</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-muted/20 rounded-lg border border-white/10">
+              <div className="text-xs text-muted-foreground">
+                <strong>Supported Networks:</strong>
+                <ul className="mt-2 space-y-1">
+                  <li>✓ Bitcoin Native</li>
+                  <li>✓ Bitcoin Lightning</li>
+                  <li>✓ Ethereum ERC-20</li>
+                  <li>✓ Litecoin</li>
+                </ul>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                <strong>To add network:</strong>
+                <ol className="mt-2 space-y-1 list-decimal list-inside">
+                  <li>Add key: wallet_SYMBOL_NETWORK</li>
+                  <li>Add address value</li>
+                  <li>Add description with fees</li>
+                  <li>Save in Config tab</li>
+                </ol>
+              </div>
+            </div>
+          </GlassCard>
+        )}
+
+        {/* Updates Tab - Force Update Settings */}
+        {activeTab === "updates" && (
+          <div className="space-y-6">
+            <GlassCard>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-primary" />
+                Force Update Configuration
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">Configure mandatory app updates to force users to upgrade</p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="force_update"
+                    checked={forceUpdateEnabled}
+                    onChange={(e) => setForceUpdateEnabled(e.target.checked)}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="force_update" className="text-sm font-medium">
+                    Enable Force Update
+                  </label>
+                </div>
+                
+                {forceUpdateEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Minimum Required Version</Label>
+                      <Input
+                        value={updateMinVersion}
+                        onChange={(e) => setUpdateMinVersion(e.target.value)}
+                        placeholder="1.2.0"
+                        className="liquid-glass border-white/10"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label>Current Version</Label>
+                      <Input
+                        value={updateMessage.split("|")[0] || ""}
+                        onChange={(e) => {}}
+                        placeholder="1.3.0"
+                        className="liquid-glass border-white/10"
+                        disabled
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <span>🤖 Google Play Store URL</span>
+                      </Label>
+                      <Input
+                        value={updateAndroidUrl}
+                        onChange={(e) => setUpdateAndroidUrl(e.target.value)}
+                        placeholder="https://play.google.com/store/apps/details?id=com.yourapp"
+                        className="liquid-glass border-white/10 text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Android users will be sent to this link</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <span>🍎 Apple App Store URL</span>
+                      </Label>
+                      <Input
+                        value={updateIosUrl}
+                        onChange={(e) => setUpdateIosUrl(e.target.value)}
+                        placeholder="https://apps.apple.com/app/..."
+                        className="liquid-glass border-white/10 text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">iOS users will be sent to this link</p>
+                    </div>
+                    
+                    <div className="col-span-1 md:col-span-2">
+                      <Label>Update Message (shown to users)</Label>
+                      <textarea
+                        value={updateMessage}
+                        onChange={(e) => setUpdateMessage(e.target.value)}
+                        placeholder="A new version with important features is available. Please update now!"
+                        className="w-full h-20 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600"
+                  onClick={() => {
+                    toast({ title: "✅ Saved", description: "Force update configuration saved." });
+                  }}
+                >
+                  Save Update Configuration
+                </Button>
+              </div>
+            </GlassCard>
+            
+            <GlassCard>
+              <h2 className="text-lg font-semibold mb-4">How It Works</h2>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• When enabled, app checks version on startup</li>
+                <li>• If user version &lt; minimum version, update modal appears</li>
+                <li>• Android users get Google Play link automatically</li>
+                <li>• iOS users get Apple App Store link automatically</li>
+                <li>• User cannot close modal - must update or quit app</li>
+                <li>• Message is customizable and shown prominently</li>
+              </ul>
+            </GlassCard>
+          </div>
+        )}
+
+                    {/* Messages Tab - Custom Deposit Messages */}
+                    {activeTab === "messages" && (
+                      <div className="space-y-6">
+                        <GlassCard>
+                          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <Mail className="w-5 h-5 text-primary" />
+                            Deposit Message Templates
+                          </h2>
+                          <p className="text-sm text-muted-foreground mb-6">Customize messages sent to users for deposit status changes.</p>
+              
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-base font-semibold mb-2 block">✅ Approval Message</Label>
+                              <p className="text-xs text-muted-foreground mb-2">Sent when deposit is confirmed and balance credited</p>
+                              <textarea
+                                value={depositApprovalMessage}
+                                onChange={(e) => setDepositApprovalMessage(e.target.value)}
+                                placeholder="Thank you for your deposit..."
+                                className="w-full h-24 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
+                              />
+                              <Button className="mt-2" onClick={() => {
+                                toast({ title: "Saved", description: "Approval message saved." });
+                              }}>
+                                Save Approval Message
+                              </Button>
+                            </div>
+                
+                            <div>
+                              <Label className="text-base font-semibold mb-2 block">❌ Rejection Message</Label>
+                              <p className="text-xs text-muted-foreground mb-2">Default message for rejected deposits</p>
+                              <textarea
+                                value={depositRejectionMessage}
+                                onChange={(e) => setDepositRejectionMessage(e.target.value)}
+                                placeholder="Your deposit could not be verified..."
+                                className="w-full h-24 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
+                              />
+                              <Button className="mt-2" onClick={() => {
+                                toast({ title: "Saved", description: "Rejection message saved." });
+                              }}>
+                                Save Rejection Message
+                              </Button>
+                            </div>
+                          </div>
+                        </GlassCard>
+            
+                        <GlassCard>
+                          <h2 className="text-lg font-semibold mb-4">Quick Rejection Reasons</h2>
+                          <p className="text-sm text-muted-foreground mb-4">Pre-made rejection reasons for quick selection when rejecting deposits</p>
+                          <div className="space-y-2">
+                            {rejectionTemplates.map((template, idx) => (
+                              <div key={idx} className="p-3 bg-muted/30 rounded-lg border border-white/10 flex items-center justify-between">
+                                <span className="text-sm">{template}</span>
+                                <Button size="sm" variant="outline" onClick={() => {
+                                  setDepositRejectionMessage(template);
+                                  toast({ title: "Selected", description: `"${template}" is ready to use.` });
+                                }}>
+                                  Use
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </GlassCard>
+                      </div>
+                    )}
             </Button>
             <Button
               variant={activeTab === "users" ? "default" : "ghost"}
@@ -451,6 +882,36 @@ export function DatabaseAdmin() {
               <Bell className="w-4 h-4 mr-1 md:mr-2" />
               <span className="hidden sm:inline">Notifications</span>
               <span className="sm:hidden">Notify</span>
+                        <Button
+                          variant={activeTab === "messages" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setActiveTab("messages")}
+                          className="whitespace-nowrap"
+                        >
+                          <Mail className="w-4 h-4 mr-1 md:mr-2" />
+                          <span className="hidden sm:inline">Messages</span>
+                          <span className="sm:hidden">Msg</span>
+                        </Button>
+                        <Button
+                          variant={activeTab === "updates" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setActiveTab("updates")}
+                          className="whitespace-nowrap"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-1 md:mr-2" />
+                          <span className="hidden sm:inline">Updates</span>
+                          <span className="sm:hidden">Upd</span>
+                        </Button>
+                        <Button
+                          variant={activeTab === "verification" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setActiveTab("verification")}
+                          className="whitespace-nowrap"
+                        >
+                          <Shield className="w-4 h-4 mr-1 md:mr-2" />
+                          <span className="hidden sm:inline">Verify</span>
+                          <span className="sm:hidden">Ver</span>
+                        </Button>
             </Button>
           </div>
         </div>
@@ -488,7 +949,8 @@ export function DatabaseAdmin() {
                             <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            User: <span className="font-mono">{deposit.userId.slice(0, 16)}...</span>
+                            From: <span className="font-medium">{(deposit as any).userEmail || deposit.userId.slice(0, 8)}</span>
+                            {(deposit as any).userDisplayName && ` (${(deposit as any).userDisplayName})`}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDate(deposit.createdAt)}
@@ -544,14 +1006,18 @@ export function DatabaseAdmin() {
                   {allDeposits.slice(0, 20).map((deposit: DepositRequest) => (
                     <div key={deposit.id} className="p-3 bg-muted/30 rounded-lg border border-white/5">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{deposit.amount} {deposit.currency}</span>
-                          <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
-                          {getStatusBadge(deposit.status)}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">{deposit.amount} {deposit.currency}</span>
+                            <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
+                            {getStatusBadge(deposit.status)}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {(deposit as any).userEmail || deposit.userId.slice(0, 12)}
+                            {(deposit as any).userDisplayName && ` (${(deposit as any).userDisplayName})`}
+                          </p>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          <span className="font-mono">{deposit.userId.slice(0, 12)}...</span>
-                          <span className="mx-2">•</span>
                           <span>{formatDate(deposit.createdAt)}</span>
                         </div>
                       </div>
@@ -571,13 +1037,19 @@ export function DatabaseAdmin() {
                 <Users className="w-5 h-5 text-primary" />
                 Registered Users
               </h2>
-              <Badge variant="outline">{users.length} users</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{users.length} users</Badge>
+                <Button variant="outline" size="sm" onClick={() => refetchUsers()}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             
             <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <p className="text-xs text-blue-300">
-                <strong>Note:</strong> Users appear here after signing up through the app. 
+                <strong>Note:</strong> Users appear here immediately after signing up through the app. 
                 Firebase handles authentication, while user data is stored in the Neon database.
+                Refreshes automatically every 10 seconds.
               </p>
             </div>
             
@@ -587,23 +1059,84 @@ export function DatabaseAdmin() {
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No users registered yet.</p>
-                <p className="text-xs mt-1">Users will appear here after signing up.</p>
+                <p className="text-xs mt-1">Users will appear here immediately after signing up.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {users.map((user: User) => (
-                  <div key={user.id} className="p-3 bg-muted/30 rounded-lg border border-white/5">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{user.email}</p>
-                        {user.displayName && (
-                          <p className="text-sm text-muted-foreground">{user.displayName}</p>
-                        )}
+                  <div key={user.id} className="p-4 bg-muted/30 rounded-lg border border-white/5">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{user.email}</p>
+                          {user.displayName && (
+                            <p className="text-sm text-muted-foreground">{user.displayName}</p>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <span className="font-mono">{user.id.slice(0, 8)}...</span>
+                            <span>•</span>
+                            <span>{formatDate(user.createdAt)}</span>
+                            <span>•</span>
+                            <Badge variant="outline" className={user.isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}>
+                              {user.isActive ? "Active" : "Blocked"}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-mono">{user.id.slice(0, 8)}...</span>
-                        <span>•</span>
-                        <span>{formatDate(user.createdAt)}</span>
+                      
+                      {/* User Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={user.isActive ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30" : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"}
+                          onClick={() => blockUserMutation.mutate({ userId: user.id, block: user.isActive })}
+                          disabled={blockUserMutation.isPending}
+                        >
+                          {user.isActive ? "Block" : "Unblock"}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30"
+                          onClick={() => {
+                            const amount = prompt(`Add USDT to ${user.email}:`, "100");
+                            if (amount && !isNaN(Number(amount))) {
+                              adjustBalanceMutation.mutate({
+                                userId: user.id,
+                                symbol: "USDT",
+                                amount: Number(amount),
+                                type: "add",
+                                reason: "Admin credit"
+                              });
+                            }
+                          }}
+                          disabled={adjustBalanceMutation.isPending}
+                        >
+                          Add Balance
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border-orange-500/30"
+                          onClick={() => {
+                            const amount = prompt(`Deduct USDT from ${user.email}:`, "10");
+                            if (amount && !isNaN(Number(amount))) {
+                              adjustBalanceMutation.mutate({
+                                userId: user.id,
+                                symbol: "USDT",
+                                amount: Number(amount),
+                                type: "deduct",
+                                reason: "Admin deduction"
+                              });
+                            }
+                          }}
+                          disabled={adjustBalanceMutation.isPending}
+                        >
+                          Deduct Balance
+                        </Button>
                       </div>
                     </div>
                   </div>

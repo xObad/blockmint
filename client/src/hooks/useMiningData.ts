@@ -29,6 +29,11 @@ const stableQueryOptions = {
 } as const;
 
 export function useMiningData() {
+  // Get user ID from localStorage
+  const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem("user") : null;
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userId = user?.dbId || user?.id || user?.uid;
+
   const miningStatsQuery = useQuery<MiningStats>({
     ...stableQueryOptions,
     queryKey: ["/api/mining/stats"],
@@ -38,13 +43,32 @@ export function useMiningData() {
     staleTime: 15000,
   });
 
-  const walletQuery = useQuery<WalletResponse>({
+  const walletQuery = useQuery<any>({
     ...stableQueryOptions,
-    queryKey: ["/api/wallet/balances"],
-    refetchInterval: 120000, // Refresh every 2 minutes
+    queryKey: ["/api/balances", userId],
+    queryFn: async () => {
+      if (!userId) {
+        return { balances: [], totalBalance: 0, change24h: 0, pending: {} };
+      }
+      const res = await fetch(`/api/balances/${userId}`);
+      if (!res.ok) return { balances: [], totalBalance: 0, change24h: 0, pending: {} };
+      const data = await res.json();
+      
+      // Calculate total balance from wallet balances
+      const totalBalance = data.balances?.reduce((sum: number, wallet: any) => sum + (wallet.usdValue || 0), 0) || 0;
+      
+      return {
+        balances: data.balances || [],
+        totalBalance: totalBalance,
+        change24h: 0,
+        pending: data.pending || {}
+      };
+    },
+    enabled: !!userId,
+    refetchInterval: 60000, // Refresh every 1 minute (faster than 2 minutes for balance updates)
     refetchIntervalInBackground: false,
-    placeholderData: keepPreviousData, // Prevents flickering
-    staleTime: 60000,
+    placeholderData: keepPreviousData,
+    staleTime: 30000,
   });
 
   const transactionsQuery = useQuery<Transaction[]>({

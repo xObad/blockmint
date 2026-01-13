@@ -27,6 +27,7 @@ import { Referral } from "@/pages/Referral";
 import { History } from "@/pages/History";
 import { VirtualCard } from "@/pages/VirtualCard";
 import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
+import { ForceUpdateModal } from "@/components/ForceUpdateModal";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
@@ -89,14 +90,58 @@ function MobileApp() {
       setFirebaseUser(user);
       if (user) {
         localStorage.setItem("isLoggedIn", "true");
-      } else if (appView === "main") {
-        // User signed out remotely - clear state and go to auth
+      } else {
         localStorage.removeItem("isLoggedIn");
-        setAppView("auth");
+        localStorage.removeItem("user");
+        if (appView === "main") {
+          // User signed out remotely - clear state and go to auth
+          setAppView("auth");
+        }
       }
     });
     return () => unsubscribe();
   }, [appView]);
+
+  // Sync Firebase user into backend + localStorage so deposits/admin see the user immediately
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!firebaseUser) return;
+      try {
+        const idToken = await firebaseUser.getIdToken();
+        console.log("Syncing user with backend:", firebaseUser.email);
+        const res = await fetch("/api/auth/sync", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          console.error("Auth sync failed:", error);
+          throw new Error("Failed to sync user");
+        }
+        const data = await res.json();
+        console.log("Auth sync success:", data.user);
+        const storedUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          id: data.user?.id,
+          dbId: data.user?.id,
+          role: data.user?.role,
+        };
+        localStorage.setItem("user", JSON.stringify(storedUser));
+        console.log("User stored in localStorage:", storedUser);
+      } catch (error) {
+        console.error("User sync failed:", error);
+      }
+    };
+
+    if (firebaseUser) {
+      syncUser();
+    }
+  }, [firebaseUser]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
@@ -146,6 +191,9 @@ function MobileApp() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
+
+        {/* Force Update Modal */}
+        <ForceUpdateModal />
       </div>
 
       {/* Global Header - persists across all tabs */}

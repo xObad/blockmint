@@ -165,12 +165,14 @@ export function Dashboard({
   const queryClient = useQueryClient();
 
   // Fetch wallet addresses from database
-  const { data: walletAddresses } = useQuery({
+  const { data: walletAddresses } = useQuery<{ map: Record<string, string>; entries?: any[] } | Record<string, string>>({
     queryKey: ["wallet-addresses"],
     queryFn: async () => {
       const res = await fetch("/api/config/wallets/all");
-      if (!res.ok) return {};
-      return res.json();
+      if (!res.ok) return { map: {}, entries: [] };
+      const data = await res.json();
+      if (data?.map || data?.entries) return data;
+      return { map: data, entries: [] };
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
@@ -179,15 +181,16 @@ export function Dashboard({
   useEffect(() => {
     if (selectedNetwork && walletAddresses) {
       const configKey = networkToConfigKey[selectedNetwork];
-      const address = walletAddresses[configKey] || "Address not configured - contact support";
+      const walletMap = (walletAddresses as any)?.map || walletAddresses;
+      const address = walletMap[configKey] || "Address not configured - contact support";
       setDepositAddress(address);
     }
   }, [selectedNetwork, walletAddresses]);
 
-  // Get user ID
+  // Get user ID (from database)
   const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem("user") : null;
   const user = userStr ? JSON.parse(userStr) : null;
-  const userId = user?.uid;
+  const userId = user?.dbId || user?.id || user?.uid;
 
   // Fetch pending deposits
   const { data: pendingDeposits } = useQuery({

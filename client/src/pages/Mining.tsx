@@ -780,13 +780,13 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   const hasContracts = contracts.length > 0;
   
   // Fetch user's wallet balances
-  const { data: wallets = [] } = useQuery({
+  const { data: wallets = [] } = useQuery<Array<{ symbol: string; balance: number }>>({
     queryKey: [`/api/wallets/${user?.uid}`],
     enabled: !!user?.uid,
   });
 
   // Fetch user's mining purchases
-  const { data: miningPurchases = [] } = useQuery({
+  const { data: miningPurchases = [] } = useQuery<any[]>({
     queryKey: [`/api/users/${user?.uid}/mining-purchases`],
     enabled: !!user?.uid,
   });
