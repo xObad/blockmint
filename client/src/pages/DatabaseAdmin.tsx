@@ -1101,11 +1101,13 @@ export function DatabaseAdmin() {
                           variant="outline"
                           className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30"
                           onClick={() => {
-                            const amount = prompt(`Add USDT to ${user.email}:`, "100");
+                            const symbol = prompt(`Select currency to add for ${user.email}:\n\nEnter: BTC, ETH, USDT, USDC, LTC, or other`, "USDT");
+                            if (!symbol) return;
+                            const amount = prompt(`Add ${symbol.toUpperCase()} to ${user.email}:`, "100");
                             if (amount && !isNaN(Number(amount))) {
                               adjustBalanceMutation.mutate({
                                 userId: user.id,
-                                symbol: "USDT",
+                                symbol: symbol.toUpperCase(),
                                 amount: Number(amount),
                                 type: "add",
                                 reason: "Admin credit"
@@ -1122,11 +1124,13 @@ export function DatabaseAdmin() {
                           variant="outline"
                           className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border-orange-500/30"
                           onClick={() => {
-                            const amount = prompt(`Deduct USDT from ${user.email}:`, "10");
+                            const symbol = prompt(`Select currency to deduct from ${user.email}:\n\nEnter: BTC, ETH, USDT, USDC, LTC, or other`, "USDT");
+                            if (!symbol) return;
+                            const amount = prompt(`Deduct ${symbol.toUpperCase()} from ${user.email}:`, "10");
                             if (amount && !isNaN(Number(amount))) {
                               adjustBalanceMutation.mutate({
                                 userId: user.id,
-                                symbol: "USDT",
+                                symbol: symbol.toUpperCase(),
                                 amount: Number(amount),
                                 type: "deduct",
                                 reason: "Admin deduction"

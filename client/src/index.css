@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes neon-glow-green {
+  0%, 100% { text-shadow: 0 0 10px #10b981, 0 0 20px #10b981, 0 0 30px #10b981; }
+  50% { text-shadow: 0 0 20px #10b981, 0 0 30px #10b981, 0 0 40px #10b981, 0 0 50px #10b981; }
+}
+
+.neon-glow-green {
+  animation: neon-glow-green 1s ease-in-out;
+}
+
 /* Import Sansation font */
 @import url('https://fonts.cdnfonts.com/css/sansation');
 

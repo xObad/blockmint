@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { motion, useSpring, useTransform } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 interface AnimatedCounterProps {
   value: number;
@@ -8,6 +8,7 @@ interface AnimatedCounterProps {
   className?: string;
   prefix?: string;
   suffix?: string;
+  triggerGlow?: boolean; // New prop to trigger glow animation
 }
 
 export function AnimatedCounter({
@@ -16,36 +17,29 @@ export function AnimatedCounter({
   duration = 0.8,
   className = "",
   prefix = "",
-  suffix = ""
+  suffix = "",
+  triggerGlow = false
 }: AnimatedCounterProps) {
-  const springValue = useSpring(0, {
-    stiffness: 100,
-    damping: 30,
-    duration: duration * 1000
-  });
-
-  const displayValue = useTransform(springValue, (latest) => {
-    return `${prefix}${latest.toFixed(decimals)}${suffix}`;
-  });
-
-  const [displayText, setDisplayText] = useState(`${prefix}0${suffix}`);
+  const [showGlow, setShowGlow] = useState(false);
+  const [prevValue, setPrevValue] = useState(value);
 
   useEffect(() => {
-    springValue.set(value);
-  }, [value, springValue]);
+    // Trigger glow when value increases (deposit confirmed)
+    if (value > prevValue && triggerGlow) {
+      setShowGlow(true);
+      const timer = setTimeout(() => setShowGlow(false), 1000);
+      return () => clearTimeout(timer);
+    }
+    setPrevValue(value);
+  }, [value, prevValue, triggerGlow]);
 
-  useEffect(() => {
-    const unsubscribe = displayValue.on("change", (v) => {
-      setDisplayText(v);
-    });
-    return () => unsubscribe();
-  }, [displayValue]);
+  const displayText = `${prefix}${value.toFixed(decimals)}${suffix}`;
 
   return (
     <motion.span
-      className={className}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      className={`${className} ${showGlow ? 'neon-glow-green' : ''}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {displayText}

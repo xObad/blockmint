@@ -158,6 +158,18 @@ export function Dashboard({
   const [copiedDeposit, setCopiedDeposit] = useState(false);
   const [depositSubmitted, setDepositSubmitted] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [prevBalance, setPrevBalance] = useState(totalBalance);
+  const [balanceIncreased, setBalanceIncreased] = useState(false);
+
+  // Detect when balance increases (from deposit confirmation)
+  useEffect(() => {
+    if (totalBalance > prevBalance && prevBalance > 0) {
+      setBalanceIncreased(true);
+      const timer = setTimeout(() => setBalanceIncreased(false), 1500);
+      return () => clearTimeout(timer);
+    }
+    setPrevBalance(totalBalance);
+  }, [totalBalance, prevBalance]);
   const [showMenu, setShowMenu] = useState(false);
   const [showRewardCelebration, setShowRewardCelebration] = useState(false);
   const [hasRatedApp, setHasRatedApp] = useState(() => localStorage.getItem("hasRatedApp") === "true");
@@ -389,6 +401,7 @@ export function Dashboard({
                 value={convertedBalance}
                 decimals={2}
                 className="text-3xl font-bold text-foreground tracking-tight"
+                triggerGlow={balanceIncreased}
               />
               {onRefreshBalances && (
                 <Button
