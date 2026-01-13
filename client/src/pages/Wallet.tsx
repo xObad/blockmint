@@ -520,22 +520,28 @@ export function Wallet({
         </motion.header>
 
       <GlassCard delay={0.1} className="relative overflow-visible">
+        <div className="absolute -right-4 -top-4 w-28 h-28 pointer-events-none opacity-20">
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-transparent blur-2xl" />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-2xl" />
         
         <div className="relative z-10">
-          <p className="text-sm text-muted-foreground mb-2">Total Balance</p>
-          <div className="flex items-baseline gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-sm text-muted-foreground">Total Balance</span>
+          </div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg text-muted-foreground">{getSymbol()}</span>
             <AnimatedCounter
               value={convertedBalance}
               decimals={2}
-              prefix={getSymbol()}
-              className="text-4xl font-bold text-foreground"
+              className="text-3xl font-bold text-foreground tracking-tight"
               data-testid="text-total-balance"
             />
           </div>
-          <div className={`flex items-center gap-1 text-sm ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
+          <div className={`flex items-center gap-2 mb-6 text-sm ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
             <span data-testid="text-balance-change">{isPositive ? "+" : ""}{change24h.toFixed(2)}%</span>
-            <span className="text-muted-foreground">today</span>
+            <span className="text-muted-foreground">24H Change</span>
           </div>
 
           {/* Pending Deposits Display */}

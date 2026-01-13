@@ -102,13 +102,16 @@ function TrustMarketingSection() {
     >
       {/* Main trust banner */}
       <GlassCard variant="strong" className="relative overflow-hidden">
+        <div className="absolute -right-4 -top-4 w-28 h-28 pointer-events-none opacity-20">
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-transparent blur-2xl" />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-blue-500/10" />
-        <div className="relative text-center py-4">
+        <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Shield className="w-6 h-6 text-emerald-400" />
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-lg font-bold text-emerald-400">100% Secure & Protected</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-center">
             Your assets are protected by industry-leading security protocols
           </p>
         </div>
