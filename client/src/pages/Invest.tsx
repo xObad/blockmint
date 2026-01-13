@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser } from "@/lib/firebase";
 import { GlobalHeader } from "@/components/GlobalHeader";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { 
   TrendingUp, 
   Shield, 
@@ -101,12 +102,17 @@ function TrustMarketingSection() {
       className="space-y-4"
     >
       {/* Main trust banner */}
-      <GlassCard variant="strong" className="relative overflow-hidden">
-        <div className="absolute -right-4 -top-4 w-28 h-28 pointer-events-none opacity-20">
-          <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-transparent blur-2xl" />
+      <GlassCard delay={0.1} className="relative overflow-visible">
+        {/* Lottie animation background */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <DotLottieReact
+            src="https://lottie.host/fe692048-9401-4c6e-97f1-1d26fb93ddc3/fVCmWDAc9P.lottie"
+            loop
+            autoplay
+          />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-blue-500/10" />
-        <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 pointer-events-none" />
+        <div className="relative z-10">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-lg font-bold text-emerald-400">100% Secure & Protected</span>

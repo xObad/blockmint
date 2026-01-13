@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   photoUrl: text("photo_url"),
   role: text("role").notNull().default("user"),
   isActive: boolean("is_active").notNull().default(true),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  twoFactorSecret: text("two_factor_secret"), // TOTP secret
   createdAt: timestamp("created_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
 });
@@ -1004,3 +1006,27 @@ export const insertUserRewardSchema = createInsertSchema(userRewards).omit({
 
 export type InsertUserReward = z.infer<typeof insertUserRewardSchema>;
 export type UserReward = typeof userRewards.$inferSelect;
+
+// ============ ARTICLES (Learn & Earn educational content) ============
+
+export const articles = pgTable("articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull(), // Supports HTML content
+  category: text("category").notNull().default("Basics"), // Beginner, Strategy, Advanced, Security, Economics
+  icon: text("icon"), // Emoji or icon URL
+  image: text("image"), // Optional image URL for card display
+  order: integer("order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertArticleSchema = createInsertSchema(articles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertArticle = z.infer<typeof insertArticleSchema>;
+export type Article = typeof articles.$inferSelect;

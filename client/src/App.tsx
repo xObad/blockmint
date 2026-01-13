@@ -27,6 +27,7 @@ import { Referral } from "@/pages/Referral";
 import { History } from "@/pages/History";
 import { VirtualCard } from "@/pages/VirtualCard";
 import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
+import { ArticlePage } from "@/pages/ArticlePage";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
@@ -404,6 +405,7 @@ function App() {
                 <Route path="/exchange" component={Exchange} />
                 <Route path="/referral" component={Referral} />
                 <Route path="/db-admin" component={DatabaseAdmin} />
+                <Route path="/article/:id" component={ArticlePage} />
                 <Route path="/virtual-card">
                   {() => <VirtualCard onBack={() => window.history.back()} />}
                 </Route>

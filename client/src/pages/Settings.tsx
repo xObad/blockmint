@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { TwoFactorSetupModal } from "@/components/TwoFactorSetupModal";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -117,6 +118,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showNotificationPrefsDialog, setShowNotificationPrefsDialog] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -192,6 +194,17 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       queryClient.invalidateQueries({ queryKey: ["/api/users", user?.uid, "notification-preferences"] });
       toast({ title: "Preferences Updated" });
     },
+  });
+
+  // 2FA status
+  const { data: twoFactorStatus } = useQuery({
+    queryKey: ["/api/auth/2fa/status", user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return { enabled: false };
+      const res = await fetch(`/api/auth/2fa/status/${user.uid}`);
+      return res.json();
+    },
+    enabled: !!user?.uid,
   });
 
   // Link/Unlink Google
@@ -506,16 +519,16 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Shield}
             label="Two-Factor Authentication"
-            description="Add Extra Security To Your Account"
+            description={twoFactorStatus?.enabled ? "2FA is enabled" : "Add Extra Security To Your Account"}
             testId="setting-two-factor"
+            onClick={() => setShow2FAModal(true)}
             action={
-              <Switch
-                data-testid="switch-two-factor"
-                checked={settings.twoFactorEnabled}
-                onCheckedChange={(checked) => 
-                  onSettingsChange({ twoFactorEnabled: checked })
-                }
-              />
+              <div className="flex items-center gap-2">
+                {twoFactorStatus?.enabled && (
+                  <Badge variant="default" className="bg-green-500">Enabled</Badge>
+                )}
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </div>
             }
           />
           {(process.env.NODE_ENV === "development" || isAdminUser) && (
@@ -1059,6 +1072,13 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Two-Factor Authentication Modal */}
+      <TwoFactorSetupModal
+        open={show2FAModal}
+        onOpenChange={setShow2FAModal}
+        enabled={twoFactorStatus?.enabled || false}
+      />
     </motion.div>
   );
 }

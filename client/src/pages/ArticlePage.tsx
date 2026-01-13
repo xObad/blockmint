@@ -1,0 +1,105 @@
+import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface Article {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  image?: string;
+  createdAt: string;
+}
+
+export function ArticlePage() {
+  const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
+
+  const { data: article, isLoading, error } = useQuery<Article>({
+    queryKey: [`/api/articles/${id}`],
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !article) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+        <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
+        <Button onClick={() => navigate("/")}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Navigation Bar */}
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/")}
+            className="mr-4"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-3 flex-1">
+            {article.icon && <span className="text-2xl">{article.icon}</span>}
+            <h1 className="font-bold text-lg truncate">{article.title}</h1>
+          </div>
+        </div>
+      </header>
+
+      {/* Article Content */}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <motion.article
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="prose prose-slate dark:prose-invert max-w-none"
+        >
+          {/* Featured Image */}
+          {article.image && (
+            <img
+              src={article.image}
+              alt={article.title}
+              className="w-full h-64 object-cover rounded-xl mb-8"
+            />
+          )}
+
+          {/* Title */}
+          <h1 className="text-3xl md:text-4xl font-bold mb-6 flex items-center gap-3">
+            {article.icon && <span className="text-4xl">{article.icon}</span>}
+            {article.title}
+          </h1>
+
+          {/* Content with HTML support */}
+          <div
+            className="text-foreground leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: article.description }}
+          />
+
+          {/* Back Button */}
+          <div className="mt-12 pt-8 border-t border-border">
+            <Button variant="outline" onClick={() => navigate("/")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </div>
+        </motion.article>
+      </main>
+    </div>
+  );
+}

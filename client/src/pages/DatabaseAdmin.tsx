@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { GlassCard } from "@/components/GlassCard";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -35,7 +35,6 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-  Lock,
   Database,
   DollarSign,
   Bell,
@@ -50,10 +49,91 @@ import {
   Mail,
   Shield,
   Wallet,
+  Menu,
+  X,
+  LogOut,
+  FileText,
+  Smartphone,
+  Sliders,
+  Plus,
+  ArrowUpToLine,
 } from "lucide-react";
 
-// Admin password - in production, this should be environment variable
 const ADMIN_PASSWORD = "MiningClub2024!";
+
+// Predefined config keys
+const CONFIG_KEYS = {
+  wallet: [
+    { key: "wallet_btc_native", description: "Bitcoin Native (SegWit)" },
+    { key: "wallet_btc_legacy", description: "Bitcoin Legacy" },
+    { key: "wallet_btc_taproot", description: "Bitcoin Taproot" },
+    { key: "wallet_eth_erc20", description: "Ethereum ERC-20" },
+    { key: "wallet_usdt_trc20", description: "USDT TRC-20 (Tron)" },
+    { key: "wallet_usdt_erc20", description: "USDT ERC-20 (Ethereum)" },
+    { key: "wallet_usdt_bsc", description: "USDT BSC (BEP-20)" },
+    { key: "wallet_usdt_ton", description: "USDT TON" },
+    { key: "wallet_usdc_erc20", description: "USDC ERC-20" },
+    { key: "wallet_usdc_trc20", description: "USDC TRC-20" },
+    { key: "wallet_usdc_bsc", description: "USDC BSC" },
+    { key: "wallet_usdc_ton", description: "USDC TON" },
+    { key: "wallet_ltc_native", description: "Litecoin Native" },
+  ],
+  pricing: [
+    { key: "price_btc_per_th", description: "BTC Price per TH/s" },
+    { key: "price_ltc_per_mh", description: "LTC Price per MH/s" },
+    { key: "price_eth_per_mh", description: "ETH Price per MH/s" },
+    { key: "minimum_deposit_usd", description: "Minimum Deposit (USD)" },
+    { key: "withdrawal_fee_btc", description: "BTC Withdrawal Fee" },
+    { key: "withdrawal_fee_usdt", description: "USDT Withdrawal Fee" },
+    { key: "withdrawal_fee_eth", description: "ETH Withdrawal Fee" },
+  ],
+  contracts: [
+    { key: "contract_btc_starter_price", description: "BTC Starter Contract Price" },
+    { key: "contract_btc_starter_hashrate", description: "BTC Starter Hashrate (TH/s)" },
+    { key: "contract_btc_pro_price", description: "BTC Pro Contract Price" },
+    { key: "contract_btc_pro_hashrate", description: "BTC Pro Hashrate (TH/s)" },
+    { key: "contract_ltc_starter_price", description: "LTC Starter Contract Price" },
+    { key: "contract_ltc_starter_hashrate", description: "LTC Starter Hashrate (MH/s)" },
+    { key: "contract_ltc_pro_price", description: "LTC Pro Contract Price" },
+    { key: "contract_ltc_pro_hashrate", description: "LTC Pro Hashrate (MH/s)" },
+    { key: "contract_duration_days", description: "Default Contract Duration (days)" },
+  ],
+  discount: [
+    { key: "discount_percentage", description: "Current Discount (%)" },
+    { key: "discount_start_date", description: "Discount Start Date" },
+    { key: "discount_end_date", description: "Discount End Date" },
+    { key: "sale_active", description: "Sale Active (true/false)" },
+    { key: "flash_sale_percentage", description: "Flash Sale Discount (%)" },
+    { key: "referral_bonus_percentage", description: "Referral Bonus (%)" },
+  ],
+  forceUpdate: [
+    { key: "force_update_enabled", description: "Force Update Enabled" },
+    { key: "force_update_min_version", description: "Minimum Required Version" },
+    { key: "force_update_android_url", description: "Google Play Store URL" },
+    { key: "force_update_ios_url", description: "Apple App Store URL" },
+    { key: "force_update_message", description: "Update Prompt Message" },
+  ],
+  settings: [
+    { key: "app_name", description: "Application Name" },
+    { key: "support_email", description: "Support Email Address" },
+    { key: "support_phone", description: "Support Phone Number" },
+    { key: "maintenance_mode", description: "Maintenance Mode (true/false)" },
+    { key: "maintenance_message", description: "Maintenance Mode Message" },
+    { key: "max_active_contracts", description: "Max Active Contracts per User" },
+  ],
+};
+
+const ARTICLE_CATEGORIES = [
+  "Basics",
+  "Strategy",
+  "Advanced",
+  "Security",
+  "Economics",
+  "Tutorial",
+  "News",
+];
+
+type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config";
 
 interface DepositRequest {
   id: string;
@@ -67,6 +147,8 @@ interface DepositRequest {
   confirmedAt?: string;
   rejectedAt?: string;
   rejectionReason?: string;
+  userEmail?: string;
+  userDisplayName?: string;
 }
 
 interface User {
@@ -87,1346 +169,1194 @@ interface AppConfig {
   isActive: boolean;
 }
 
+interface Article {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  icon?: string;
+  image?: string;
+  order: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export function DatabaseAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<"deposits" | "users" | "config" | "notifications" | "updates" | "verification" | "messages">("deposits");
+  const [activeNav, setActiveNav] = useState<NavItem>("deposits");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedDeposit, setSelectedDeposit] = useState<DepositRequest | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  
+  // Config states
   const [newConfigKey, setNewConfigKey] = useState("");
   const [newConfigValue, setNewConfigValue] = useState("");
   const [newConfigCategory, setNewConfigCategory] = useState("wallet");
   const [newConfigDescription, setNewConfigDescription] = useState("");
-  const [broadcastTitle, setBroadcastTitle] = useState("");
-  const [broadcastMessage, setBroadcastMessage] = useState("");
   const [editingConfig, setEditingConfig] = useState<AppConfig | null>(null);
   const [editConfigValue, setEditConfigValue] = useState("");
   const [deleteConfigId, setDeleteConfigId] = useState<string | null>(null);
-    const [forceUpdateEnabled, setForceUpdateEnabled] = useState(false);
-    const [updateMinVersion, setUpdateMinVersion] = useState("");
-    const [updateAndroidUrl, setUpdateAndroidUrl] = useState("");
-    const [updateIosUrl, setUpdateIosUrl] = useState("");
-    const [updateMessage, setUpdateMessage] = useState("");
-    const [verificationEmailEnabled, setVerificationEmailEnabled] = useState(false);
-    const [verificationPhoneEnabled, setVerificationPhoneEnabled] = useState(false);
-    const [verificationEmailProvider, setVerificationEmailProvider] = useState("twilio");
-    const [verificationPhoneProvider, setVerificationPhoneProvider] = useState("twilio");
-    const [emailApiKey, setEmailApiKey] = useState("");
-    const [phoneApiKey, setPhoneApiKey] = useState("");
-    const [depositApprovalMessage, setDepositApprovalMessage] = useState("Thank you for your deposit! It's being verified.");
-    const [depositRejectionMessage, setDepositRejectionMessage] = useState("Your deposit could not be verified. Please contact support.");
-    const [rejectionTemplates] = useState([
-      "Deposit not detected on blockchain",
-      "Incorrect amount sent",
-      "Sent to wrong address",
-      "Network not supported",
-      "Transaction expired",
-      "Duplicate deposit request"
-    ]);
+  
+  // Update app states
+  const [forceUpdateEnabled, setForceUpdateEnabled] = useState(false);
+  const [updateMinVersion, setUpdateMinVersion] = useState("");
+  const [updateAndroidUrl, setUpdateAndroidUrl] = useState("");
+  const [updateIosUrl, setUpdateIosUrl] = useState("");
+  const [updateMessage, setUpdateMessage] = useState("");
+  
+  // Article states
+  const [articleTitle, setArticleTitle] = useState("");
+  const [articleDescription, setArticleDescription] = useState("");
+  const [articleCategory, setArticleCategory] = useState("Basics");
+  const [articleIcon, setArticleIcon] = useState("");
+  const [articleImage, setArticleImage] = useState("");
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [deleteArticleId, setDeleteArticleId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Check if already authenticated from session
   useEffect(() => {
     const auth = sessionStorage.getItem("dbAdminAuth");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-    }
+    if (auth === "true") setIsAuthenticated(true);
   }, []);
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       sessionStorage.setItem("dbAdminAuth", "true");
-      toast({ title: "Authenticated", description: "Welcome to the database admin panel." });
+      toast({ title: "Authenticated", description: "Welcome to admin panel." });
     } else {
-      toast({ title: "Invalid Password", description: "Please try again.", variant: "destructive" });
+      toast({ title: "Invalid Password", variant: "destructive" });
     }
   };
 
-  // Fetch pending deposits
-  const { data: pendingDeposits = [], isLoading: loadingDeposits, refetch: refetchDeposits } = useQuery({
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem("dbAdminAuth");
+    toast({ title: "Logged out successfully" });
+  };
+
+  // Queries
+  const { data: pendingDeposits = [] } = useQuery<DepositRequest[]>({
     queryKey: ["/api/admin/deposits/pending"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/deposits/pending");
-      if (!res.ok) throw new Error("Failed to fetch deposits");
-      return res.json();
-    },
     enabled: isAuthenticated,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
-  // Fetch all deposits
-  const { data: allDeposits = [], isLoading: loadingAllDeposits } = useQuery({
+  const { data: allDeposits = [] } = useQuery<DepositRequest[]>({
     queryKey: ["/api/admin/deposits/all"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/deposits/all");
-      if (!res.ok) throw new Error("Failed to fetch all deposits");
-      return res.json();
-    },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && activeNav === "deposits",
   });
 
-  // Fetch users
-  const { data: users = [], isLoading: loadingUsers, refetch: refetchUsers } = useQuery({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/users");
-      if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json();
-    },
-    enabled: isAuthenticated && activeTab === "users",
-    refetchInterval: 10000, // Auto-refresh every 10 seconds to catch new users
+    enabled: isAuthenticated && activeNav === "users",
+    refetchInterval: 10000,
   });
 
-  // Fetch config
-  const { data: configs = [], isLoading: loadingConfig, refetch: refetchConfig } = useQuery({
+  const { data: config = [] } = useQuery<AppConfig[]>({
     queryKey: ["/api/admin/config"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/config");
-      if (!res.ok) throw new Error("Failed to fetch config");
-      return res.json();
-    },
-    enabled: isAuthenticated && activeTab === "config",
+    enabled: isAuthenticated && activeNav === "config",
   });
 
-  // Confirm deposit mutation
-  const confirmDepositMutation = useMutation({
-    mutationFn: async (depositId: string) => {
-      const res = await fetch(`/api/admin/deposits/${depositId}/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to confirm deposit");
-      }
-      return res.json();
-    },
+  const { data: articles = [] } = useQuery<Article[]>({
+    queryKey: ["/api/articles"],
+    enabled: isAuthenticated && activeNav === "articles",
+  });
+
+  // Mutations
+  const confirmDeposit = useMutation({
+    mutationFn: async (depositId: string) =>
+      fetch(`/api/admin/deposits/${depositId}/confirm`, { method: "POST" }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/deposits/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/deposits/all"] });
-      toast({ title: "Deposit Confirmed", description: "User balance has been credited." });
+      toast({ title: "Deposit Confirmed", description: "User balance has been credited" });
       setConfirmDialogOpen(false);
       setSelectedDeposit(null);
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
   });
 
-  // Reject deposit mutation
-  const rejectDepositMutation = useMutation({
-    mutationFn: async ({ depositId, reason }: { depositId: string; reason: string }) => {
-      const res = await fetch(`/api/admin/deposits/${depositId}/reject`, {
+  const rejectDeposit = useMutation({
+    mutationFn: async ({ depositId, reason }: { depositId: string; reason: string }) =>
+      fetch(`/api/admin/deposits/${depositId}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to reject deposit");
-      }
-      return res.json();
-    },
+      }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/deposits/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/deposits/all"] });
-      toast({ title: "Deposit Rejected", description: "User has been notified." });
+      toast({ title: "Deposit Rejected", variant: "destructive" });
       setRejectDialogOpen(false);
       setSelectedDeposit(null);
       setRejectionReason("");
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
   });
 
-  // Add config mutation
-  const addConfigMutation = useMutation({
-    mutationFn: async (data: { key: string; value: string; category: string; description: string }) => {
-      const res = await fetch("/api/admin/config", {
+  const broadcastNotification = useMutation({
+    mutationFn: async (data: { title: string; message: string }) =>
+      fetch("/api/admin/notifications/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to add config");
-      }
-      return res.json();
+      }).then(r => r.json()),
+    onSuccess: (data) => {
+      toast({ title: "Broadcast Sent", description: `Notified ${data.count} users` });
+      setBroadcastTitle("");
+      setBroadcastMessage("");
     },
+  });
+
+  const toggleUserStatus = useMutation({
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) =>
+      fetch(`/api/admin/users/${userId}/toggle-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
+      }).then(r => r.json()),
     onSuccess: () => {
-      refetchConfig();
-      toast({ title: "Config Added", description: "New configuration has been saved." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "User status updated" });
+    },
+  });
+
+  const adjustBalance = useMutation({
+    mutationFn: async (data: { userId: string; symbol: string; amount: number; type: string; reason: string }) =>
+      fetch(`/api/admin/users/${data.userId}/adjust-balance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "Balance adjusted successfully" });
+    },
+  });
+
+  const addConfig = useMutation({
+    mutationFn: async (data: { key: string; value: string; category: string; description: string }) =>
+      fetch("/api/admin/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/config"] });
+      toast({ title: "Configuration added" });
       setNewConfigKey("");
       setNewConfigValue("");
       setNewConfigDescription("");
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
   });
 
-  // Update config mutation
-  const updateConfigMutation = useMutation({
-    mutationFn: async ({ id, value }: { id: string; value: string }) => {
-      const res = await fetch(`/api/admin/config/${id}`, {
+  const updateConfig = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: string }) =>
+      fetch(`/api/admin/config/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to update config");
-      }
-      return res.json();
-    },
+      }).then(r => r.json()),
     onSuccess: () => {
-      refetchConfig();
-      toast({ title: "Config Updated", description: "Configuration has been updated." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/config"] });
+      toast({ title: "Configuration updated" });
       setEditingConfig(null);
-      setEditConfigValue("");
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
-  // Delete config mutation
-  const deleteConfigMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/config/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to delete config");
-      }
-      return res.json();
-    },
+  const deleteConfig = useMutation({
+    mutationFn: async (id: string) =>
+      fetch(`/api/admin/config/${id}`, { method: "DELETE" }).then(r => r.json()),
     onSuccess: () => {
-      refetchConfig();
-      toast({ title: "Config Deleted", description: "Configuration has been removed." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/config"] });
+      toast({ title: "Configuration deleted" });
       setDeleteConfigId(null);
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+  });
+
+  const createArticle = useMutation({
+    mutationFn: async (data: { title: string; description: string; category?: string; icon?: string; image?: string; order: number }) =>
+      fetch("/api/admin/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, isActive: true }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: "Article created successfully" });
+      setArticleTitle("");
+      setArticleDescription("");
+      setArticleCategory("Basics");
+      setArticleIcon("");
+      setArticleImage("");
     },
   });
 
-  // Broadcast notification mutation
-  const broadcastMutation = useMutation({
-    mutationFn: async (data: { title: string; message: string }) => {
-      const res = await fetch("/api/admin/notifications/broadcast", {
-        method: "POST",
+  const updateArticle = useMutation({
+    mutationFn: async (data: { id: string; title: string; description: string; category?: string; icon?: string; image?: string; order: number }) =>
+      fetch(`/api/admin/articles/${data.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to send broadcast");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      toast({ title: "Broadcast Sent", description: `Notification sent to ${data.count} users.` });
-      setBroadcastTitle("");
-      setBroadcastMessage("");
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  // Block/unblock user mutation
-  const blockUserMutation = useMutation({
-    mutationFn: async ({ userId, block }: { userId: string; block: boolean }) => {
-      const res = await fetch(`/api/admin/users/${userId}/block`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ block }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to block user");
-      }
-      return res.json();
-    },
+      }).then(r => r.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Success", description: "User status updated." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: "Article updated successfully" });
+      setEditingArticle(null);
     },
   });
 
-  // Adjust balance mutation
-  const adjustBalanceMutation = useMutation({
-    mutationFn: async (data: { userId: string; symbol: string; amount: number; type: "add" | "deduct"; reason?: string }) => {
-      const res = await fetch(`/api/admin/users/${data.userId}/adjust-balance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to adjust balance");
-      }
-      return res.json();
-    },
+  const deleteArticle = useMutation({
+    mutationFn: async (id: string) =>
+      fetch(`/api/admin/articles/${id}`, { method: "DELETE" }).then(r => r.json()),
     onSuccess: () => {
-      toast({ title: "Success", description: "Balance adjusted successfully." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      toast({ title: "Article deleted" });
+      setDeleteArticleId(null);
     },
   });
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>;
-      case "confirmed":
-        return <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30"><CheckCircle2 className="w-3 h-3 mr-1" /> Confirmed</Badge>;
-      case "rejected":
-        return <Badge variant="outline" className="bg-red-500/20 text-red-400 border-red-500/30"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // Login screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background p-4">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <GlassCard className="p-8">
-            <div className="flex flex-col items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-primary" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold">Database Admin</h1>
-                <p className="text-sm text-muted-foreground">Enter password to continue</p>
+          <div className="bg-card border border-border rounded-xl p-8 shadow-2xl">
+            <div className="flex items-center justify-center mb-6">
+              <div className="p-4 bg-primary/10 rounded-full">
+                <Shield className="w-10 h-10 text-primary" />
               </div>
             </div>
+            <h1 className="text-2xl font-bold text-center mb-2">Admin Panel</h1>
+            <p className="text-sm text-muted-foreground text-center mb-6">Enter password to continue</p>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Admin Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                  placeholder="Enter password"
-                  className="liquid-glass border-white/10"
-                />
-              </div>
-              <Button onClick={handleLogin} className="w-full">
-                <Database className="w-4 h-4 mr-2" />
-                Access Admin Panel
+              <Input
+                type="password"
+                placeholder="Admin Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                className="h-12"
+              />
+              <Button onClick={handleLogin} className="w-full h-12">
+                <Shield className="w-4 h-4 mr-2" />
+                Authenticate
               </Button>
             </div>
-          </GlassCard>
+          </div>
         </motion.div>
       </div>
     );
   }
 
+  const navItems = [
+    { id: "users" as NavItem, icon: Users, label: "Users" },
+    { id: "deposits" as NavItem, icon: ArrowDownToLine, label: "Deposits", badge: pendingDeposits.length },
+    { id: "withdrawals" as NavItem, icon: ArrowUpToLine, label: "Withdrawals" },
+    { id: "notifications" as NavItem, icon: Bell, label: "Notifications" },
+  ];
+
+  const settingsItems = [
+    { id: "articles" as NavItem, icon: FileText, label: "Articles" },
+    { id: "update-app" as NavItem, icon: Smartphone, label: "Update App" },
+    { id: "config" as NavItem, icon: Sliders, label: "Config" },
+  ];
+
   return (
-    <div className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar - Desktop */}
+      <motion.aside
+        initial={{ x: -280 }}
+        animate={{ x: 0 }}
+        className="hidden lg:flex w-64 border-r border-border flex-col bg-card"
+      >
+        {/* Logo / Header */}
+        <div className="p-6 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
               <Database className="w-6 h-6 text-primary" />
-              Database Admin
-            </h1>
-            <p className="text-sm text-muted-foreground">Manage deposits, users, and app configuration</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-emerald-500/20 text-emerald-400">
-              {pendingDeposits.length} Pending
-            </Badge>
-            <Button variant="outline" size="sm" onClick={() => refetchDeposits()}>
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                sessionStorage.removeItem("dbAdminAuth");
-                setIsAuthenticated(false);
-              }}
-            >
-              Logout
-            </Button>
+            </div>
+            <div>
+              <h2 className="font-bold text-lg">Admin Panel</h2>
+              <p className="text-xs text-muted-foreground">Database Management</p>
+            </div>
           </div>
         </div>
 
-        {/* Tabs - Mobile scrollable */}
-        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="flex gap-2 border-b border-white/10 pb-2 min-w-max">
-            <Button
-              variant={activeTab === "deposits" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("deposits")}
-              className="whitespace-nowrap"
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                activeNav === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
             >
-              <ArrowDownToLine className="w-4 h-4 mr-1 md:mr-2" />
-              <span className="hidden sm:inline">Deposits</span>
-              <span className="sm:hidden">Dep</span>
-              {pendingDeposits.length > 0 && (
-                <Badge className="ml-1 md:ml-2 bg-amber-500 text-xs">{pendingDeposits.length}</Badge>
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <Badge className="ml-auto bg-amber-500">{item.badge}</Badge>
               )}
+            </button>
+          ))}
 
-        {/* Verification Tab - Email and Phone Verification Settings */}
-        {activeTab === "verification" && (
-          <div className="space-y-6">
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                Email & Phone Verification Settings
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6">Configure optional verification methods for enhanced security</p>
-              
-              <div className="space-y-6">
-                {/* Email Verification */}
-                <div className="p-4 border border-white/10 rounded-lg bg-muted/20">
-                  <div className="flex items-center gap-3 mb-4">
-                    <input
-                      type="checkbox"
-                      id="email_verify"
-                      checked={verificationEmailEnabled}
-                      onChange={(e) => setVerificationEmailEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                    />
-                    <label htmlFor="email_verify" className="text-sm font-medium">
-                      📧 Enable Email Verification
-                    </label>
-                  </div>
-                  
-                  {verificationEmailEnabled && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Email Service Provider</Label>
-                        <Select value={verificationEmailProvider} onValueChange={setVerificationEmailProvider}>
-                          <SelectTrigger className="liquid-glass border-white/10">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="twilio">Twilio SendGrid</SelectItem>
-                            <SelectItem value="sendgrid">SendGrid</SelectItem>
-                            <SelectItem value="mailgun">Mailgun</SelectItem>
-                            <SelectItem value="firebase">Firebase</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label>API Key</Label>
-                        <Input
-                          type="password"
-                          value={emailApiKey}
-                          onChange={(e) => setEmailApiKey(e.target.value)}
-                          placeholder="sg_xxx... (API key)"
-                          className="liquid-glass border-white/10"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Your {verificationEmailProvider} API key for sending verification emails</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Phone Verification */}
-                <div className="p-4 border border-white/10 rounded-lg bg-muted/20">
-                  <div className="flex items-center gap-3 mb-4">
-                    <input
-                      type="checkbox"
-                      id="phone_verify"
-                      checked={verificationPhoneEnabled}
-                      onChange={(e) => setVerificationPhoneEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded"
-                    />
-                    <label htmlFor="phone_verify" className="text-sm font-medium">
-                      📱 Enable Phone Verification
-                    </label>
-                  </div>
-                  
-                  {verificationPhoneEnabled && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>SMS Service Provider</Label>
-                        <Select value={verificationPhoneProvider} onValueChange={setVerificationPhoneProvider}>
-                          <SelectTrigger className="liquid-glass border-white/10">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="twilio">Twilio</SelectItem>
-                            <SelectItem value="vonage">Vonage (Nexmo)</SelectItem>
-                            <SelectItem value="aws-sns">AWS SNS</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label>API Key</Label>
-                        <Input
-                          type="password"
-                          value={phoneApiKey}
-                          onChange={(e) => setPhoneApiKey(e.target.value)}
-                          placeholder="xxxxxxxxxxxx (API key)"
-                          className="liquid-glass border-white/10"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label>Twilio Phone Number</Label>
-                        <Input
-                          value=""
-                          onChange={() => {}}
-                          placeholder="+1234567890"
-                          className="liquid-glass border-white/10"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">The phone number Twilio will use to send SMS</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600"
-                onClick={() => {
-                  toast({ title: "✅ Saved", description: "Verification settings saved." });
-                }}
+          <div className="pt-4 mt-4 border-t border-border">
+            <p className="px-4 text-xs font-semibold text-muted-foreground mb-2">SETTINGS</p>
+            {settingsItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveNav(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeNav === item.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
               >
-                Save Verification Settings
-              </Button>
-            </GlassCard>
-            
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4">Setup Guides</h2>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <h3 className="font-semibold mb-2">🔌 Twilio Setup</h3>
-                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Sign up at twilio.com</li>
-                    <li>Get your API Key and Auth Token</li>
-                    <li>Paste API Key above</li>
-                    <li>Get a Twilio phone number and add it</li>
-                  </ol>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-2">🔌 SendGrid Setup</h3>
-                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
-                    <li>Sign up at sendgrid.com</li>
-                    <li>Create API Key in Settings</li>
-                    <li>Copy API Key (starts with SG_)</li>
-                    <li>Paste in Email API Key field above</li>
-                  </ol>
-                </div>
-              </div>
-            </GlassCard>
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            ))}
           </div>
-        )}
+        </nav>
 
-        {/* Wallet Networks Tab */}
-        {activeTab === "config" && (
-          <GlassCard>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-primary" />
-              Manage Wallet Networks
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">Add, edit, or remove cryptocurrency networks and deposit addresses</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-muted/20 rounded-lg border border-white/10">
-              <div className="text-xs text-muted-foreground">
-                <strong>Supported Networks:</strong>
-                <ul className="mt-2 space-y-1">
-                  <li>✓ Bitcoin Native</li>
-                  <li>✓ Bitcoin Lightning</li>
-                  <li>✓ Ethereum ERC-20</li>
-                  <li>✓ Litecoin</li>
-                </ul>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <strong>To add network:</strong>
-                <ol className="mt-2 space-y-1 list-decimal list-inside">
-                  <li>Add key: wallet_SYMBOL_NETWORK</li>
-                  <li>Add address value</li>
-                  <li>Add description with fees</li>
-                  <li>Save in Config tab</li>
-                </ol>
-              </div>
-            </div>
-          </GlassCard>
-        )}
+        {/* Logout Button */}
+        <div className="p-4 border-t border-border">
+          <Button onClick={handleLogout} variant="outline" className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </motion.aside>
 
-        {/* Updates Tab - Force Update Settings */}
-        {activeTab === "updates" && (
-          <div className="space-y-6">
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-primary" />
-                Force Update Configuration
-              </h2>
-              <p className="text-sm text-muted-foreground mb-6">Configure mandatory app updates to force users to upgrade</p>
-              
-              <div className="space-y-4">
+      {/* Mobile Sidebar */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col lg:hidden"
+            >
+              <div className="p-6 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="force_update"
-                    checked={forceUpdateEnabled}
-                    onChange={(e) => setForceUpdateEnabled(e.target.checked)}
-                    className="w-4 h-4 rounded"
-                  />
-                  <label htmlFor="force_update" className="text-sm font-medium">
-                    Enable Force Update
-                  </label>
-                </div>
-                
-                {forceUpdateEnabled && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Minimum Required Version</Label>
-                      <Input
-                        value={updateMinVersion}
-                        onChange={(e) => setUpdateMinVersion(e.target.value)}
-                        placeholder="1.2.0"
-                        className="liquid-glass border-white/10"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Current Version</Label>
-                      <Input
-                        value={updateMessage.split("|")[0] || ""}
-                        onChange={(e) => {}}
-                        placeholder="1.3.0"
-                        className="liquid-glass border-white/10"
-                        disabled
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <span>🤖 Google Play Store URL</span>
-                      </Label>
-                      <Input
-                        value={updateAndroidUrl}
-                        onChange={(e) => setUpdateAndroidUrl(e.target.value)}
-                        placeholder="https://play.google.com/store/apps/details?id=com.yourapp"
-                        className="liquid-glass border-white/10 text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Android users will be sent to this link</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="flex items-center gap-2">
-                        <span>🍎 Apple App Store URL</span>
-                      </Label>
-                      <Input
-                        value={updateIosUrl}
-                        onChange={(e) => setUpdateIosUrl(e.target.value)}
-                        placeholder="https://apps.apple.com/app/..."
-                        className="liquid-glass border-white/10 text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">iOS users will be sent to this link</p>
-                    </div>
-                    
-                    <div className="col-span-1 md:col-span-2">
-                      <Label>Update Message (shown to users)</Label>
-                      <textarea
-                        value={updateMessage}
-                        onChange={(e) => setUpdateMessage(e.target.value)}
-                        placeholder="A new version with important features is available. Please update now!"
-                        className="w-full h-20 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
-                      />
-                    </div>
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Database className="w-6 h-6 text-primary" />
                   </div>
-                )}
-                
-                <Button 
-                  className="w-full bg-emerald-500 hover:bg-emerald-600"
-                  onClick={() => {
-                    toast({ title: "✅ Saved", description: "Force update configuration saved." });
-                  }}
-                >
-                  Save Update Configuration
+                  <div>
+                    <h2 className="font-bold text-lg">Admin Panel</h2>
+                  </div>
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => setIsMobileMenuOpen(false)}>
+                  <X className="w-5 h-5" />
                 </Button>
               </div>
-            </GlassCard>
-            
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4">How It Works</h2>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• When enabled, app checks version on startup</li>
-                <li>• If user version &lt; minimum version, update modal appears</li>
-                <li>• Android users get Google Play link automatically</li>
-                <li>• iOS users get Apple App Store link automatically</li>
-                <li>• User cannot close modal - must update or quit app</li>
-                <li>• Message is customizable and shown prominently</li>
-              </ul>
-            </GlassCard>
-          </div>
-        )}
 
-                    {/* Messages Tab - Custom Deposit Messages */}
-                    {activeTab === "messages" && (
-                      <div className="space-y-6">
-                        <GlassCard>
-                          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <Mail className="w-5 h-5 text-primary" />
-                            Deposit Message Templates
-                          </h2>
-                          <p className="text-sm text-muted-foreground mb-6">Customize messages sent to users for deposit status changes.</p>
-              
-                          <div className="space-y-4">
-                            <div>
-                              <Label className="text-base font-semibold mb-2 block">✅ Approval Message</Label>
-                              <p className="text-xs text-muted-foreground mb-2">Sent when deposit is confirmed and balance credited</p>
-                              <textarea
-                                value={depositApprovalMessage}
-                                onChange={(e) => setDepositApprovalMessage(e.target.value)}
-                                placeholder="Thank you for your deposit..."
-                                className="w-full h-24 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
-                              />
-                              <Button className="mt-2" onClick={() => {
-                                toast({ title: "Saved", description: "Approval message saved." });
-                              }}>
-                                Save Approval Message
-                              </Button>
-                            </div>
-                
-                            <div>
-                              <Label className="text-base font-semibold mb-2 block">❌ Rejection Message</Label>
-                              <p className="text-xs text-muted-foreground mb-2">Default message for rejected deposits</p>
-                              <textarea
-                                value={depositRejectionMessage}
-                                onChange={(e) => setDepositRejectionMessage(e.target.value)}
-                                placeholder="Your deposit could not be verified..."
-                                className="w-full h-24 p-3 rounded-lg bg-muted/30 border border-white/10 text-sm"
-                              />
-                              <Button className="mt-2" onClick={() => {
-                                toast({ title: "Saved", description: "Rejection message saved." });
-                              }}>
-                                Save Rejection Message
-                              </Button>
-                            </div>
-                          </div>
-                        </GlassCard>
-            
-                        <GlassCard>
-                          <h2 className="text-lg font-semibold mb-4">Quick Rejection Reasons</h2>
-                          <p className="text-sm text-muted-foreground mb-4">Pre-made rejection reasons for quick selection when rejecting deposits</p>
-                          <div className="space-y-2">
-                            {rejectionTemplates.map((template, idx) => (
-                              <div key={idx} className="p-3 bg-muted/30 rounded-lg border border-white/10 flex items-center justify-between">
-                                <span className="text-sm">{template}</span>
-                                <Button size="sm" variant="outline" onClick={() => {
-                                  setDepositRejectionMessage(template);
-                                  toast({ title: "Selected", description: `"${template}" is ready to use.` });
-                                }}>
-                                  Use
+              <nav className="flex-1 p-4 space-y-1">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveNav(item.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                      activeNav === item.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <Badge className="ml-auto bg-amber-500">{item.badge}</Badge>
+                    )}
+                  </button>
+                ))}
+
+                <div className="pt-4 mt-4 border-t border-border">
+                  <p className="px-4 text-xs font-semibold text-muted-foreground mb-2">SETTINGS</p>
+                  {settingsItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveNav(item.id);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        activeNav === item.id
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="font-medium">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </nav>
+
+              <div className="p-4 border-t border-border">
+                <Button onClick={handleLogout} variant="outline" className="w-full">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-30 bg-card border-b border-border p-4 flex items-center justify-between">
+          <Button size="icon" variant="ghost" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu className="w-5 h-5" />
+          </Button>
+          <h1 className="font-bold capitalize">{activeNav.replace("-", " ")}</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Content Area */}
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeNav}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Users Tab */}
+              {activeNav === "users" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">User Management</h2>
+                    <p className="text-muted-foreground">Manage all registered users</p>
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Display Name</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.email}</TableCell>
+                            <TableCell>{user.displayName || "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.isActive ? "default" : "destructive"}>
+                                {user.isActive ? "Active" : "Blocked"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    toggleUserStatus.mutate({ userId: user.id, isActive: !user.isActive });
+                                  }}
+                                >
+                                  {user.isActive ? "Block" : "Unblock"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
+                                    if (!symbol) return;
+                                    const amount = prompt("Enter amount to add:");
+                                    if (!amount) return;
+                                    const reason = prompt("Enter reason:") || "Admin adjustment";
+                                    adjustBalance.mutate({
+                                      userId: user.id,
+                                      symbol,
+                                      amount: parseFloat(amount),
+                                      type: "add",
+                                      reason,
+                                    });
+                                  }}
+                                >
+                                  Add Balance
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
+                                    if (!symbol) return;
+                                    const amount = prompt("Enter amount to deduct:");
+                                    if (!amount) return;
+                                    const reason = prompt("Enter reason:") || "Admin adjustment";
+                                    adjustBalance.mutate({
+                                      userId: user.id,
+                                      symbol,
+                                      amount: parseFloat(amount),
+                                      type: "deduct",
+                                      reason,
+                                    });
+                                  }}
+                                >
+                                  Deduct Balance
                                 </Button>
                               </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Deposits Tab */}
+              {activeNav === "deposits" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Deposit Management</h2>
+                    <p className="text-muted-foreground">Review and approve deposit requests</p>
+                  </div>
+
+                  {/* Pending Deposits */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <h3 className="text-lg font-semibold">Pending Deposits</h3>
+                      <Badge variant="secondary">{pendingDeposits.length}</Badge>
+                    </div>
+
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      {pendingDeposits.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                          <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                          <p>No pending deposits</p>
+                        </div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Network</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pendingDeposits.map((deposit) => (
+                              <TableRow key={deposit.id}>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">{deposit.userEmail || "Unknown"}</div>
+                                    {deposit.userDisplayName && (
+                                      <div className="text-sm text-muted-foreground">{deposit.userDisplayName}</div>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="font-medium">
+                                    {deposit.amount} {deposit.currency}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{deposit.network}</Badge>
+                                </TableCell>
+                                <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedDeposit(deposit);
+                                        setConfirmDialogOpen(true);
+                                      }}
+                                    >
+                                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        setSelectedDeposit(deposit);
+                                        setRejectDialogOpen(true);
+                                      }}
+                                    >
+                                      <XCircle className="w-4 h-4 mr-1" />
+                                      Reject
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             ))}
-                          </div>
-                        </GlassCard>
-                      </div>
-                    )}
-            </Button>
-            <Button
-              variant={activeTab === "users" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("users")}
-              className="whitespace-nowrap"
-            >
-              <Users className="w-4 h-4 mr-1 md:mr-2" />
-              Users
-            </Button>
-            <Button
-              variant={activeTab === "config" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("config")}
-              className="whitespace-nowrap"
-            >
-              <Settings className="w-4 h-4 mr-1 md:mr-2" />
-              <span className="hidden sm:inline">Config</span>
-              <span className="sm:hidden">Cfg</span>
-            </Button>
-            <Button
-              variant={activeTab === "notifications" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("notifications")}
-              className="whitespace-nowrap"
-            >
-              <Bell className="w-4 h-4 mr-1 md:mr-2" />
-              <span className="hidden sm:inline">Notifications</span>
-              <span className="sm:hidden">Notify</span>
-                        <Button
-                          variant={activeTab === "messages" ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setActiveTab("messages")}
-                          className="whitespace-nowrap"
-                        >
-                          <Mail className="w-4 h-4 mr-1 md:mr-2" />
-                          <span className="hidden sm:inline">Messages</span>
-                          <span className="sm:hidden">Msg</span>
-                        </Button>
-                        <Button
-                          variant={activeTab === "updates" ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setActiveTab("updates")}
-                          className="whitespace-nowrap"
-                        >
-                          <RefreshCw className="w-4 h-4 mr-1 md:mr-2" />
-                          <span className="hidden sm:inline">Updates</span>
-                          <span className="sm:hidden">Upd</span>
-                        </Button>
-                        <Button
-                          variant={activeTab === "verification" ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setActiveTab("verification")}
-                          className="whitespace-nowrap"
-                        >
-                          <Shield className="w-4 h-4 mr-1 md:mr-2" />
-                          <span className="hidden sm:inline">Verify</span>
-                          <span className="sm:hidden">Ver</span>
-                        </Button>
-            </Button>
-          </div>
-        </div>
-
-        {/* Deposits Tab */}
-        {activeTab === "deposits" && (
-          <div className="space-y-6">
-            {/* Pending Deposits */}
-            <GlassCard>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-400" />
-                  Pending Deposits
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => refetchDeposits()}>
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              {loadingDeposits ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : pendingDeposits.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-emerald-400/50" />
-                  <p>No pending deposits</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pendingDeposits.map((deposit: DepositRequest) => (
-                    <div key={deposit.id} className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-lg">{deposit.amount} {deposit.currency}</span>
-                            <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            From: <span className="font-medium">{(deposit as any).userEmail || deposit.userId.slice(0, 8)}</span>
-                            {(deposit as any).userDisplayName && ` (${(deposit as any).userDisplayName})`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(deposit.createdAt)}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 md:flex-none"
-                            onClick={() => {
-                              setSelectedDeposit(deposit);
-                              setConfirmDialogOpen(true);
-                            }}
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            Confirm
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30 flex-1 md:flex-none"
-                            onClick={() => {
-                              setSelectedDeposit(deposit);
-                              setRejectDialogOpen(true);
-                            }}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
-
-            {/* All Deposits History */}
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-primary" />
-                Deposit History
-              </h2>
-              
-              {loadingAllDeposits ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : allDeposits.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No deposit history yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {allDeposits.slice(0, 20).map((deposit: DepositRequest) => (
-                    <div key={deposit.id} className="p-3 bg-muted/30 rounded-lg border border-white/5">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">{deposit.amount} {deposit.currency}</span>
-                            <Badge variant="outline" className="text-xs">{deposit.network}</Badge>
-                            {getStatusBadge(deposit.status)}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {(deposit as any).userEmail || deposit.userId.slice(0, 12)}
-                            {(deposit as any).userDisplayName && ` (${(deposit as any).userDisplayName})`}
-                          </p>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          <span>{formatDate(deposit.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </GlassCard>
-          </div>
-        )}
-
-        {/* Users Tab */}
-        {activeTab === "users" && (
-          <GlassCard>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                Registered Users
-              </h2>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{users.length} users</Badge>
-                <Button variant="outline" size="sm" onClick={() => refetchUsers()}>
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-xs text-blue-300">
-                <strong>Note:</strong> Users appear here immediately after signing up through the app. 
-                Firebase handles authentication, while user data is stored in the Neon database.
-                Refreshes automatically every 10 seconds.
-              </p>
-            </div>
-            
-            {loadingUsers ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No users registered yet.</p>
-                <p className="text-xs mt-1">Users will appear here immediately after signing up.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {users.map((user: User) => (
-                  <div key={user.id} className="p-4 bg-muted/30 rounded-lg border border-white/5">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium truncate">{user.email}</p>
-                          {user.displayName && (
-                            <p className="text-sm text-muted-foreground">{user.displayName}</p>
-                          )}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <span className="font-mono">{user.id.slice(0, 8)}...</span>
-                            <span>•</span>
-                            <span>{formatDate(user.createdAt)}</span>
-                            <span>•</span>
-                            <Badge variant="outline" className={user.isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}>
-                              {user.isActive ? "Active" : "Blocked"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* User Actions */}
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={user.isActive ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30" : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/30"}
-                          onClick={() => blockUserMutation.mutate({ userId: user.id, block: user.isActive })}
-                          disabled={blockUserMutation.isPending}
-                        >
-                          {user.isActive ? "Block" : "Unblock"}
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-blue-500/30"
-                          onClick={() => {
-                            const symbol = prompt(`Select currency to add for ${user.email}:\n\nEnter: BTC, ETH, USDT, USDC, LTC, or other`, "USDT");
-                            if (!symbol) return;
-                            const amount = prompt(`Add ${symbol.toUpperCase()} to ${user.email}:`, "100");
-                            if (amount && !isNaN(Number(amount))) {
-                              adjustBalanceMutation.mutate({
-                                userId: user.id,
-                                symbol: symbol.toUpperCase(),
-                                amount: Number(amount),
-                                type: "add",
-                                reason: "Admin credit"
-                              });
-                            }
-                          }}
-                          disabled={adjustBalanceMutation.isPending}
-                        >
-                          Add Balance
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border-orange-500/30"
-                          onClick={() => {
-                            const symbol = prompt(`Select currency to deduct from ${user.email}:\n\nEnter: BTC, ETH, USDT, USDC, LTC, or other`, "USDT");
-                            if (!symbol) return;
-                            const amount = prompt(`Deduct ${symbol.toUpperCase()} from ${user.email}:`, "10");
-                            if (amount && !isNaN(Number(amount))) {
-                              adjustBalanceMutation.mutate({
-                                userId: user.id,
-                                symbol: symbol.toUpperCase(),
-                                amount: Number(amount),
-                                type: "deduct",
-                                reason: "Admin deduction"
-                              });
-                            }
-                          }}
-                          disabled={adjustBalanceMutation.isPending}
-                        >
-                          Deduct Balance
-                        </Button>
-                      </div>
+                          </TableBody>
+                        </Table>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </GlassCard>
-        )}
 
-        {/* Config Tab */}
-        {activeTab === "config" && (
-          <div className="space-y-6">
-            {/* Add New Config */}
-            <GlassCard>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-primary" />
-                Add Wallet Address
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Key (e.g., wallet_btc_native)</Label>
-                  <Input
-                    value={newConfigKey}
-                    onChange={(e) => setNewConfigKey(e.target.value)}
-                    placeholder="wallet_btc_native"
-                    className="liquid-glass border-white/10"
-                  />
+                  {/* Deposit History */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Recent Deposits</h3>
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allDeposits.slice(0, 20).map((deposit) => (
+                            <TableRow key={deposit.id}>
+                              <TableCell className="font-medium">{deposit.userEmail || "Unknown"}</TableCell>
+                              <TableCell>
+                                {deposit.amount} {deposit.currency}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    deposit.status === "confirmed"
+                                      ? "default"
+                                      : deposit.status === "rejected"
+                                      ? "destructive"
+                                      : "secondary"
+                                  }
+                                >
+                                  {deposit.status === "confirmed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                  {deposit.status === "rejected" && <XCircle className="w-3 h-3 mr-1" />}
+                                  {deposit.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
+                                  {deposit.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Value (wallet address)</Label>
-                  <Input
-                    value={newConfigValue}
-                    onChange={(e) => setNewConfigValue(e.target.value)}
-                    placeholder="bc1q..."
-                    className="liquid-glass border-white/10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={newConfigCategory} onValueChange={setNewConfigCategory}>
-                    <SelectTrigger className="liquid-glass border-white/10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="wallet">Wallet</SelectItem>
-                      <SelectItem value="pricing">Pricing</SelectItem>
-                      <SelectItem value="settings">Settings</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Input
-                    value={newConfigDescription}
-                    onChange={(e) => setNewConfigDescription(e.target.value)}
-                    placeholder="Bitcoin Native deposit address"
-                    className="liquid-glass border-white/10"
-                  />
-                </div>
-              </div>
-              <Button
-                className="mt-4"
-                onClick={() => addConfigMutation.mutate({
-                  key: newConfigKey,
-                  value: newConfigValue,
-                  category: newConfigCategory,
-                  description: newConfigDescription,
-                })}
-                disabled={!newConfigKey || !newConfigValue || addConfigMutation.isPending}
-              >
-                Add Configuration
-              </Button>
-            </GlassCard>
+              )}
 
-            {/* Existing Config */}
-            <GlassCard>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Current Configuration</h2>
-                <Button variant="outline" size="sm" onClick={() => refetchConfig()}>
-                  <RefreshCw className="w-4 h-4" />
-                </Button>
-              </div>
-              {loadingConfig ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : configs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No configuration entries yet. Add wallet addresses above.</p>
+              {/* Withdrawals Tab */}
+              {activeNav === "withdrawals" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Withdrawal Management</h2>
+                    <p className="text-muted-foreground">Review and process withdrawal requests</p>
+                  </div>
+                  <div className="bg-card rounded-xl border border-border p-8 text-center">
+                    <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p className="text-muted-foreground">No withdrawal requests at this time</p>
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {configs.map((config: AppConfig) => (
-                    <div key={config.id} className="p-3 md:p-4 bg-muted/30 rounded-lg border border-white/5">
-                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-xs md:text-sm text-primary font-semibold">{config.key}</span>
-                            <Badge variant="outline" className="text-xs">{config.category}</Badge>
-                            {config.isActive ? (
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            ) : (
-                              <XCircle className="w-3 h-3 text-red-400" />
-                            )}
-                          </div>
-                          {config.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
-                          )}
-                          
-                          {editingConfig?.id === config.id ? (
-                            <div className="flex items-center gap-2 mt-2">
-                              <Input
-                                value={editConfigValue}
-                                onChange={(e) => setEditConfigValue(e.target.value)}
-                                placeholder="New value..."
-                                className="liquid-glass border-white/10 text-xs flex-1"
+              )}
+
+              {/* Notifications Tab */}
+              {activeNav === "notifications" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Broadcast Notifications</h2>
+                    <p className="text-muted-foreground">Send notifications to all users</p>
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                    <div>
+                      <Label>Title</Label>
+                      <Input
+                        value={broadcastTitle}
+                        onChange={(e) => setBroadcastTitle(e.target.value)}
+                        placeholder="Notification title"
+                      />
+                    </div>
+                    <div>
+                      <Label>Message</Label>
+                      <Textarea
+                        value={broadcastMessage}
+                        onChange={(e) => setBroadcastMessage(e.target.value)}
+                        placeholder="Notification message"
+                        rows={4}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => broadcastNotification.mutate({ title: broadcastTitle, message: broadcastMessage })}
+                      disabled={!broadcastTitle || !broadcastMessage}
+                    >
+                      <Bell className="w-4 h-4 mr-2" />
+                      Send Broadcast
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Articles Tab */}
+              {activeNav === "articles" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Learn & Earn Articles</h2>
+                    <p className="text-muted-foreground">Manage educational content</p>
+                  </div>
+
+                  {/* Create Article */}
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                    <h3 className="font-semibold">Create New Article</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Title</Label>
+                        <Input
+                          value={articleTitle}
+                          onChange={(e) => setArticleTitle(e.target.value)}
+                          placeholder="Article title"
+                        />
+                      </div>
+                      <div>
+                        <Label>Icon (emoji or URL)</Label>
+                        <Input
+                          value={articleIcon}
+                          onChange={(e) => setArticleIcon(e.target.value)}
+                          placeholder="📚 or image URL"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Image URL (optional)</Label>
+                      <Input
+                        value={articleImage}
+                        onChange={(e) => setArticleImage(e.target.value)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div>
+                      <Label>Description (HTML supported)</Label>
+                      <Textarea
+                        value={articleDescription}
+                        onChange={(e) => setArticleDescription(e.target.value)}
+                        placeholder="<p>Content here...</p>"
+                        rows={6}
+                      />
+                    </div>
+                    <div>
+                      <Label>Category</Label>
+                      <Select value={articleCategory} onValueChange={setArticleCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ARTICLE_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={() =>
+                        createArticle.mutate({
+                          title: articleTitle,
+                          description: articleDescription,
+                          category: articleCategory,
+                          icon: articleIcon || undefined,
+                          image: articleImage || undefined,
+                          order: articles.length,
+                        })
+                      }
+                      disabled={!articleTitle || !articleDescription}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Article
+                    </Button>
+                  </div>
+
+                  {/* Existing Articles */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Existing Articles</h3>
+                    <div className="space-y-4">
+                      {articles.map((article) => (
+                        <div key={article.id} className="bg-card rounded-xl border border-border p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                {article.icon && <span className="text-2xl">{article.icon}</span>}
+                                <h4 className="font-semibold">{article.title}</h4>
+                                <Badge variant={article.isActive ? "default" : "secondary"}>
+                                  {article.isActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <div
+                                className="text-sm text-muted-foreground line-clamp-2"
+                                dangerouslySetInnerHTML={{ __html: article.description }}
                               />
-                              <Button
-                                size="sm"
-                                onClick={() => updateConfigMutation.mutate({ id: config.id, value: editConfigValue })}
-                                disabled={updateConfigMutation.isPending}
-                                className="bg-emerald-500 hover:bg-emerald-600"
-                              >
-                                <Save className="w-3 h-3" />
-                              </Button>
+                            </div>
+                            <div className="flex gap-2 ml-4">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  setEditingConfig(null);
-                                  setEditConfigValue("");
+                                  setEditingArticle(article);
+                                  setArticleTitle(article.title);
+                                  setArticleDescription(article.description);
+                                  setArticleCategory(article.category || "Basics");
+                                  setArticleIcon(article.icon || "");
+                                  setArticleImage(article.image || "");
                                 }}
                               >
-                                <XCircle className="w-3 h-3" />
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setDeleteArticleId(article.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
-                          ) : (
-                            <p className="font-mono text-xs mt-2 break-all bg-background/50 p-2 rounded">
-                              {config.value}
-                            </p>
-                          )}
-                        </div>
-                        
-                        {editingConfig?.id !== config.id && (
-                          <div className="flex gap-2 shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
-                              onClick={() => {
-                                setEditingConfig(config);
-                                setEditConfigValue(config.value);
-                              }}
-                            >
-                              <Edit2 className="w-3 h-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-400 border-red-500/30 hover:bg-red-500/20"
-                              onClick={() => setDeleteConfigId(config.id)}
-                            >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete
-                            </Button>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
-            </GlassCard>
-          </div>
-        )}
 
-        {/* Notifications Tab */}
-        {activeTab === "notifications" && (
-          <GlassCard>
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
-              Send Broadcast Notification
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input
-                  value={broadcastTitle}
-                  onChange={(e) => setBroadcastTitle(e.target.value)}
-                  placeholder="Announcement title"
-                  className="liquid-glass border-white/10"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Message</Label>
-                <Input
-                  value={broadcastMessage}
-                  onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="Your message to all users..."
-                  className="liquid-glass border-white/10"
-                />
-              </div>
-              <Button
-                onClick={() => broadcastMutation.mutate({ title: broadcastTitle, message: broadcastMessage })}
-                disabled={!broadcastTitle || !broadcastMessage || broadcastMutation.isPending}
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                Send to All Users
-              </Button>
-            </div>
-          </GlassCard>
-        )}
-      </div>
+              {/* Update App Tab */}
+              {activeNav === "update-app" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Force Update Settings</h2>
+                    <p className="text-muted-foreground">Configure mandatory app updates</p>
+                  </div>
 
-      {/* Confirm Dialog */}
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="force-update"
+                        checked={forceUpdateEnabled}
+                        onChange={(e) => setForceUpdateEnabled(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="force-update" className="font-medium">
+                        Enable Force Update
+                      </label>
+                    </div>
+
+                    {forceUpdateEnabled && (
+                      <div className="space-y-4 pt-4 border-t">
+                        <div>
+                          <Label>Minimum Required Version</Label>
+                          <Input
+                            value={updateMinVersion}
+                            onChange={(e) => setUpdateMinVersion(e.target.value)}
+                            placeholder="1.0.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Android Update URL (Google Play)</Label>
+                          <Input
+                            value={updateAndroidUrl}
+                            onChange={(e) => setUpdateAndroidUrl(e.target.value)}
+                            placeholder="https://play.google.com/store/apps/details?id=..."
+                          />
+                        </div>
+                        <div>
+                          <Label>iOS Update URL (App Store)</Label>
+                          <Input
+                            value={updateIosUrl}
+                            onChange={(e) => setUpdateIosUrl(e.target.value)}
+                            placeholder="https://apps.apple.com/app/..."
+                          />
+                        </div>
+                        <div>
+                          <Label>Update Message</Label>
+                          <Textarea
+                            value={updateMessage}
+                            onChange={(e) => setUpdateMessage(e.target.value)}
+                            placeholder="Please update to the latest version"
+                            rows={3}
+                          />
+                        </div>
+                        <Button>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Update Settings
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Config Tab */}
+              {activeNav === "config" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Configuration Management</h2>
+                    <p className="text-muted-foreground">Manage wallet addresses and app settings</p>
+                  </div>
+
+                  {/* Add New Config */}
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                    <h3 className="font-semibold">Add New Configuration</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Category</Label>
+                        <Select value={newConfigCategory} onValueChange={(value) => {
+                          setNewConfigCategory(value);
+                          setNewConfigKey(""); // Reset key when category changes
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="wallet">Wallet Addresses</SelectItem>
+                            <SelectItem value="pricing">Pricing</SelectItem>
+                            <SelectItem value="contracts">Mining Contracts</SelectItem>
+                            <SelectItem value="discount">Discounts & Sales</SelectItem>
+                            <SelectItem value="forceUpdate">Force Update</SelectItem>
+                            <SelectItem value="settings">App Settings</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Config Key</Label>
+                        <Select 
+                          value={newConfigKey} 
+                          onValueChange={(value) => {
+                            setNewConfigKey(value);
+                            // Auto-fill description
+                            const key = CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.find(
+                              (k) => k.key === value
+                            );
+                            if (key) setNewConfigDescription(key.description);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select config key" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.map((key) => (
+                              <SelectItem key={key.key} value={key.key}>
+                                {key.description}
+                              </SelectItem>
+                            )) || <SelectItem value="">No keys available</SelectItem>}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Value</Label>
+                        <Input
+                          value={newConfigValue}
+                          onChange={(e) => setNewConfigValue(e.target.value)}
+                          placeholder={
+                            newConfigCategory === "wallet" ? "bc1q... or 0x..." :
+                            newConfigCategory === "pricing" ? "0.00" :
+                            newConfigCategory === "discount" ? "10" :
+                            "Value"
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label>Description (Auto-filled)</Label>
+                        <Input
+                          value={newConfigDescription}
+                          onChange={(e) => setNewConfigDescription(e.target.value)}
+                          placeholder="Description"
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() =>
+                        addConfig.mutate({
+                          key: newConfigKey,
+                          value: newConfigValue,
+                          category: newConfigCategory,
+                          description: newConfigDescription,
+                        })
+                      }
+                      disabled={!newConfigKey || !newConfigValue}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Configuration
+                    </Button>
+                  </div>
+
+                  {/* Existing Config */}
+                  <div>
+                    <h3 className="font-semibold mb-4">Current Configuration</h3>
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Key</TableHead>
+                            <TableHead>Value</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {config.map((cfg) => (
+                            <TableRow key={cfg.id}>
+                              <TableCell className="font-mono text-sm">{cfg.key}</TableCell>
+                              <TableCell>
+                                {editingConfig?.id === cfg.id ? (
+                                  <Input
+                                    value={editConfigValue}
+                                    onChange={(e) => setEditConfigValue(e.target.value)}
+                                    className="max-w-xs"
+                                  />
+                                ) : (
+                                  <span className="font-mono text-sm">{cfg.value}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{cfg.category}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{cfg.description || "—"}</TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  {editingConfig?.id === cfg.id ? (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          updateConfig.mutate({ id: cfg.id, value: editConfigValue });
+                                        }}
+                                      >
+                                        <Save className="w-4 h-4" />
+                                      </Button>
+                                      <Button size="sm" variant="outline" onClick={() => setEditingConfig(null)}>
+                                        Cancel
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingConfig(cfg);
+                                          setEditConfigValue(cfg.value);
+                                        }}
+                                      >
+                                        <Edit2 className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => setDeleteConfigId(cfg.id)}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
+
+      {/* Confirm Deposit Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              Confirm Deposit
-            </DialogTitle>
+            <DialogTitle>Confirm Deposit</DialogTitle>
             <DialogDescription>
-              Are you sure you want to confirm this deposit? This will credit the user's balance.
+              Approve this deposit and credit {selectedDeposit?.amount} {selectedDeposit?.currency} to user's account?
             </DialogDescription>
           </DialogHeader>
-          {selectedDeposit && (
-            <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-              <p><strong>Amount:</strong> {selectedDeposit.amount} {selectedDeposit.currency}</p>
-              <p><strong>Network:</strong> {selectedDeposit.network}</p>
-              <p><strong>User ID:</strong> {selectedDeposit.userId}</p>
-              <p className="text-xs text-muted-foreground"><strong>Wallet:</strong> {selectedDeposit.walletAddress}</p>
-            </div>
-          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => selectedDeposit && confirmDepositMutation.mutate(selectedDeposit.id)}
-              disabled={confirmDepositMutation.isPending}
-              className="bg-emerald-500 hover:bg-emerald-600"
-            >
-              {confirmDepositMutation.isPending ? "Processing..." : "Confirm & Credit Balance"}
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => selectedDeposit && confirmDeposit.mutate(selectedDeposit.id)}>
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
+      {/* Reject Deposit Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-400" />
-              Reject Deposit
-            </DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejection. The user will be notified.
-            </DialogDescription>
+            <DialogTitle>Reject Deposit</DialogTitle>
+            <DialogDescription>Provide a reason for rejecting this deposit</DialogDescription>
           </DialogHeader>
-          {selectedDeposit && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <p><strong>Amount:</strong> {selectedDeposit.amount} {selectedDeposit.currency}</p>
-                <p><strong>User ID:</strong> {selectedDeposit.userId}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Rejection Reason</Label>
-                <Input
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., Transaction not found on blockchain"
-                  className="liquid-glass border-white/10"
-                />
-              </div>
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter rejection reason..."
+              rows={4}
+            />
+            <div className="flex flex-wrap gap-2">
+              {["Deposit not detected on blockchain", "Incorrect amount sent", "Sent to wrong address"].map(
+                (template) => (
+                  <Button
+                    key={template}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRejectionReason(template)}
+                  >
+                    {template}
+                  </Button>
+                )
+              )}
             </div>
-          )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button
-              onClick={() => selectedDeposit && rejectDepositMutation.mutate({
-                depositId: selectedDeposit.id,
-                reason: rejectionReason,
-              })}
-              disabled={!rejectionReason || rejectDepositMutation.isPending}
               variant="destructive"
+              onClick={() =>
+                selectedDeposit &&
+                rejectDeposit.mutate({ depositId: selectedDeposit.id, reason: rejectionReason })
+              }
+              disabled={!rejectionReason}
             >
-              {rejectDepositMutation.isPending ? "Processing..." : "Reject Deposit"}
+              Reject Deposit
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1436,22 +1366,102 @@ export function DatabaseAdmin() {
       <Dialog open={!!deleteConfigId} onOpenChange={() => setDeleteConfigId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-400" />
-              Delete Configuration
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this configuration? This action cannot be undone.
-            </DialogDescription>
+            <DialogTitle>Delete Configuration</DialogTitle>
+            <DialogDescription>Are you sure you want to delete this configuration entry?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfigId(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDeleteConfigId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => deleteConfigId && deleteConfig.mutate(deleteConfigId)}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Article Dialog */}
+      <Dialog open={!!deleteArticleId} onOpenChange={() => setDeleteArticleId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Article</DialogTitle>
+            <DialogDescription>Are you sure you want to delete this article?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteArticleId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => deleteArticleId && deleteArticle.mutate(deleteArticleId)}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Article Dialog */}
+      <Dialog open={!!editingArticle} onOpenChange={() => setEditingArticle(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Article</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Title</Label>
+                <Input value={articleTitle} onChange={(e) => setArticleTitle(e.target.value)} />
+              </div>
+              <div>
+                <Label>Icon</Label>
+                <Input value={articleIcon} onChange={(e) => setArticleIcon(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Image URL</Label>
+              <Input value={articleImage} onChange={(e) => setArticleImage(e.target.value)} />
+            </div>
+            <div>
+              <Label>Description (HTML)</Label>
+              <Textarea
+                value={articleDescription}
+                onChange={(e) => setArticleDescription(e.target.value)}
+                rows={8}
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select value={articleCategory} onValueChange={setArticleCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ARTICLE_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingArticle(null)}>
+              Cancel
+            </Button>
             <Button
-              onClick={() => deleteConfigId && deleteConfigMutation.mutate(deleteConfigId)}
-              disabled={deleteConfigMutation.isPending}
-              variant="destructive"
+              onClick={() =>
+                editingArticle &&
+                updateArticle.mutate({
+                  id: editingArticle.id,
+                  title: articleTitle,
+                  description: articleDescription,
+                  category: articleCategory,
+                  icon: articleIcon || undefined,
+                  image: articleImage || undefined,
+                  order: editingArticle.order,
+                })
+              }
             >
-              {deleteConfigMutation.isPending ? "Deleting..." : "Delete"}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1459,5 +1469,3 @@ export function DatabaseAdmin() {
     </div>
   );
 }
-
-export default DatabaseAdmin;

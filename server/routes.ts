@@ -11,6 +11,8 @@ import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
 import { eq, and, desc } from "drizzle-orm";
+import { generateSecret, generate, verify } from "otplib";
+import QRCode from "qrcode";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1978,6 +1980,144 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error sending broadcast:", error);
       res.status(500).json({ error: "Failed to send broadcast" });
+    }
+  });
+
+  // ============ TWO-FACTOR AUTHENTICATION ============
+
+  // Generate 2FA secret and QR code
+  app.post("/api/auth/2fa/setup", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      // Generate secret and QR code
+
+      // Generate secret
+      const secret = generateSecret();
+      
+      // Get user details
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Generate OTP Auth URL
+      const otpauth = `otpauth://totp/BlockMint Mining:${user[0].email}?secret=${secret}&issuer=BlockMint Mining`;
+
+      // Generate QR code
+      const qrCode = await QRCode.toDataURL(otpauth);
+
+      // Save secret (but don't enable 2FA yet)
+      await db.update(users)
+        .set({ twoFactorSecret: secret })
+        .where(eq(users.id, userId));
+
+      res.json({
+        secret,
+        qrCode,
+        manualEntry: secret,
+        otpauth
+      });
+    } catch (error) {
+      console.error("Error setting up 2FA:", error);
+      res.status(500).json({ error: "Failed to setup 2FA" });
+    }
+  });
+
+  // Verify 2FA token and enable 2FA
+  app.post("/api/auth/2fa/verify", async (req, res) => {
+    try {
+      const { userId, token } = req.body;
+      
+      if (!userId || !token) {
+        return res.status(400).json({ error: "User ID and token are required" });
+      }
+
+      // Get user with secret
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length || !user[0].twoFactorSecret) {
+        return res.status(404).json({ error: "2FA not set up for this user" });
+      }
+
+      // Verify token
+      const isValid = verify({ token, secret: user[0].twoFactorSecret });
+
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+
+      // Enable 2FA
+      await db.update(users)
+        .set({ twoFactorEnabled: true })
+        .where(eq(users.id, userId));
+
+      res.json({ success: true, message: "2FA enabled successfully" });
+    } catch (error) {
+      console.error("Error verifying 2FA:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // Disable 2FA
+  app.post("/api/auth/2fa/disable", async (req, res) => {
+    try {
+      const { userId, token } = req.body;
+      
+      if (!userId || !token) {
+        return res.status(400).json({ error: "User ID and token are required" });
+      }
+
+      // Get user
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length || !user[0].twoFactorEnabled) {
+        return res.status(404).json({ error: "2FA not enabled for this user" });
+      }
+
+      // Verify token before disabling
+      const isValid = verify({ token, secret: user[0].twoFactorSecret! });
+
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+
+      // Disable 2FA and clear secret
+      await db.update(users)
+        .set({ 
+          twoFactorEnabled: false,
+          twoFactorSecret: null
+        })
+        .where(eq(users.id, userId));
+
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
+  // Check 2FA status
+  app.get("/api/auth/2fa/status/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await db.select({
+        twoFactorEnabled: users.twoFactorEnabled
+      }).from(users).where(eq(users.id, userId)).limit(1);
+      
+      if (!user.length) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ 
+        enabled: user[0].twoFactorEnabled || false 
+      });
+    } catch (error) {
+      console.error("Error checking 2FA status:", error);
+      res.status(500).json({ error: "Failed to check 2FA status" });
     }
   });
 

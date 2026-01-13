@@ -1324,5 +1324,117 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
+  // ============ ARTICLE MANAGEMENT ============
+  
+  // Get all articles
+  app.get("/api/articles", async (req: Request, res: Response) => {
+    try {
+      const articles = await db.select().from(schema.articles).orderBy(schema.articles.order);
+      res.json({ articles });
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+      res.status(500).json({ error: "Failed to fetch articles" });
+    }
+  });
+
+  // Get single article by ID
+  app.get("/api/articles/:id", async (req: Request, res: Response) => {
+    try {
+      const articles = await db
+        .select()
+        .from(schema.articles)
+        .where(eq(schema.articles.id, req.params.id));
+      
+      if (articles.length === 0) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+
+      res.json({ article: articles[0] });
+    } catch (error) {
+      console.error("Error fetching article:", error);
+      res.status(500).json({ error: "Failed to fetch article" });
+    }
+  });
+
+  // Create article (admin only)
+  app.post("/api/admin/articles", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const { title, description, category, icon, image, order, isActive } = req.body;
+
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required" });
+      }
+
+      const article = await db
+        .insert(schema.articles)
+        .values({
+          title,
+          description,
+          category: category || "Basics",
+          icon: icon || null,
+          image: image || null,
+          order: order ?? 0,
+          isActive: isActive ?? true,
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.json({ success: true, article: article[0] });
+    } catch (error) {
+      console.error("Error creating article:", error);
+      res.status(500).json({ error: "Failed to create article" });
+    }
+  });
+
+  // Update article (admin only)
+  app.put("/api/admin/articles/:id", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const { title, description, category, icon, image, order, isActive } = req.body;
+
+      const article = await db
+        .update(schema.articles)
+        .set({
+          title: title ?? undefined,
+          description: description ?? undefined,
+          category: category ?? undefined,
+          icon: icon ?? undefined,
+          image: image ?? undefined,
+          order: order ?? undefined,
+          isActive: isActive ?? undefined,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.articles.id, req.params.id))
+        .returning();
+
+      if (article.length === 0) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+
+      res.json({ success: true, article: article[0] });
+    } catch (error) {
+      console.error("Error updating article:", error);
+      res.status(500).json({ error: "Failed to update article" });
+    }
+  });
+
+  // Delete article (admin only)
+  app.delete("/api/admin/articles/:id", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const article = await db
+        .delete(schema.articles)
+        .where(eq(schema.articles.id, req.params.id))
+        .returning();
+
+      if (article.length === 0) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+
+      res.json({ success: true, message: "Article deleted" });
+    } catch (error) {
+      console.error("Error deleting article:", error);
+      res.status(500).json({ error: "Failed to delete article" });
+    }
+  });
+
   console.log("Admin routes registered");
 }
