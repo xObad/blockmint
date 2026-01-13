@@ -1988,22 +1988,20 @@ export async function registerRoutes(
   // Generate 2FA secret and QR code
   app.post("/api/auth/2fa/setup", async (req, res) => {
     try {
-      const { userId } = req.body;
+      const { userId } = req.body; // Firebase UID
       
       if (!userId) {
         return res.status(400).json({ error: "User ID is required" });
       }
 
-      // Generate secret and QR code
-
-      // Generate secret
-      const secret = generateSecret();
-      
-      // Get user details
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      // Get user by Firebase UID
+      const user = await db.select().from(users).where(eq(users.firebaseUid, userId)).limit(1);
       if (!user.length) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Generate secret
+      const secret = generateSecret();
 
       // Generate OTP Auth URL
       const otpauth = `otpauth://totp/BlockMint Mining:${user[0].email}?secret=${secret}&issuer=BlockMint Mining`;
@@ -2014,7 +2012,7 @@ export async function registerRoutes(
       // Save secret (but don't enable 2FA yet)
       await db.update(users)
         .set({ twoFactorSecret: secret })
-        .where(eq(users.id, userId));
+        .where(eq(users.id, user[0].id));
 
       res.json({
         secret,
@@ -2031,14 +2029,14 @@ export async function registerRoutes(
   // Verify 2FA token and enable 2FA
   app.post("/api/auth/2fa/verify", async (req, res) => {
     try {
-      const { userId, token } = req.body;
+      const { userId, token } = req.body; // Firebase UID
       
       if (!userId || !token) {
         return res.status(400).json({ error: "User ID and token are required" });
       }
 
-      // Get user with secret
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      // Get user by Firebase UID
+      const user = await db.select().from(users).where(eq(users.firebaseUid, userId)).limit(1);
       if (!user.length || !user[0].twoFactorSecret) {
         return res.status(404).json({ error: "2FA not set up for this user" });
       }
@@ -2053,7 +2051,7 @@ export async function registerRoutes(
       // Enable 2FA
       await db.update(users)
         .set({ twoFactorEnabled: true })
-        .where(eq(users.id, userId));
+        .where(eq(users.id, user[0].id));
 
       res.json({ success: true, message: "2FA enabled successfully" });
     } catch (error) {
@@ -2065,14 +2063,14 @@ export async function registerRoutes(
   // Disable 2FA
   app.post("/api/auth/2fa/disable", async (req, res) => {
     try {
-      const { userId, token } = req.body;
+      const { userId, token } = req.body; // Firebase UID
       
       if (!userId || !token) {
         return res.status(400).json({ error: "User ID and token are required" });
       }
 
-      // Get user
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      // Get user by Firebase UID
+      const user = await db.select().from(users).where(eq(users.firebaseUid, userId)).limit(1);
       if (!user.length || !user[0].twoFactorEnabled) {
         return res.status(404).json({ error: "2FA not enabled for this user" });
       }
@@ -2090,7 +2088,7 @@ export async function registerRoutes(
           twoFactorEnabled: false,
           twoFactorSecret: null
         })
-        .where(eq(users.id, userId));
+        .where(eq(users.id, user[0].id));
 
       res.json({ success: true, message: "2FA disabled successfully" });
     } catch (error) {
@@ -2102,11 +2100,11 @@ export async function registerRoutes(
   // Check 2FA status
   app.get("/api/auth/2fa/status/:userId", async (req, res) => {
     try {
-      const { userId } = req.params;
+      const { userId } = req.params; // Firebase UID
       
       const user = await db.select({
         twoFactorEnabled: users.twoFactorEnabled
-      }).from(users).where(eq(users.id, userId)).limit(1);
+      }).from(users).where(eq(users.firebaseUid, userId)).limit(1);
       
       if (!user.length) {
         return res.status(404).json({ error: "User not found" });
@@ -2118,6 +2116,35 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error checking 2FA status:", error);
       res.status(500).json({ error: "Failed to check 2FA status" });
+    }
+  });
+
+  // Verify 2FA token for login
+  app.post("/api/auth/2fa/verify-login", async (req, res) => {
+    try {
+      const { userId, token } = req.body; // Firebase UID
+      
+      if (!userId || !token) {
+        return res.status(400).json({ error: "User ID and token are required" });
+      }
+
+      // Get user by Firebase UID
+      const user = await db.select().from(users).where(eq(users.firebaseUid, userId)).limit(1);
+      if (!user.length || !user[0].twoFactorEnabled) {
+        return res.status(404).json({ error: "2FA not enabled for this user" });
+      }
+
+      // Verify token
+      const isValid = verify({ token, secret: user[0].twoFactorSecret! });
+
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+
+      res.json({ success: true, message: "2FA verified successfully" });
+    } catch (error) {
+      console.error("Error verifying 2FA login:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
     }
   });
 

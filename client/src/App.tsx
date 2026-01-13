@@ -29,6 +29,7 @@ import { VirtualCard } from "@/pages/VirtualCard";
 import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
 import { ArticlePage } from "@/pages/ArticlePage";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
+import { TwoFactorLoginModal } from "@/components/TwoFactorLoginModal";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
@@ -43,6 +44,9 @@ function MobileApp() {
   const [appView, setAppView] = useState<AppView>("onboarding");
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [pending2FA, setPending2FA] = useState(false);
   
   const {
     miningStats,
@@ -134,6 +138,28 @@ function MobileApp() {
         };
         localStorage.setItem("user", JSON.stringify(storedUser));
         console.log("User stored in localStorage:", storedUser);
+
+        // Check if 2FA is enabled for this user
+        try {
+          const twoFARes = await fetch(`/api/auth/2fa/status/${firebaseUser.uid}`);
+          if (twoFARes.ok) {
+            const twoFAData = await twoFARes.json();
+            if (twoFAData.enabled) {
+              setRequires2FA(true);
+              setPending2FA(true);
+              setShow2FAModal(true);
+              // Don't move to main view yet - wait for 2FA verification
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Failed to check 2FA status:", error);
+        }
+
+        // If no 2FA or already verified, go to main
+        if (appView === "auth") {
+          setAppView("main");
+        }
       } catch (error) {
         console.error("User sync failed:", error);
       }
@@ -142,7 +168,7 @@ function MobileApp() {
     if (firebaseUser) {
       syncUser();
     }
-  }, [firebaseUser]);
+  }, [firebaseUser, appView]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
@@ -388,6 +414,25 @@ function MobileApp() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 2FA Login Modal */}
+      {firebaseUser && (
+        <TwoFactorLoginModal
+          open={show2FAModal}
+          userId={firebaseUser.uid}
+          onSuccess={() => {
+            setShow2FAModal(false);
+            setPending2FA(false);
+            setAppView("main");
+          }}
+          onCancel={() => {
+            // User can't skip 2FA verification - force them to verify
+            if (!pending2FA) {
+              setShow2FAModal(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
