@@ -211,11 +211,11 @@ export function GlobalHeader({
               onClick={() => setShowNotifications(false)}
             />
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="fixed left-1/2 -translate-x-1/2 top-20 w-[calc(100%-2rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden"
+              className="fixed inset-x-4 sm:left-1/2 sm:-translate-x-1/2 top-20 w-auto sm:w-[calc(100%-2rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden mx-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-4 border-b border-border">
