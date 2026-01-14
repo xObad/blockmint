@@ -1110,6 +1110,7 @@ export async function registerRoutes(
         userId, 
         packageName, 
         crypto, 
+        symbol,
         amount, 
         hashrate, 
         hashrateUnit, 
@@ -1120,13 +1121,15 @@ export async function registerRoutes(
       } = req.body;
       const { miningPurchases, wallets, orders, notifications } = await import("@shared/schema");
       
-      // Check user has sufficient USDT balance
+      const purchaseCurrency = symbol || "USDT";
+      
+      // Check user has sufficient balance in selected currency
       const userWallets = await db.select()
         .from(wallets)
-        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, "USDT")));
+        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, purchaseCurrency)));
       
       if (userWallets.length === 0 || userWallets[0].balance < amount) {
-        return res.status(400).json({ error: "Insufficient USDT balance" });
+        return res.status(400).json({ error: `Insufficient ${purchaseCurrency} balance` });
       }
 
       // Deduct from wallet
@@ -1139,6 +1142,7 @@ export async function registerRoutes(
         userId,
         packageName,
         crypto,
+        symbol: purchaseCurrency,
         amount,
         hashrate,
         hashrateUnit,
@@ -1156,7 +1160,7 @@ export async function registerRoutes(
         productId: purchase[0].id,
         productName: `${crypto} Mining - ${packageName} (${hashrate} ${hashrateUnit})`,
         amount,
-        currency: "USDT",
+        currency: purchaseCurrency,
         paymentMethod: "balance",
         balanceDeducted: true,
         status: "completed",
@@ -1170,9 +1174,9 @@ export async function registerRoutes(
         type: "purchase",
         category: "user",
         title: "Mining Package Activated!",
-        message: `Your ${packageName} ${crypto} mining package (${hashrate} ${hashrateUnit}) is now active and earning rewards.`,
+        message: `Your ${packageName} ${crypto} mining package (${hashrate} ${hashrateUnit}) purchased with ${purchaseCurrency} is now active and earning rewards.`,
         priority: "normal",
-        data: { purchaseId: purchase[0].id, packageName, crypto, hashrate },
+        data: { purchaseId: purchase[0].id, packageName, crypto, hashrate, symbol: purchaseCurrency },
       });
 
       res.json(purchase[0]);

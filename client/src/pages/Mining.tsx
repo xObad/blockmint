@@ -772,6 +772,7 @@ function EmptyState({ onNavigateToInvest }: { onNavigateToInvest: () => void }) 
 
 export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }: MiningProps) {
   const [activeTab, setActiveTab] = useState<"devices" | "hot">("devices");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getCurrentUser();
@@ -869,6 +870,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       userId: user.uid,
       packageName: pkg.name,
       crypto: pkg.crypto,
+      symbol: selectedCurrency || "USDT",
       amount: pkg.cost,
       hashrate: pkg.hashrateValue,
       hashrateUnit: pkg.hashrateUnit,
@@ -1073,6 +1075,29 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
             transition={{ duration: 0.3 }}
             className="space-y-5"
           >
+            {/* Currency Selector */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+              <Label className="text-sm font-medium text-foreground">Pay with:</Label>
+              <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USDT">USDT</SelectItem>
+                  <SelectItem value="BTC">Bitcoin</SelectItem>
+                  <SelectItem value="ETH">Ethereum</SelectItem>
+                  <SelectItem value="LTC">Litecoin</SelectItem>
+                  <SelectItem value="BNB">BNB</SelectItem>
+                  <SelectItem value="USDC">USD Coin</SelectItem>
+                </SelectContent>
+              </Select>
+              {wallets && (
+                <div className="text-xs text-muted-foreground">
+                  Available: {(wallets.find((w: any) => w.symbol === selectedCurrency)?.balance || 0).toFixed(8)} {selectedCurrency}
+                </div>
+              )}
+            </div>
+
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
