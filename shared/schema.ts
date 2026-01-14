@@ -14,6 +14,9 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorSecret: text("two_factor_secret"), // TOTP secret
+  referralCode: varchar("referral_code", { length: 12 }).unique(), // User's unique referral code
+  referredByUserId: varchar("referred_by_user_id"), // ID of user who referred this user
+  referralReward: real("referral_reward").notNull().default(0), // Total earned from referrals
   createdAt: timestamp("created_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
 });
@@ -25,6 +28,28 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// ============ REFERRALS (Track referral relationships and rewards) ============
+
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id), // User who referred
+  refereeId: varchar("referee_id").notNull().references(() => users.id), // User who was referred
+  rewardAmount: real("reward_amount").notNull().default(0), // Reward given to referrer
+  rewardCurrency: text("reward_currency").notNull().default("USDT"),
+  status: text("status").notNull().default("pending"), // pending, rewarded, rejected
+  rewardedAt: timestamp("rewarded_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  createdAt: true,
+  rewardedAt: true,
+});
+
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
 
 // User wallets table
 export const wallets = pgTable("wallets", {

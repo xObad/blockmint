@@ -2439,5 +2439,198 @@ export async function registerRoutes(
     }
   });
 
+  // ============ REFERRAL SYSTEM ============
+
+  // Generate referral code for user
+  app.post("/api/referrals/generate", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
+
+      // Check if user already has a referral code
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.referralCode) {
+        return res.json({ referralCode: user.referralCode });
+      }
+
+      // Generate unique 8-character code
+      const generateCode = () => {
+        const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude similar characters
+        let code = "";
+        for (let i = 0; i < 8; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
+
+      let code = generateCode();
+      let attempts = 0;
+      
+      // Ensure uniqueness
+      while (attempts < 10) {
+        const existing = await db.select()
+          .from(users)
+          .where(eq(users.referralCode, code));
+        
+        if (existing.length === 0) break;
+        code = generateCode();
+        attempts++;
+      }
+
+      // Update user with referral code
+      await db.update(users)
+        .set({ referralCode: code })
+        .where(eq(users.id, userId));
+
+      res.json({ referralCode: code });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ error: "Failed to generate referral code" });
+    }
+  });
+
+  // Apply referral code (called during signup/onboarding)
+  app.post("/api/referrals/apply", async (req, res) => {
+    try {
+      const { userId, referralCode } = req.body;
+      const { referrals } = await import("@shared/schema");
+      
+      if (!userId || !referralCode) {
+        return res.status(400).json({ error: "Missing userId or referralCode" });
+      }
+
+      // Find referrer by code
+      const [referrer] = await db.select()
+        .from(users)
+        .where(eq(users.referralCode, referralCode));
+
+      if (!referrer) {
+        return res.status(404).json({ error: "Invalid referral code" });
+      }
+
+      if (referrer.id === userId) {
+        return res.status(400).json({ error: "Cannot refer yourself" });
+      }
+
+      // Check if user already has a referrer
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (user.referredByUserId) {
+        return res.status(400).json({ error: "User already has a referrer" });
+      }
+
+      // Update user with referrer
+      await db.update(users)
+        .set({ referredByUserId: referrer.id })
+        .where(eq(users.id, userId));
+
+      // Create referral record
+      await db.insert(referrals).values({
+        referrerId: referrer.id,
+        refereeId: userId,
+        status: "pending",
+      });
+
+      res.json({ success: true, referrer: { id: referrer.id, displayName: referrer.displayName } });
+    } catch (error) {
+      console.error("Error applying referral code:", error);
+      res.status(500).json({ error: "Failed to apply referral code" });
+    }
+  });
+
+  // Get user's referrals (admin view)
+  app.get("/api/admin/users/:userId/referrals", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { referrals } = await import("@shared/schema");
+      
+      const userReferrals = await db.select()
+        .from(referrals)
+        .where(eq(referrals.referrerId, userId))
+        .orderBy(desc(referrals.createdAt));
+
+      // Get referee details
+      const referralDetails = await Promise.all(
+        userReferrals.map(async (ref) => {
+          const [referee] = await db.select()
+            .from(users)
+            .where(eq(users.id, ref.refereeId));
+          
+          return {
+            ...ref,
+            referee: referee ? {
+              id: referee.id,
+              email: referee.email,
+              displayName: referee.displayName,
+              createdAt: referee.createdAt,
+            } : null,
+          };
+        })
+      );
+
+      res.json(referralDetails);
+    } catch (error) {
+      console.error("Error getting user referrals:", error);
+      res.status(500).json({ error: "Failed to get user referrals" });
+    }
+  });
+
+  // Get user's referrer info (who referred this user)
+  app.get("/api/admin/users/:userId/referrer", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user || !user.referredByUserId) {
+        return res.json({ referrer: null });
+      }
+
+      const [referrer] = await db.select()
+        .from(users)
+        .where(eq(users.id, user.referredByUserId));
+
+      res.json({
+        referrer: referrer ? {
+          id: referrer.id,
+          email: referrer.email,
+          displayName: referrer.displayName,
+          referralCode: referrer.referralCode,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Error getting user referrer:", error);
+      res.status(500).json({ error: "Failed to get user referrer" });
+    }
+  });
+
+  // Get all referrals (admin overview)
+  app.get("/api/admin/referrals", async (_req, res) => {
+    try {
+      const { referrals } = await import("@shared/schema");
+      
+      const allReferrals = await db.select()
+        .from(referrals)
+        .orderBy(desc(referrals.createdAt));
+
+      res.json(allReferrals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get referrals" });
+    }
+  });
+
   return httpServer;
 }
