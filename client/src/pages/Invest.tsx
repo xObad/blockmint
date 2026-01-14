@@ -37,9 +37,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-// Crypto assets with their icons
+// Crypto assets with their icons - MULTI-CURRENCY SUPPORT
 const cryptoAssets = [
   { symbol: "USDT", name: "Tether", icon: "₮", color: "from-emerald-500 to-green-500", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
+  { symbol: "BTC", name: "Bitcoin", icon: "₿", color: "from-orange-500 to-yellow-500", bgColor: "bg-orange-500/20", textColor: "text-orange-400" },
+  { symbol: "ETH", name: "Ethereum", icon: "Ξ", color: "from-blue-500 to-purple-500", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  { symbol: "LTC", name: "Litecoin", icon: "Ł", color: "from-gray-300 to-gray-400", bgColor: "bg-gray-500/20", textColor: "text-gray-300" },
+  { symbol: "BNB", name: "BNB", icon: "ξ", color: "from-yellow-500 to-orange-500", bgColor: "bg-yellow-500/20", textColor: "text-yellow-400" },
+  { symbol: "USDC", name: "USD Coin", icon: "◈", color: "from-blue-500 to-cyan-500", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
 ];
 
 // APR Rates by duration - REAL FIXED APR
@@ -345,6 +350,30 @@ function APRCalculator() {
             </div>
           </div>
 
+          {/* User Balance Display */}
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-muted-foreground block mb-1">Available Balance in {selectedCrypto.symbol}</span>
+                <p className="text-2xl font-bold text-foreground">
+                  {wallets?.find((w: any) => w.symbol === selectedCrypto.symbol)?.balance?.toFixed(8) || "0.00"} {selectedCrypto.symbol}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setInvestmentAmount(Math.floor((wallets?.find((w: any) => w.symbol === selectedCrypto.symbol)?.balance || 0)))}
+                className="h-8"
+              >
+                Max
+              </Button>
+            </div>
+            {wallets && wallets.find((w: any) => w.symbol === selectedCrypto.symbol) && 
+              wallets.find((w: any) => w.symbol === selectedCrypto.symbol).balance < 50 && (
+              <p className="text-xs text-amber-400 mt-2">⚠️ Minimum investment is {getSymbol()}50</p>
+            )}
+          </div>
+
           {/* Investment Amount Slider */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -357,14 +386,14 @@ function APRCalculator() {
               value={[investmentAmount]}
               onValueChange={(v) => setInvestmentAmount(v[0])}
               min={50}
-              max={100000}
+              max={Math.floor(wallets?.find((w: any) => w.symbol === selectedCrypto.symbol)?.balance || 100000)}
               step={50}
               className="py-2"
               data-testid="slider-investment"
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>{getSymbol()}50</span>
-              <span>{getSymbol()}100,000</span>
+              <span>{getSymbol()}{convert(Math.floor(wallets?.find((w: any) => w.symbol === selectedCrypto.symbol)?.balance || 100000)).toLocaleString()}</span>
             </div>
           </div>
 
