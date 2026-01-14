@@ -195,10 +195,22 @@ export function Dashboard({
     };
   });
 
-  // Sort by balance (highest first), then alphabetically
+  // Assets order requirement:
+  // 1) USDT
+  // 2) BTC
+  // 3) LTC
+  // then the rest by balance (highest first), then alphabetically.
+  const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2 };
   const sortedBalances = [...balancesWithZeros].sort((a, b) => {
-    const balanceDiff = b.balance - a.balance;
-    if (balanceDiff !== 0) return balanceDiff;
+    const aPri = assetPriority[a.symbol] ?? 999;
+    const bPri = assetPriority[b.symbol] ?? 999;
+    if (aPri !== bPri) return aPri - bPri;
+
+    if (aPri === 999 && bPri === 999) {
+      const balanceDiff = (b.balance ?? 0) - (a.balance ?? 0);
+      if (balanceDiff !== 0) return balanceDiff;
+    }
+
     return a.symbol.localeCompare(b.symbol);
   });
 
@@ -1098,8 +1110,8 @@ export function Dashboard({
           <div className="grid grid-cols-2 gap-3 min-w-max sm:min-w-0">
           {trendingCoins.map((balance, index) => {
             const cryptoData = cryptoPrices[balance.symbol as keyof typeof cryptoPrices];
-            const price = cryptoData?.price || 0;
-            const change24h = cryptoData?.change24h || balance.change24h || 0;
+            const price = balance.symbol === "USDT" ? 1 : (cryptoData?.price || 0);
+            const change24h = balance.symbol === "USDT" ? 0 : (cryptoData?.change24h || balance.change24h || 0);
             
             return (
               <GlassCard 

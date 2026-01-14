@@ -326,6 +326,22 @@ export function Wallet({
     });
   }, [balances, cryptoPrices, cryptoPricesData]);
 
+  const orderedBalances = useMemo(() => {
+    const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2 };
+    return [...pricedBalances].sort((a, b) => {
+      const aPri = assetPriority[a.symbol] ?? 999;
+      const bPri = assetPriority[b.symbol] ?? 999;
+      if (aPri !== bPri) return aPri - bPri;
+
+      if (aPri === 999 && bPri === 999) {
+        const vDiff = (b.usdValue ?? 0) - (a.usdValue ?? 0);
+        if (vDiff !== 0) return vDiff;
+      }
+
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [pricedBalances]);
+
   const calculatedTotalBalance = pricedBalances.length > 0
     ? pricedBalances.reduce((sum, b) => sum + (b.usdValue ?? 0), 0)
     : (totalBalance ?? 0);
@@ -947,7 +963,7 @@ export function Wallet({
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-4">Assets</h2>
         <div className="flex flex-col gap-3">
-          {pricedBalances.map((crypto, index) => (
+          {orderedBalances.map((crypto, index) => (
             <CryptoCard 
               key={crypto.id} 
               crypto={crypto} 

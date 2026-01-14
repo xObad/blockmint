@@ -772,26 +772,47 @@ function EmptyState({ onNavigateToInvest }: { onNavigateToInvest: () => void }) 
 
 export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }: MiningProps) {
   const [activeTab, setActiveTab] = useState<"devices" | "hot">("devices");
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("USDT");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getCurrentUser();
   const { btcPrice } = useBTCPrice();
+
+  const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
+  const storedUser = userStr ? (() => {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  })() : null;
+  const dbUserId: string | null = storedUser?.id || null;
   
   const hasContracts = contracts.length > 0;
   
   // Fetch user's wallet balances
   const { data: balanceData } = useQuery<{ balances: Array<{ symbol: string; balance: number }>, pending: Record<string, number> }>({
-    queryKey: [`/api/balances/${user?.uid}`],
-    enabled: !!user?.uid,
+    queryKey: ["/api/balances", dbUserId],
+    queryFn: async () => {
+      if (!dbUserId) return { balances: [], pending: {} };
+      const response = await fetch(`/api/balances/${dbUserId}`);
+      if (!response.ok) throw new Error("Failed to fetch balances");
+      return response.json();
+    },
+    enabled: !!dbUserId,
   });
   
   const wallets = balanceData?.balances || [];
 
   // Fetch user's mining purchases
   const { data: miningPurchases = [] } = useQuery<any[]>({
-    queryKey: [`/api/users/${user?.uid}/mining-purchases`],
-    enabled: !!user?.uid,
+    queryKey: ["/api/users", dbUserId, "mining-purchases"],
+    queryFn: async () => {
+      if (!dbUserId) return [];
+      const response = await fetch(`/api/users/${dbUserId}/mining-purchases`);
+      if (!response.ok) throw new Error("Failed to fetch mining purchases");
+      return response.json();
+    },
+    enabled: !!dbUserId,
   });
 
   // Create mining purchase mutation
@@ -809,8 +830,8 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/balances/${user?.uid}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.uid}/mining-purchases`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", dbUserId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", dbUserId, "mining-purchases"] });
       toast({
         title: "Purchase Successful!",
         description: "Your mining package is now active.",
@@ -828,19 +849,9 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   const usdtWallet = wallets.find((w: any) => w.symbol === "USDT");
   const availableBalance = usdtWallet?.balance || 0;
   
-  console.log("Wallets loaded:", wallets);
-  console.log("USDT Wallet:", usdtWallet);
-  console.log("Available Balance:", availableBalance);
-  
   // Handle package purchase
   const handlePackagePurchase = (pkg: MiningPackage) => {
-    console.log("=== HANDLE PACKAGE PURCHASE CALLED ===");
-    console.log("Package:", pkg.name, "Cost:", pkg.cost);
-    console.log("User:", user?.uid);
-    console.log("Available USDT balance:", availableBalance);
-    
     if (!user) {
-      console.log("❌ No user found");
       toast({
         title: "Authentication Required",
         description: "Please sign in to purchase mining packages.",
@@ -849,15 +860,17 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return;
     }
 
-    console.log("✅ Balance check:", {
-      required: pkg.cost,
-      available: availableBalance,
-      sufficient: availableBalance >= pkg.cost
-    });
+    if (!dbUserId) {
+      toast({
+        title: "Account Not Ready",
+        description: "Please refresh once, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (availableBalance < pkg.cost) {
       const amountNeeded = pkg.cost - availableBalance;
-      console.log("❌ Insufficient balance");
       toast({
         title: "Deposit Required",
         description: `You need to deposit $${amountNeeded.toFixed(2)} USDT to buy this contract. Total cost: $${pkg.cost.toFixed(2)} USDT`,
@@ -867,10 +880,10 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     }
 
     const purchasePayload = {
-      userId: user.uid,
+      userId: dbUserId,
       packageName: pkg.name,
       crypto: pkg.crypto,
-      symbol: selectedCurrency || "USDT",
+      symbol: "USDT",
       amount: pkg.cost,
       hashrate: pkg.hashrateValue,
       hashrateUnit: pkg.hashrateUnit,
@@ -879,22 +892,13 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       returnPercent: pkg.returnPercent,
       paybackMonths: pkg.paybackMonths,
     };
-
-    console.log("✅ Creating purchase with payload:", purchasePayload);
-    console.log("=== CALLING MUTATION ===");
     
     createPurchase.mutate(purchasePayload);
   };
 
   // Handle custom hashpower purchase
   const handleCustomPurchase = (data: { hashrate: number; cost: number; dailyReturnBTC: number; returnPercent: number }) => {
-    console.log("=== HANDLE CUSTOM PURCHASE CALLED ===");
-    console.log("Purchase data received:", data);
-    console.log("User:", user?.uid);
-    console.log("Available USDT balance:", availableBalance);
-    
     if (!user) {
-      console.log("❌ No user found");
       toast({
         title: "Authentication Required",
         description: "Please sign in to purchase mining packages.",
@@ -903,15 +907,17 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return;
     }
 
-    console.log("✅ Balance check:", {
-      required: data.cost,
-      available: availableBalance,
-      sufficient: availableBalance >= data.cost
-    });
+    if (!dbUserId) {
+      toast({
+        title: "Account Not Ready",
+        description: "Please refresh once, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (availableBalance < data.cost) {
       const amountNeeded = data.cost - availableBalance;
-      console.log("❌ Insufficient balance");
       toast({
         title: "Deposit Required",
         description: `You need to deposit $${amountNeeded.toFixed(2)} USDT to buy this contract. Total cost: $${data.cost.toFixed(2)} USDT`,
@@ -926,9 +932,10 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     const paybackMonths = Math.ceil(paybackDays / 30);
     
     const purchasePayload = {
-      userId: user.uid,
+      userId: dbUserId,
       packageName: "Custom",
       crypto: "BTC",
+      symbol: "USDT",
       amount: data.cost,
       hashrate: data.hashrate,
       hashrateUnit: "TH/s",
@@ -937,9 +944,6 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       returnPercent: data.returnPercent,
       paybackMonths: paybackMonths,
     };
-    
-    console.log("✅ Creating purchase with payload:", purchasePayload);
-    console.log("=== CALLING MUTATION ===");
     
     createPurchase.mutate(purchasePayload);
   };
@@ -1033,6 +1037,15 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
         </button>
       </motion.div>
 
+      <GlassCard delay={0.16} className="py-3 px-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Available USDT balance</p>
+          <p className="text-sm font-semibold text-foreground" data-testid="text-mining-usdt-balance">
+            ${availableBalance.toFixed(2)}
+          </p>
+        </div>
+      </GlassCard>
+
       {/* Active Contracts (if any) */}
       {hasContracts && (
         <div>
@@ -1075,27 +1088,14 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
             transition={{ duration: 0.3 }}
             className="space-y-5"
           >
-            {/* Currency Selector */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-              <Label className="text-sm font-medium text-foreground">Pay with:</Label>
-              <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USDT">USDT</SelectItem>
-                  <SelectItem value="BTC">Bitcoin</SelectItem>
-                  <SelectItem value="ETH">Ethereum</SelectItem>
-                  <SelectItem value="LTC">Litecoin</SelectItem>
-                  <SelectItem value="BNB">BNB</SelectItem>
-                  <SelectItem value="USDC">USD Coin</SelectItem>
-                </SelectContent>
-              </Select>
-              {wallets && (
-                <div className="text-xs text-muted-foreground">
-                  Available: {(wallets.find((w: any) => w.symbol === selectedCurrency)?.balance || 0).toFixed(8)} {selectedCurrency}
-                </div>
-              )}
+            <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium text-foreground">Pay with:</Label>
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">USDT</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground" data-testid="text-mining-pay-with-usdt">
+                Available: ${availableBalance.toFixed(2)} USDT
+              </div>
             </div>
 
             <div>

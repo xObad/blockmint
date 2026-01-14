@@ -10,7 +10,7 @@ import {
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import { generateSecret, generate, verify } from "otplib";
 import QRCode from "qrcode";
 
@@ -18,6 +18,23 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  const resolveDbUserId = async (idOrFirebaseUid: string | undefined | null): Promise<string | null> => {
+    if (!idOrFirebaseUid) return null;
+
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(or(eq(users.id, idOrFirebaseUid), eq(users.firebaseUid, idOrFirebaseUid)))
+      .limit(1);
+
+    return user?.id || idOrFirebaseUid;
+  };
+
+  const toFiniteNumber = (value: unknown): number | null => {
+    const num = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
   
   // Mining Stats
   app.get("/api/mining/stats", async (_req, res) => {
@@ -483,7 +500,7 @@ export async function registerRoutes(
             details = {
               packageName: mining.packageName,
               crypto: mining.crypto,
-              symbol: mining.symbol,
+              symbol: order.currency,
               hashrate: mining.hashrate,
               hashrateUnit: mining.hashrateUnit,
               status: mining.status,
@@ -1077,27 +1094,39 @@ export async function registerRoutes(
     try {
       const { userId, planId, amount, symbol, durationType, aprRate } = req.body;
       const { earnSubscriptions, wallets } = await import("@shared/schema");
+
+      const resolvedUserId = await resolveDbUserId(userId);
+      const numericAmount = toFiniteNumber(amount);
+      const purchaseSymbol = (symbol || "USDT") as string;
+
+      if (!resolvedUserId || !planId || numericAmount === null) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (numericAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be greater than 0" });
+      }
       
       // Check user has sufficient balance
       const userWallets = await db.select()
         .from(wallets)
-        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, symbol)));
+        .where(and(eq(wallets.userId, resolvedUserId), eq(wallets.symbol, purchaseSymbol)));
       
-      if (userWallets.length === 0 || userWallets[0].balance < amount) {
+      if (userWallets.length === 0 || userWallets[0].balance < numericAmount) {
         return res.status(400).json({ error: "Insufficient balance" });
       }
 
       // Deduct from wallet
       await db.update(wallets)
-        .set({ balance: userWallets[0].balance - amount })
+        .set({ balance: userWallets[0].balance - numericAmount })
         .where(eq(wallets.id, userWallets[0].id));
 
       // Create subscription
       const subscription = await db.insert(earnSubscriptions).values({
-        userId,
+        userId: resolvedUserId,
         planId,
-        amount,
-        symbol,
+        amount: numericAmount,
+        symbol: purchaseSymbol,
         durationType,
         aprRate,
         status: "active",
@@ -1188,30 +1217,40 @@ export async function registerRoutes(
         paybackMonths
       } = req.body;
       const { miningPurchases, wallets, orders, notifications } = await import("@shared/schema");
+
+      const resolvedUserId = await resolveDbUserId(userId);
+      const numericAmount = toFiniteNumber(amount);
       
-      const purchaseCurrency = symbol || "USDT";
+      const purchaseCurrency = (symbol || "USDT") as string;
+
+      if (!resolvedUserId || !packageName || numericAmount === null) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (numericAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be greater than 0" });
+      }
       
       // Check user has sufficient balance in selected currency
       const userWallets = await db.select()
         .from(wallets)
-        .where(and(eq(wallets.userId, userId), eq(wallets.symbol, purchaseCurrency)));
+        .where(and(eq(wallets.userId, resolvedUserId), eq(wallets.symbol, purchaseCurrency)));
       
-      if (userWallets.length === 0 || userWallets[0].balance < amount) {
+      if (userWallets.length === 0 || userWallets[0].balance < numericAmount) {
         return res.status(400).json({ error: `Insufficient ${purchaseCurrency} balance` });
       }
 
       // Deduct from wallet
       await db.update(wallets)
-        .set({ balance: userWallets[0].balance - amount })
+        .set({ balance: userWallets[0].balance - numericAmount })
         .where(eq(wallets.id, userWallets[0].id));
 
       // Create mining purchase
       const purchase = await db.insert(miningPurchases).values({
-        userId,
+        userId: resolvedUserId,
         packageName,
         crypto,
-        symbol: purchaseCurrency,
-        amount,
+        amount: numericAmount,
         hashrate,
         hashrateUnit,
         efficiency,
@@ -1223,11 +1262,11 @@ export async function registerRoutes(
 
       // Create order record for tracking
       await db.insert(orders).values({
-        userId,
+        userId: resolvedUserId,
         type: "mining_purchase",
         productId: purchase[0].id,
         productName: `${crypto} Mining - ${packageName} (${hashrate} ${hashrateUnit})`,
-        amount,
+        amount: numericAmount,
         currency: purchaseCurrency,
         paymentMethod: "balance",
         balanceDeducted: true,
@@ -1238,7 +1277,7 @@ export async function registerRoutes(
 
       // Create notification
       await db.insert(notifications).values({
-        userId,
+        userId: resolvedUserId,
         type: "purchase",
         category: "user",
         title: "Mining Package Activated!",
@@ -1523,16 +1562,21 @@ export async function registerRoutes(
   app.get("/api/balances/:userId", async (req, res) => {
     try {
       const { wallets } = await import("@shared/schema");
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
+
       const userWallets = await db.select()
         .from(wallets)
-        .where(eq(wallets.userId, req.params.userId));
+        .where(eq(wallets.userId, resolvedUserId));
       
       // Get pending deposits
       const { depositRequests } = await import("@shared/schema");
       const pending = await db.select()
         .from(depositRequests)
         .where(and(
-          eq(depositRequests.userId, req.params.userId),
+          eq(depositRequests.userId, resolvedUserId),
           eq(depositRequests.status, "pending")
         ));
       
@@ -1557,39 +1601,47 @@ export async function registerRoutes(
     try {
       const { userId, type, productId, productName, amount, currency, metadata, paymentMethod } = req.body;
       const { orders, wallets, notifications } = await import("@shared/schema");
+
+      const resolvedUserId = await resolveDbUserId(userId);
+      const numericAmount = toFiniteNumber(amount);
+      const orderCurrency = (currency || "USDT") as string;
       
-      if (!userId || !type || !productName || !amount) {
+      if (!resolvedUserId || !type || !productName || numericAmount === null) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (numericAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be greater than 0" });
       }
 
       // Check balance if paying from balance
       if (paymentMethod === "balance") {
         const userWallets = await db.select()
           .from(wallets)
-          .where(and(eq(wallets.userId, userId), eq(wallets.symbol, currency || "USDT")));
+          .where(and(eq(wallets.userId, resolvedUserId), eq(wallets.symbol, orderCurrency)));
         
-        if (userWallets.length === 0 || userWallets[0].balance < amount) {
+        if (userWallets.length === 0 || userWallets[0].balance < numericAmount) {
           return res.status(400).json({ 
             error: "Insufficient balance",
-            required: amount,
+            required: numericAmount,
             available: userWallets[0]?.balance || 0
           });
         }
 
         // Deduct balance
         await db.update(wallets)
-          .set({ balance: userWallets[0].balance - amount })
+          .set({ balance: userWallets[0].balance - numericAmount })
           .where(eq(wallets.id, userWallets[0].id));
       }
 
       // Create order
       const [order] = await db.insert(orders).values({
-        userId,
+        userId: resolvedUserId,
         type,
         productId,
         productName,
-        amount,
-        currency: currency || "USDT",
+        amount: numericAmount,
+        currency: orderCurrency,
         metadata,
         paymentMethod: paymentMethod || "balance",
         balanceDeducted: paymentMethod === "balance",
@@ -1599,13 +1651,13 @@ export async function registerRoutes(
 
       // Create notification
       await db.insert(notifications).values({
-        userId,
+        userId: resolvedUserId,
         type: "order",
         category: "user",
         title: "Order Completed",
-        message: `Your purchase of ${productName} for $${amount} ${currency || "USDT"} was successful!`,
+        message: `Your purchase of ${productName} for $${numericAmount} ${orderCurrency} was successful!`,
         priority: "normal",
-        data: { orderId: order.id, amount, productName },
+        data: { orderId: order.id, amount: numericAmount, productName },
       });
 
       res.json({ 

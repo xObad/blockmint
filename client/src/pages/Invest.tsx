@@ -37,14 +37,16 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-// Crypto assets with their icons - MULTI-CURRENCY SUPPORT
+// Invest is USDT-only (stable, predictable returns)
 const cryptoAssets = [
-  { symbol: "USDT", name: "Tether", icon: "₮", color: "from-emerald-500 to-green-500", bgColor: "bg-emerald-500/20", textColor: "text-emerald-400" },
-  { symbol: "BTC", name: "Bitcoin", icon: "₿", color: "from-orange-500 to-yellow-500", bgColor: "bg-orange-500/20", textColor: "text-orange-400" },
-  { symbol: "ETH", name: "Ethereum", icon: "Ξ", color: "from-blue-500 to-purple-500", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
-  { symbol: "LTC", name: "Litecoin", icon: "Ł", color: "from-gray-300 to-gray-400", bgColor: "bg-gray-500/20", textColor: "text-gray-300" },
-  { symbol: "BNB", name: "BNB", icon: "ξ", color: "from-yellow-500 to-orange-500", bgColor: "bg-yellow-500/20", textColor: "text-yellow-400" },
-  { symbol: "USDC", name: "USD Coin", icon: "◈", color: "from-blue-500 to-cyan-500", bgColor: "bg-blue-500/20", textColor: "text-blue-400" },
+  {
+    symbol: "USDT",
+    name: "Tether",
+    icon: "₮",
+    color: "from-emerald-500 to-green-500",
+    bgColor: "bg-emerald-500/20",
+    textColor: "text-emerald-400",
+  },
 ];
 
 // APR Rates by duration - REAL FIXED APR
@@ -163,23 +165,48 @@ function TrustMarketingSection() {
 
 function APRCalculator() {
   const { convert, getSymbol } = useCurrency();
-  const [selectedCrypto, setSelectedCrypto] = useState(cryptoAssets[0]);
+  const [selectedCrypto] = useState(cryptoAssets[0]);
   const [selectedDuration, setSelectedDuration] = useState<keyof typeof aprRates>("yearly"); // Default to annual (yearly)
   const [investmentAmount, setInvestmentAmount] = useState(1000);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const currentUser = getCurrentUser();
 
+  const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
+  const storedUser = userStr ? (() => {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  })() : null;
+  const dbUserId: string | null = storedUser?.id || null;
+
+  // Fetch earn plans so we can use a real planId (required by FK)
+  const { data: earnPlans = [] } = useQuery<Array<{ id: string; symbol: string }>>({
+    queryKey: ["/api/earn-plans"],
+    queryFn: async () => {
+      const response = await fetch("/api/earn-plans");
+      if (!response.ok) throw new Error("Failed to fetch earn plans");
+      return response.json();
+    },
+  });
+
+  const usdtPlanId = useMemo(() => {
+    const plan = earnPlans.find((p) => p.symbol === "USDT");
+    return plan?.id || null;
+  }, [earnPlans]);
+
   // Fetch user's wallet balance
   const { data: balanceData } = useQuery({
-    queryKey: ["/api/balances", currentUser?.uid],
+    queryKey: ["/api/balances", dbUserId],
     queryFn: async () => {
-      if (!currentUser) return { balances: [], pending: {} };
-      const response = await fetch(`/api/balances/${currentUser.uid}`);
+      if (!dbUserId) return { balances: [], pending: {} };
+      const response = await fetch(`/api/balances/${dbUserId}`);
       if (!response.ok) throw new Error("Failed to fetch balances");
       return response.json();
     },
-    enabled: !!currentUser,
+    enabled: !!dbUserId,
   });
   
   const wallets = balanceData?.balances || [];
@@ -187,16 +214,20 @@ function APRCalculator() {
   // Create earn subscription mutation
   const createSubscription = useMutation({
     mutationFn: async () => {
-      if (!currentUser) throw new Error("Not authenticated");
+      if (!dbUserId) throw new Error("Not authenticated");
+
+      if (!usdtPlanId) {
+        throw new Error("USDT earn plan is not configured yet");
+      }
       
       const response = await fetch("/api/earn/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: currentUser.uid,
-          planId: "default", // You can map this to specific plan IDs
+          userId: dbUserId,
+          planId: usdtPlanId,
           amount: investmentAmount,
-          symbol: selectedCrypto.symbol,
+          symbol: "USDT",
           durationType: selectedDuration,
           aprRate: aprRates[selectedDuration].rate,
         }),
@@ -210,11 +241,11 @@ function APRCalculator() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/balances", currentUser?.uid] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", dbUserId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions", dbUserId] });
       toast({
         title: "Investment Created!",
-        description: `Successfully invested ${getSymbol()}${convert(investmentAmount).toFixed(2)} in ${selectedCrypto.symbol}`,
+        description: `Successfully invested ${getSymbol()}${convert(investmentAmount).toFixed(2)} in USDT`,
       });
     },
     onError: (error: Error) => {
@@ -236,12 +267,21 @@ function APRCalculator() {
       return;
     }
 
+    if (!dbUserId) {
+      toast({
+        title: "Account Not Ready",
+        description: "Please refresh once, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if user has sufficient balance
-    const wallet = wallets?.find((w: any) => w.symbol === selectedCrypto.symbol);
+    const wallet = wallets?.find((w: any) => w.symbol === "USDT");
     if (!wallet || wallet.balance < investmentAmount) {
       toast({
         title: "Insufficient Balance",
-        description: `You need ${getSymbol()}${convert(investmentAmount).toFixed(2)} in your ${selectedCrypto.symbol} wallet to invest.`,
+        description: `You need ${getSymbol()}${convert(investmentAmount).toFixed(2)} in your USDT wallet to invest.`,
         variant: "destructive",
       });
       return;
@@ -298,27 +338,22 @@ function APRCalculator() {
         </div>
 
         <div className="space-y-6">
-          {/* Crypto Selection */}
-          <div>
-            <Label className="text-sm text-muted-foreground mb-3 block">Select Asset</Label>
-            <div className="flex gap-2 justify-center">
-              {cryptoAssets.map((crypto) => (
-                <button
-                  key={crypto.symbol}
-                  onClick={() => setSelectedCrypto(crypto)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                    selectedCrypto.symbol === crypto.symbol
-                      ? `${crypto.bgColor} border-current ${crypto.textColor}`
-                      : "border-border hover:border-muted-foreground"
-                  }`}
-                  data-testid={`btn-crypto-${crypto.symbol.toLowerCase()}`}
-                >
-                  <span className={`font-bold ${selectedCrypto.symbol === crypto.symbol ? crypto.textColor : "text-foreground"}`}>
-                    {crypto.icon}
-                  </span>
-                  <span className="text-sm font-medium">{crypto.symbol}</span>
-                </button>
-              ))}
+          {/* USDT-only */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg ${selectedCrypto.bgColor} flex items-center justify-center`}>
+                <span className={`text-xl font-bold ${selectedCrypto.textColor}`}>{selectedCrypto.icon}</span>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">USDT Investment</p>
+                <p className="text-xs text-muted-foreground">Available balance updates in real-time</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Available USDT</p>
+              <p className="font-bold text-foreground">
+                {wallets?.find((w: any) => w.symbol === "USDT")?.balance?.toFixed?.(2) ?? "0.00"}
+              </p>
             </div>
           </div>
 
@@ -529,16 +564,26 @@ function ActiveInvestments() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
+  const storedUser = userStr ? (() => {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  })() : null;
+  const dbUserId: string | null = storedUser?.id || null;
+
   // Fetch user's active earn subscriptions
   const { data: subscriptions, isLoading } = useQuery({
-    queryKey: ["/api/users/earn-subscriptions", currentUser?.uid],
+    queryKey: ["/api/users/earn-subscriptions", dbUserId],
     queryFn: async () => {
-      if (!currentUser) return [];
-      const response = await fetch(`/api/users/${currentUser.uid}/earn-subscriptions`);
+      if (!dbUserId) return [];
+      const response = await fetch(`/api/users/${dbUserId}/earn-subscriptions`);
       if (!response.ok) throw new Error("Failed to fetch investments");
       return response.json();
     },
-    enabled: !!currentUser,
+    enabled: !!dbUserId,
   });
 
   // Withdraw mutation
@@ -551,8 +596,8 @@ function ActiveInvestments() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/balances", currentUser?.uid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions", dbUserId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", dbUserId] });
       toast({
         title: "Withdrawal Successful",
         description: "Funds have been returned to your wallet.",

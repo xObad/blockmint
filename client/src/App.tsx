@@ -323,7 +323,7 @@ function MobileApp() {
           </div>
           <div className="flex items-center justify-center gap-4">
             <a
-              href="https://x.com/BlockMintApp"
+              href="https://x.com/BlockMintingApp"
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
@@ -331,9 +331,9 @@ function MobileApp() {
               onClick={(e) => {
                 e.preventDefault();
                 // Try to open in Twitter app first, fallback to browser
-                window.location.href = 'twitter://user?screen_name=BlockMintApp';
+                window.location.href = 'twitter://user?screen_name=BlockMintingApp';
                 setTimeout(() => {
-                  window.location.href = 'https://x.com/BlockMintApp';
+                  window.location.href = 'https://x.com/BlockMintingApp';
                 }, 500);
               }}
             >

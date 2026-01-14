@@ -287,7 +287,6 @@ export const miningPurchases = pgTable("mining_purchases", {
   userId: varchar("user_id").notNull().references(() => users.id),
   packageName: text("package_name").notNull(), // Pro, Premium, Premium+, Custom
   crypto: text("crypto").notNull().default("BTC"), // BTC, LTC
-  symbol: text("symbol").notNull().default("USDT"), // USDT, BTC, ETH, LTC, BNB, USDC
   amount: real("amount").notNull(), // Purchase price
   hashrate: real("hashrate").notNull(),
   hashrateUnit: text("hashrate_unit").notNull().default("TH/s"),

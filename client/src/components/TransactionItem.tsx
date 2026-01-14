@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Pickaxe } from "lucide-react";
+import { ArrowDownLeft, ArrowDownToLine, ArrowUpRight, Pickaxe, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import type { Transaction } from "@/lib/types";
@@ -11,22 +11,28 @@ interface TransactionItemProps {
 
 export function TransactionItem({ transaction, index }: TransactionItemProps) {
   const { format } = useCurrency();
-  const icons = {
+  const icons: Record<Transaction["type"], (typeof ArrowDownLeft)> = {
     earned: Pickaxe,
     withdrawn: ArrowUpRight,
     received: ArrowDownLeft,
+    deposit: ArrowDownToLine,
+    exchange: Repeat,
   };
 
-  const colors = {
+  const colors: Record<Transaction["type"], string> = {
     earned: "from-emerald-500/20 to-green-500/10 text-emerald-400",
     withdrawn: "from-orange-500/20 to-amber-500/10 text-orange-400",
     received: "from-blue-500/20 to-indigo-500/10 text-blue-400",
+    deposit: "from-emerald-500/20 to-green-500/10 text-emerald-400",
+    exchange: "from-purple-500/20 to-fuchsia-500/10 text-purple-400",
   };
 
-  const labels = {
+  const labels: Record<Transaction["type"], string> = {
     earned: "Mining Reward",
     withdrawn: "Withdrawal",
     received: "Received",
+    deposit: "Deposit",
+    exchange: "Exchange",
   };
 
   const Icon = icons[transaction.type];

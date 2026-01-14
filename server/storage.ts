@@ -174,6 +174,8 @@ export class MemStorage implements IStorage {
       photoUrl: insertUser.photoUrl || null,
       role: insertUser.role || "user",
       isActive: insertUser.isActive !== undefined ? insertUser.isActive : true,
+      twoFactorEnabled: insertUser.twoFactorEnabled ?? false,
+      twoFactorSecret: insertUser.twoFactorSecret ?? null,
       lastLoginAt: insertUser.lastLoginAt || null,
     };
     this.users.set(id, user);

@@ -160,6 +160,25 @@ interface User {
   role?: string;
 }
 
+interface AdminUserPurchasesResponse {
+  orders: Array<{
+    id: string;
+    type: string;
+    productName: string;
+    amount: number;
+    currency: string;
+    status?: string;
+    createdAt?: string;
+    completedAt?: string;
+    details?: any;
+  }>;
+}
+
+interface UserBalancesResponse {
+  balances: Array<{ symbol: string; balance: number }>;
+  pending: Record<string, number>;
+}
+
 interface AppConfig {
   id: string;
   key: string;
@@ -192,6 +211,16 @@ export function DatabaseAdmin() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
+
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userDetailsDialogOpen, setUserDetailsDialogOpen] = useState(false);
+
+  // UI-only filters
+  const [userSearch, setUserSearch] = useState("");
+  const [userStatusFilter, setUserStatusFilter] = useState<"all" | "active" | "blocked">("all");
+  const [depositSearch, setDepositSearch] = useState("");
+  const [depositStatusFilter, setDepositStatusFilter] = useState<"all" | "pending" | "confirmed" | "rejected">("all");
+  const [depositCurrencyFilter, setDepositCurrencyFilter] = useState<string>("all");
   
   // Config states
   const [newConfigKey, setNewConfigKey] = useState("");
@@ -260,6 +289,40 @@ export function DatabaseAdmin() {
     refetchInterval: 10000,
   });
 
+  const { data: selectedUserBalances } = useQuery<UserBalancesResponse>({
+    queryKey: ["/api/balances", selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) return { balances: [], pending: {} };
+      const res = await fetch(`/api/balances/${selectedUserId}`);
+      if (!res.ok) throw new Error("Failed to fetch balances");
+      return res.json();
+    },
+    enabled: isAuthenticated && !!selectedUserId && userDetailsDialogOpen,
+  });
+
+  const { data: selectedUserPurchases } = useQuery<AdminUserPurchasesResponse>({
+    queryKey: ["/api/admin/users", selectedUserId, "purchases"],
+    queryFn: async () => {
+      if (!selectedUserId) return { orders: [] };
+      const res = await fetch(`/api/admin/users/${selectedUserId}/purchases`);
+      if (!res.ok) throw new Error("Failed to fetch purchases");
+      return res.json();
+    },
+    enabled: isAuthenticated && !!selectedUserId && userDetailsDialogOpen,
+  });
+
+  const selectedBalancesList = selectedUserBalances?.balances || [];
+  const selectedOrders = selectedUserPurchases?.orders || [];
+  const selectedUser = selectedUserId ? users.find((u) => u.id === selectedUserId) : undefined;
+
+  const activeMiningOrders = selectedOrders.filter(
+    (o) => o.type === "mining_purchase" && o.details?.status === "active"
+  );
+  const activeEarnOrders = selectedOrders.filter(
+    (o) => o.type === "earn_subscription" && o.details?.status === "active"
+  );
+  const totalSpent = selectedOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+
   const { data: config = [] } = useQuery<AppConfig[]>({
     queryKey: ["/api/admin/config"],
     enabled: isAuthenticated && activeNav === "config",
@@ -268,6 +331,11 @@ export function DatabaseAdmin() {
   const { data: articles = [] } = useQuery<Article[]>({
     queryKey: ["/api/articles"],
     enabled: isAuthenticated && activeNav === "articles",
+    select: (data: any) => {
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.articles)) return data.articles;
+      return [];
+    },
   });
 
   // Mutations
@@ -473,74 +541,7 @@ export function DatabaseAdmin() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Desktop */}
-      <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: 0 }}
-        className="hidden lg:flex w-64 border-r border-border flex-col bg-card"
-      >
-        {/* Logo / Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Database className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-bold text-lg">Admin Panel</h2>
-              <p className="text-xs text-muted-foreground">Database Management</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveNav(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeNav === item.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-              {item.badge !== undefined && item.badge > 0 && (
-                <Badge className="ml-auto bg-amber-500">{item.badge}</Badge>
-              )}
-            </button>
-          ))}
-
-          <div className="pt-4 mt-4 border-t border-border">
-            <p className="px-4 text-xs font-semibold text-muted-foreground mb-2">SETTINGS</p>
-            {settingsItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveNav(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeNav === item.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        {/* Logout Button */}
-        <div className="p-4 border-t border-border">
-          <Button onClick={handleLogout} variant="outline" className="w-full">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </motion.aside>
-
-      {/* Mobile Sidebar */}
+      {/* Hamburger Sidebar Drawer (all screen sizes) */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -549,13 +550,13 @@ export function DatabaseAdmin() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-40"
             />
             <motion.aside
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
-              className="fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border z-50 flex flex-col lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-72 max-w-[85vw] bg-card border-r border-border z-50 flex flex-col"
             >
               <div className="p-6 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -628,13 +629,33 @@ export function DatabaseAdmin() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 bg-card border-b border-border p-4 flex items-center justify-between">
-          <Button size="icon" variant="ghost" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="font-bold capitalize">{activeNav.replace("-", " ")}</h1>
-          <div className="w-10" />
+        {/* Header (all sizes) */}
+        <div className="sticky top-0 z-30 bg-card/80 backdrop-blur border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button size="icon" variant="ghost" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-lg font-bold capitalize">{activeNav.replace("-", " ")}</h1>
+              <p className="text-xs text-muted-foreground">Database admin tools</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                queryClient.invalidateQueries();
+                toast({ title: "Refreshing…" });
+              }}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Content Area */}
@@ -655,8 +676,49 @@ export function DatabaseAdmin() {
                     <p className="text-muted-foreground">Manage all registered users</p>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total users</p>
+                      <p className="text-2xl font-bold">{users.length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Active</p>
+                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Blocked</p>
+                      <p className="text-2xl font-bold">{users.filter(u => !u.isActive).length}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-2">
+                      <Label className="text-xs text-muted-foreground">Search users</Label>
+                      <Input
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        placeholder="Search by email or display name…"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={userStatusFilter} onValueChange={(v) => setUserStatusFilter(v as any)}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="blocked">Blocked</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div className="bg-card rounded-xl border border-border overflow-hidden">
-                    <Table>
+                    <div className="overflow-x-auto">
+                      <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Email</TableHead>
@@ -666,7 +728,21 @@ export function DatabaseAdmin() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {users.map((user) => (
+                        {users
+                          .filter((u) => {
+                            const q = userSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              u.email.toLowerCase().includes(q) ||
+                              (u.displayName || "").toLowerCase().includes(q)
+                            );
+                          })
+                          .filter((u) => {
+                            if (userStatusFilter === "all") return true;
+                            if (userStatusFilter === "active") return !!u.isActive;
+                            return !u.isActive;
+                          })
+                          .map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.email}</TableCell>
                             <TableCell>{user.displayName || "—"}</TableCell>
@@ -677,6 +753,17 @@ export function DatabaseAdmin() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedUserId(user.id);
+                                    setUserDetailsDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View
+                                </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -731,7 +818,8 @@ export function DatabaseAdmin() {
                           </TableRow>
                         ))}
                       </TableBody>
-                    </Table>
+                      </Table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -744,6 +832,108 @@ export function DatabaseAdmin() {
                     <p className="text-muted-foreground">Review and approve deposit requests</p>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Pending</p>
+                      <p className="text-2xl font-bold">{pendingDeposits.length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Showing recent</p>
+                      <p className="text-2xl font-bold">{Math.min(allDeposits.length, 20)}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Confirmed (recent)</p>
+                      <p className="text-2xl font-bold">{allDeposits.slice(0, 20).filter(d => d.status === "confirmed").length}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-3">
+                      <Label className="text-xs text-muted-foreground">Search deposits</Label>
+                      <Input
+                        value={depositSearch}
+                        onChange={(e) => setDepositSearch(e.target.value)}
+                        placeholder="Search by user email, currency, network…"
+                        className="mt-2"
+                      />
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-2">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={depositStatusFilter} onValueChange={(v) => setDepositStatusFilter(v as any)}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-1">
+                      <Label className="text-xs text-muted-foreground">Currency</Label>
+                      <Select value={depositCurrencyFilter} onValueChange={setDepositCurrencyFilter}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="USDT">USDT</SelectItem>
+                          <SelectItem value="BTC">BTC</SelectItem>
+                          <SelectItem value="ETH">ETH</SelectItem>
+                          <SelectItem value="LTC">LTC</SelectItem>
+                          <SelectItem value="USDC">USDC</SelectItem>
+                          <SelectItem value="BNB">BNB</SelectItem>
+                          <SelectItem value="TON">TON</SelectItem>
+                          <SelectItem value="ZCASH">ZCASH</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={depositStatusFilter === "all" ? "default" : "outline"}
+                      onClick={() => setDepositStatusFilter("all")}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={depositStatusFilter === "pending" ? "default" : "outline"}
+                      onClick={() => setDepositStatusFilter("pending")}
+                    >
+                      Pending
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={depositStatusFilter === "confirmed" ? "default" : "outline"}
+                      onClick={() => setDepositStatusFilter("confirmed")}
+                    >
+                      Confirmed
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={depositStatusFilter === "rejected" ? "default" : "outline"}
+                      onClick={() => setDepositStatusFilter("rejected")}
+                    >
+                      Rejected
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setDepositSearch("");
+                        setDepositStatusFilter("all");
+                        setDepositCurrencyFilter("all");
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+
                   {/* Pending Deposits */}
                   <div>
                     <div className="flex items-center gap-3 mb-4">
@@ -752,13 +942,27 @@ export function DatabaseAdmin() {
                     </div>
 
                     <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      {pendingDeposits.length === 0 ? (
+                      {pendingDeposits
+                        .filter((d) => {
+                          const q = depositSearch.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            (d.userEmail || "").toLowerCase().includes(q) ||
+                            (d.currency || "").toLowerCase().includes(q) ||
+                            (d.network || "").toLowerCase().includes(q)
+                          );
+                        })
+                        .filter((d) => {
+                          if (depositCurrencyFilter === "all") return true;
+                          return (d.currency || "").toUpperCase() === depositCurrencyFilter;
+                        }).length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
                           <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                          <p>No pending deposits</p>
+                          <p>No pending deposits match your filters</p>
                         </div>
                       ) : (
-                        <Table>
+                        <div className="overflow-x-auto">
+                          <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>User</TableHead>
@@ -769,7 +973,21 @@ export function DatabaseAdmin() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {pendingDeposits.map((deposit) => (
+                            {pendingDeposits
+                              .filter((d) => {
+                                const q = depositSearch.trim().toLowerCase();
+                                if (!q) return true;
+                                return (
+                                  (d.userEmail || "").toLowerCase().includes(q) ||
+                                  (d.currency || "").toLowerCase().includes(q) ||
+                                  (d.network || "").toLowerCase().includes(q)
+                                );
+                              })
+                              .filter((d) => {
+                                if (depositCurrencyFilter === "all") return true;
+                                return (d.currency || "").toUpperCase() === depositCurrencyFilter;
+                              })
+                              .map((deposit) => (
                               <TableRow key={deposit.id}>
                                 <TableCell>
                                   <div>
@@ -816,7 +1034,8 @@ export function DatabaseAdmin() {
                               </TableRow>
                             ))}
                           </TableBody>
-                        </Table>
+                          </Table>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -825,43 +1044,65 @@ export function DatabaseAdmin() {
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Recent Deposits</h3>
                     <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Date</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {allDeposits.slice(0, 20).map((deposit) => (
-                            <TableRow key={deposit.id}>
-                              <TableCell className="font-medium">{deposit.userEmail || "Unknown"}</TableCell>
-                              <TableCell>
-                                {deposit.amount} {deposit.currency}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    deposit.status === "confirmed"
-                                      ? "default"
-                                      : deposit.status === "rejected"
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                >
-                                  {deposit.status === "confirmed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                                  {deposit.status === "rejected" && <XCircle className="w-3 h-3 mr-1" />}
-                                  {deposit.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
-                                  {deposit.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>User</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Date</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                              {allDeposits
+                                .slice(0, 20)
+                                .filter((d) => {
+                                  const q = depositSearch.trim().toLowerCase();
+                                  if (!q) return true;
+                                  return (
+                                    (d.userEmail || "").toLowerCase().includes(q) ||
+                                    (d.currency || "").toLowerCase().includes(q) ||
+                                    (d.network || "").toLowerCase().includes(q) ||
+                                    (d.status || "").toLowerCase().includes(q)
+                                  );
+                                })
+                                .filter((d) => {
+                                  if (depositCurrencyFilter === "all") return true;
+                                  return (d.currency || "").toUpperCase() === depositCurrencyFilter;
+                                })
+                                .filter((d) => {
+                                  if (depositStatusFilter === "all") return true;
+                                  return (d.status || "").toLowerCase() === depositStatusFilter;
+                                })
+                                .map((deposit) => (
+                              <TableRow key={deposit.id}>
+                                <TableCell className="font-medium">{deposit.userEmail || "Unknown"}</TableCell>
+                                <TableCell>
+                                  {deposit.amount} {deposit.currency}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      deposit.status === "confirmed"
+                                        ? "default"
+                                        : deposit.status === "rejected"
+                                        ? "destructive"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {deposit.status === "confirmed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                                    {deposit.status === "rejected" && <XCircle className="w-3 h-3 mr-1" />}
+                                    {deposit.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
+                                    {deposit.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1310,6 +1551,120 @@ export function DatabaseAdmin() {
             </Button>
             <Button onClick={() => selectedDeposit && confirmDeposit.mutate(selectedDeposit.id)}>
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Dialog */}
+      <Dialog
+        open={userDetailsDialogOpen}
+        onOpenChange={(open) => {
+          setUserDetailsDialogOpen(open);
+          if (!open) setSelectedUserId(null);
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              {selectedUser ? `${selectedUser.email}${selectedUser.displayName ? ` • ${selectedUser.displayName}` : ""}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-card rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">Wallet Balances</p>
+                <div className="mt-2 space-y-1">
+                  {selectedBalancesList.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No balances</p>
+                  ) : (
+                    selectedBalancesList
+                      .slice()
+                      .sort((a, b) => a.symbol.localeCompare(b.symbol))
+                      .map((b) => (
+                        <div key={b.symbol} className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{b.symbol}</span>
+                          <span>{Number(b.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 8 })}</span>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-card rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">Active Products</p>
+                <div className="mt-2 space-y-2">
+                  <div className="text-sm">
+                    <span className="font-medium">Mining:</span> {activeMiningOrders.length}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">Earn:</span> {activeEarnOrders.length}
+                  </div>
+                  {(activeMiningOrders.length > 0 || activeEarnOrders.length > 0) && (
+                    <div className="pt-2 space-y-1 text-xs text-muted-foreground">
+                      {[...activeMiningOrders, ...activeEarnOrders].slice(0, 4).map((o) => (
+                        <div key={o.id} className="truncate">• {o.productName}</div>
+                      ))}
+                      {[...activeMiningOrders, ...activeEarnOrders].length > 4 && (
+                        <div>…and more</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-card rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">Total Spent</p>
+                <p className="mt-2 text-2xl font-bold">{totalSpent.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p className="text-xs text-muted-foreground">Sum of recorded orders</p>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="p-4 border-b border-border">
+                <h3 className="font-semibold">Spend / Order History</h3>
+                <p className="text-xs text-muted-foreground">Latest orders for this user</p>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No orders found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      selectedOrders.slice(0, 50).map((o) => (
+                        <TableRow key={o.id}>
+                          <TableCell className="font-medium">{o.type}</TableCell>
+                          <TableCell>{o.productName}</TableCell>
+                          <TableCell>
+                            {Number(o.amount || 0).toLocaleString(undefined, { maximumFractionDigits: 8 })} {o.currency}
+                          </TableCell>
+                          <TableCell>{o.status || o.details?.status || "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserDetailsDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
