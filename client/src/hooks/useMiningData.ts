@@ -53,19 +53,45 @@ export function useMiningData() {
       const res = await fetch(`/api/balances/${userId}`);
       if (!res.ok) return { balances: [], totalBalance: 0, change24h: 0, pending: {} };
       const data = await res.json();
-      
-      // Fetch crypto prices
-      const pricesRes = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,ethereum,tether,usd-coin&vs_currencies=usd");
-      const prices = await pricesRes.json();
-      
-      // Map symbols to CoinGecko IDs
-      const priceMap: Record<string, number> = {
-        BTC: prices.bitcoin?.usd || 0,
-        LTC: prices.litecoin?.usd || 0,
-        ETH: prices.ethereum?.usd || 0,
-        USDT: prices.tether?.usd || 1,
-        USDC: prices["usd-coin"]?.usd || 1,
+
+      // Fetch crypto prices (never let CoinGecko downtime break the app)
+      let priceMap: Record<string, number> = {
+        BTC: 0,
+        LTC: 0,
+        ETH: 0,
+        USDT: 1,
+        USDC: 1,
+        BNB: 0,
+        ZCASH: 0,
+        TON: 0,
       };
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const pricesRes = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,ethereum,tether,usd-coin,binancecoin,zcash,ton&vs_currencies=usd",
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+
+        if (pricesRes.ok) {
+          const prices = await pricesRes.json();
+          priceMap = {
+            BTC: prices.bitcoin?.usd || 0,
+            LTC: prices.litecoin?.usd || 0,
+            ETH: prices.ethereum?.usd || 0,
+            USDT: prices.tether?.usd || 1,
+            USDC: prices["usd-coin"]?.usd || 1,
+            BNB: prices.binancecoin?.usd || 0,
+            ZCASH: prices.zcash?.usd || 0,
+            TON: prices.ton?.usd || 0,
+          };
+        }
+      } catch (err) {
+        console.warn("Failed to fetch crypto prices:", err);
+      }
       
       // Calculate total balance from wallet balances
       const totalBalance = data.balances?.reduce((sum: number, wallet: any) => {

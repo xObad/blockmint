@@ -201,6 +201,24 @@ export function Dashboard({
     if (balanceDiff !== 0) return balanceDiff;
     return a.symbol.localeCompare(b.symbol);
   });
+
+  // Trending coins should only show market prices for 4 main coins
+  const trendingCoins = allCurrencies
+    .filter((c) => ["BTC", "ETH", "USDT", "LTC"].includes(c.symbol))
+    .map((curr) => {
+      const existing = balances.find((b) => b.symbol === curr.symbol);
+      return (
+        existing || {
+          id: `trending-${curr.symbol}`,
+          symbol: curr.symbol,
+          name: curr.name,
+          balance: 0,
+          usdValue: 0,
+          change24h:
+            cryptoPrices[curr.symbol as keyof typeof cryptoPrices]?.change24h || 0,
+        }
+      );
+    });
   
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -1078,7 +1096,7 @@ export function Dashboard({
         </div>
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
           <div className="grid grid-cols-2 gap-3 min-w-max sm:min-w-0">
-          {sortedBalances.map((balance, index) => {
+          {trendingCoins.map((balance, index) => {
             const cryptoData = cryptoPrices[balance.symbol as keyof typeof cryptoPrices];
             const price = cryptoData?.price || 0;
             const change24h = cryptoData?.change24h || balance.change24h || 0;
