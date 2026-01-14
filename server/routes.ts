@@ -452,6 +452,74 @@ export async function registerRoutes(
     }
   });
 
+  // Get user purchases/orders (admin view)
+  app.get("/api/admin/users/:userId/purchases", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { orders, miningPurchases, earnSubscriptions } = await import("@shared/schema");
+      
+      // Get all orders for this user
+      const userOrders = await db.select()
+        .from(orders)
+        .where(eq(orders.userId, userId))
+        .orderBy(desc(orders.createdAt));
+
+      // Fetch associated mining purchases and earn subscriptions
+      const miningData = await db.select()
+        .from(miningPurchases)
+        .where(eq(miningPurchases.userId, userId));
+
+      const earnData = await db.select()
+        .from(earnSubscriptions)
+        .where(eq(earnSubscriptions.userId, userId));
+
+      // Combine data
+      const enrichedOrders = userOrders.map(order => {
+        let details = {};
+        
+        if (order.type === "mining_purchase") {
+          const mining = miningData.find(m => m.id === order.productId);
+          if (mining) {
+            details = {
+              packageName: mining.packageName,
+              crypto: mining.crypto,
+              symbol: mining.symbol,
+              hashrate: mining.hashrate,
+              hashrateUnit: mining.hashrateUnit,
+              status: mining.status,
+              totalEarned: mining.totalEarned,
+              purchaseDate: mining.purchaseDate,
+            };
+          }
+        } else if (order.type === "earn_subscription") {
+          const earn = earnData.find(e => e.id === order.productId);
+          if (earn) {
+            details = {
+              planId: earn.planId,
+              symbol: earn.symbol,
+              durationType: earn.durationType,
+              aprRate: earn.aprRate,
+              status: earn.status,
+              totalEarned: earn.totalEarned,
+              startDate: earn.startDate,
+              endDate: earn.endDate,
+            };
+          }
+        }
+
+        return {
+          ...order,
+          details
+        };
+      });
+
+      res.json({ orders: enrichedOrders });
+    } catch (error) {
+      console.error("Error getting user purchases:", error);
+      res.status(500).json({ error: "Failed to get user purchases" });
+    }
+  });
+
   // Admin: Credit or debit user balance
   app.post("/api/admin/adjust-balance", async (req, res) => {
     try {
@@ -2149,6 +2217,75 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error verifying 2FA login:", error);
       res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // ============ PRODUCT MANAGEMENT (Admin) ============
+
+  // Get all products
+  app.get("/api/admin/products", async (_req, res) => {
+    try {
+      const { products } = await import("@shared/schema");
+      const allProducts = await db.select()
+        .from(products)
+        .orderBy(desc(products.createdAt));
+      res.json(allProducts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get products" });
+    }
+  });
+
+  // Create a new product
+  app.post("/api/admin/products", async (req, res) => {
+    try {
+      const { type, name, description, basePrice, currency, metadata } = req.body;
+      const { products } = await import("@shared/schema");
+      
+      if (!type || !name || basePrice === undefined) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const [product] = await db.insert(products).values({
+        type,
+        name,
+        description,
+        basePrice,
+        currency: currency || "USDT",
+        metadata: metadata || {},
+        isActive: true,
+      }).returning();
+
+      res.json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: "Failed to create product" });
+    }
+  });
+
+  // Update product
+  app.patch("/api/admin/products/:productId", async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const { name, description, basePrice, currency, metadata, isActive } = req.body;
+      const { products } = await import("@shared/schema");
+      
+      const [product] = await db.update(products)
+        .set({
+          ...(name && { name }),
+          ...(description && { description }),
+          ...(basePrice !== undefined && { basePrice }),
+          ...(currency && { currency }),
+          ...(metadata && { metadata }),
+          ...(isActive !== undefined && { isActive }),
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId))
+        .returning();
+
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ error: "Failed to update product" });
     }
   });
 

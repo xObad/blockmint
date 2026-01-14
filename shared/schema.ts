@@ -1031,3 +1031,26 @@ export const insertArticleSchema = createInsertSchema(articles).omit({
 
 export type InsertArticle = z.infer<typeof insertArticleSchema>;
 export type Article = typeof articles.$inferSelect;
+// ============ PRODUCTS (Track all products for admin visibility) ============
+
+export const products = pgTable("products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(), // mining_package, investment_plan
+  name: text("name").notNull(), // Pro, Premium, etc
+  description: text("description"),
+  basePrice: real("base_price").notNull(), // Price in USD
+  currency: text("currency").notNull().default("USDT"), // Base currency
+  metadata: jsonb("metadata"), // Hashrate, APR, duration, etc.
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;

@@ -25,6 +25,7 @@ User sees updated balance in Dashboard/Wallet
 ```
 
 ### 2. Database Schema
+###
 
 **Users Table**
 - `id`: Unique identifier (database ID, not Firebase UID)
