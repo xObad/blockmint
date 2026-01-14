@@ -167,6 +167,41 @@ export function Dashboard({
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { toast } = useToast();
   const { prices: cryptoPrices } = useCryptoPrices();
+  
+  // Ensure all 8 currencies are shown even with 0 balance
+  const allCurrencies = [
+    { symbol: "USDT", name: "Tether" },
+    { symbol: "BTC", name: "Bitcoin" },
+    { symbol: "ETH", name: "Ethereum" },
+    { symbol: "LTC", name: "Litecoin" },
+    { symbol: "BNB", name: "BNB" },
+    { symbol: "USDC", name: "USD Coin" },
+    { symbol: "ZCASH", name: "ZCash" },
+    { symbol: "TON", name: "TON" },
+  ];
+
+  // Merge actual balances with all currencies (show 0 if not found)
+  const balancesWithZeros = allCurrencies.map((curr) => {
+    const existing = balances.find(b => b.symbol === curr.symbol);
+    if (existing) return existing;
+    
+    return {
+      id: `zero-${curr.symbol}`,
+      symbol: curr.symbol,
+      name: curr.name,
+      balance: 0,
+      usdValue: 0,
+      change24h: cryptoPrices[curr.symbol as keyof typeof cryptoPrices]?.change24h || 0,
+    };
+  });
+
+  // Sort by balance (highest first), then alphabetically
+  const sortedBalances = [...balancesWithZeros].sort((a, b) => {
+    const balanceDiff = b.balance - a.balance;
+    if (balanceDiff !== 0) return balanceDiff;
+    return a.symbol.localeCompare(b.symbol);
+  });
+  
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("USDT");
@@ -315,7 +350,38 @@ export function Dashboard({
     });
   };
 
-  const safeChange24h = change24h ?? 0;
+  // Calculate real portfolio change based on actual price movements
+  const calculateRealPortfolioChange = () => {
+    if (!sortedBalances || sortedBalances.length === 0 || totalBalance === 0) {
+      return 0;
+    }
+
+    let totalCurrentValue = 0;
+    let totalValue24hAgo = 0;
+
+    sortedBalances.forEach(balance => {
+      const cryptoData = cryptoPrices[balance.symbol as keyof typeof cryptoPrices];
+      const currentPrice = cryptoData?.price || 0;
+      const change24h = cryptoData?.change24h || 0;
+      
+      // Calculate current USD value
+      const currentValue = balance.balance * currentPrice;
+      
+      // Calculate value 24h ago
+      const price24hAgo = currentPrice / (1 + change24h / 100);
+      const value24hAgo = balance.balance * price24hAgo;
+      
+      totalCurrentValue += currentValue;
+      totalValue24hAgo += value24hAgo;
+    });
+
+    // Calculate percentage change
+    if (totalValue24hAgo === 0) return 0;
+    return ((totalCurrentValue - totalValue24hAgo) / totalValue24hAgo) * 100;
+  };
+
+  const realPortfolioChange = calculateRealPortfolioChange();
+  const safeChange24h = realPortfolioChange;
   const isPositiveChange = safeChange24h >= 0;
   const totalEarned = 0;
   const daysActive = 0;
@@ -1010,8 +1076,9 @@ export function Dashboard({
             Trending Cryptocurrencies
           </h2>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          {balances.map((balance, index) => {
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="grid grid-cols-2 gap-3 min-w-max sm:min-w-0">
+          {sortedBalances.map((balance, index) => {
             const cryptoData = cryptoPrices[balance.symbol as keyof typeof cryptoPrices];
             const price = cryptoData?.price || 0;
             const change24h = cryptoData?.change24h || balance.change24h || 0;
@@ -1020,7 +1087,7 @@ export function Dashboard({
               <GlassCard 
                 key={balance.id}
                 delay={0.53 + index * 0.05} 
-                className="p-3"
+                className="p-3 w-40 sm:w-auto"
                 data-testid={`trending-crypto-${balance.symbol.toLowerCase()}`}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -1061,6 +1128,7 @@ export function Dashboard({
               </GlassCard>
             );
           })}
+          </div>
         </div>
       </motion.div>
 
