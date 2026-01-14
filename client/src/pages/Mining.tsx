@@ -780,10 +780,12 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   const hasContracts = contracts.length > 0;
   
   // Fetch user's wallet balances
-  const { data: wallets = [] } = useQuery<Array<{ symbol: string; balance: number }>>({
-    queryKey: [`/api/wallets/${user?.uid}`],
+  const { data: balanceData } = useQuery<{ balances: Array<{ symbol: string; balance: number }>, pending: Record<string, number> }>({
+    queryKey: [`/api/balances/${user?.uid}`],
     enabled: !!user?.uid,
   });
+  
+  const wallets = balanceData?.balances || [];
 
   // Fetch user's mining purchases
   const { data: miningPurchases = [] } = useQuery<any[]>({
@@ -806,7 +808,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/wallets/${user?.uid}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/balances/${user?.uid}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.uid}/mining-purchases`] });
       toast({
         title: "Purchase Successful!",

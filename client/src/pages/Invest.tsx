@@ -167,16 +167,18 @@ function APRCalculator() {
   const currentUser = getCurrentUser();
 
   // Fetch user's wallet balance
-  const { data: wallets } = useQuery({
-    queryKey: ["/api/wallets", currentUser?.uid],
+  const { data: balanceData } = useQuery({
+    queryKey: ["/api/balances", currentUser?.uid],
     queryFn: async () => {
-      if (!currentUser) return [];
-      const response = await fetch(`/api/users/${currentUser.uid}/wallets`);
-      if (!response.ok) throw new Error("Failed to fetch wallets");
+      if (!currentUser) return { balances: [], pending: {} };
+      const response = await fetch(`/api/balances/${currentUser.uid}`);
+      if (!response.ok) throw new Error("Failed to fetch balances");
       return response.json();
     },
     enabled: !!currentUser,
   });
+  
+  const wallets = balanceData?.balances || [];
 
   // Create earn subscription mutation
   const createSubscription = useMutation({
@@ -204,7 +206,7 @@ function APRCalculator() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", currentUser?.uid] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Investment Created!",
@@ -522,7 +524,7 @@ function ActiveInvestments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", currentUser?.uid] });
       toast({
         title: "Withdrawal Successful",
         description: "Funds have been returned to your wallet.",
