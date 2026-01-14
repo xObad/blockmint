@@ -39,8 +39,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   CheckCircle2,
   XCircle,
@@ -226,6 +226,11 @@ export function DatabaseAdmin() {
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userDetailsDialogOpen, setUserDetailsDialogOpen] = useState(false);
+
+  const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
+  const [terminatePurchaseId, setTerminatePurchaseId] = useState<string | null>(null);
+  const [terminateReasonPreset, setTerminateReasonPreset] = useState<"expired" | "out_of_stock" | "custom">("expired");
+  const [terminateCustomMessage, setTerminateCustomMessage] = useState("");
 
   // UI-only filters
   const [userSearch, setUserSearch] = useState("");
@@ -434,11 +439,30 @@ export function DatabaseAdmin() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/api/admin/users", selectedUserId, "purchases"] });
       toast({ title: "Purchase terminated" });
+
+      setTerminateDialogOpen(false);
+      setTerminatePurchaseId(null);
+      setTerminateReasonPreset("expired");
+      setTerminateCustomMessage("");
     },
     onError: (error: any) => {
       toast({ title: "Terminate failed", description: error?.message || "Could not terminate purchase", variant: "destructive" });
     },
   });
+
+  const openTerminateDialog = (purchaseId: string) => {
+    setTerminatePurchaseId(purchaseId);
+    setTerminateReasonPreset("expired");
+    setTerminateCustomMessage("");
+    setTerminateDialogOpen(true);
+  };
+
+  const computedTerminateReason =
+    terminateReasonPreset === "expired"
+      ? "Expired"
+      : terminateReasonPreset === "out_of_stock"
+        ? "Out of stock"
+        : terminateCustomMessage.trim();
 
   const addConfig = useMutation({
     mutationFn: async (data: { key: string; value: string; category: string; description: string }) =>
@@ -1706,29 +1730,14 @@ export function DatabaseAdmin() {
                               <TableCell>{expires ? new Date(expires).toLocaleDateString() : "—"}</TableCell>
                               <TableCell className="text-right">
                                 {status === "active" ? (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button size="sm" variant="destructive" disabled={terminateMiningPurchase.isPending}>
-                                        Terminate
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Terminate this purchase?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will mark the mining purchase as completed and stop it from counting as active.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => terminateMiningPurchase.mutate({ purchaseId: o.productId })}
-                                        >
-                                          Terminate
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={terminateMiningPurchase.isPending}
+                                    onClick={() => openTerminateDialog(o.productId)}
+                                  >
+                                    Terminate
+                                  </Button>
                                 ) : (
                                   "—"
                                 )}
@@ -1741,6 +1750,74 @@ export function DatabaseAdmin() {
                 </Table>
               </div>
             </div>
+
+            <AlertDialog open={terminateDialogOpen} onOpenChange={setTerminateDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Terminate this purchase?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark the mining purchase as completed and stop it from counting as active.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-3">
+                  <Label>Message to user</Label>
+                  <RadioGroup
+                    value={terminateReasonPreset}
+                    onValueChange={(v) => setTerminateReasonPreset(v as any)}
+                    className="grid gap-3"
+                  >
+                    <Label className="flex items-center gap-3 cursor-pointer">
+                      <RadioGroupItem value="expired" />
+                      <span>Expired</span>
+                    </Label>
+                    <Label className="flex items-center gap-3 cursor-pointer">
+                      <RadioGroupItem value="out_of_stock" />
+                      <span>Out of stock</span>
+                    </Label>
+                    <Label className="flex items-center gap-3 cursor-pointer">
+                      <RadioGroupItem value="custom" />
+                      <span>Custom message</span>
+                    </Label>
+                  </RadioGroup>
+
+                  {terminateReasonPreset === "custom" ? (
+                    <Textarea
+                      value={terminateCustomMessage}
+                      onChange={(e) => setTerminateCustomMessage(e.target.value)}
+                      placeholder="Write a message the user will see…"
+                      rows={3}
+                    />
+                  ) : null}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    onClick={() => {
+                      setTerminateDialogOpen(false);
+                      setTerminatePurchaseId(null);
+                      setTerminateReasonPreset("expired");
+                      setTerminateCustomMessage("");
+                    }}
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (!terminatePurchaseId) return;
+                      terminateMiningPurchase.mutate({ purchaseId: terminatePurchaseId, reason: computedTerminateReason });
+                    }}
+                    disabled={
+                      terminateMiningPurchase.isPending ||
+                      !terminatePurchaseId ||
+                      (terminateReasonPreset === "custom" && computedTerminateReason.length === 0)
+                    }
+                  >
+                    Terminate
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="p-4 border-b border-border">
