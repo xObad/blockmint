@@ -31,6 +31,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   CheckCircle2,
   XCircle,
   Clock,
@@ -164,6 +175,7 @@ interface AdminUserPurchasesResponse {
   orders: Array<{
     id: string;
     type: string;
+    productId: string;
     productName: string;
     amount: number;
     currency: string;
@@ -311,8 +323,8 @@ export function DatabaseAdmin() {
     enabled: isAuthenticated && !!selectedUserId && userDetailsDialogOpen,
   });
 
-  const selectedBalancesList = selectedUserBalances?.balances || [];
-  const selectedOrders = selectedUserPurchases?.orders || [];
+  const selectedBalancesList = selectedUserBalances?.balances ?? [];
+  const selectedOrders: AdminUserPurchasesResponse["orders"] = selectedUserPurchases?.orders ?? [];
   const selectedUser = selectedUserId ? users.find((u) => u.id === selectedUserId) : undefined;
 
   const activeMiningOrders = selectedOrders.filter(
@@ -405,6 +417,26 @@ export function DatabaseAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ title: "Balance adjusted successfully" });
+    },
+  });
+
+  const terminateMiningPurchase = useMutation({
+    mutationFn: async ({ purchaseId, reason }: { purchaseId: string; reason?: string }) => {
+      const res = await fetch(`/api/admin/mining-purchases/${purchaseId}/terminate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to terminate purchase");
+      return data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/users", selectedUserId, "purchases"] });
+      toast({ title: "Purchase terminated" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Terminate failed", description: error?.message || "Could not terminate purchase", variant: "destructive" });
     },
   });
 
@@ -1624,6 +1656,94 @@ export function DatabaseAdmin() {
 
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="p-4 border-b border-border">
+                <h3 className="font-semibold">Mining Purchases</h3>
+                <p className="text-xs text-muted-foreground">Active and past mining packages</p>
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Package</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Hashrate</TableHead>
+                      <TableHead>Bought</TableHead>
+                      <TableHead>Expires</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedOrders.filter((o) => o.type === "mining_purchase").length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No mining purchases found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      selectedOrders
+                        .filter((o) => o.type === "mining_purchase")
+                        .slice(0, 50)
+                        .map((o) => {
+                          const status = o.details?.status || o.status || "—";
+                          const bought = o.details?.purchaseDate || o.createdAt;
+                          const expires = o.details?.expiryDate;
+                          const isExpired = expires ? new Date(expires).getTime() < Date.now() : false;
+
+                          return (
+                            <TableRow key={o.id}>
+                              <TableCell className="font-medium">{o.productName}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <span>{status}</span>
+                                  {isExpired && status === "active" ? (
+                                    <Badge variant="destructive">Expired</Badge>
+                                  ) : null}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {o.details?.hashrate ? `${o.details.hashrate} ${o.details.hashrateUnit}` : "—"}
+                              </TableCell>
+                              <TableCell>{bought ? new Date(bought).toLocaleDateString() : "—"}</TableCell>
+                              <TableCell>{expires ? new Date(expires).toLocaleDateString() : "—"}</TableCell>
+                              <TableCell className="text-right">
+                                {status === "active" ? (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button size="sm" variant="destructive" disabled={terminateMiningPurchase.isPending}>
+                                        Terminate
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Terminate this purchase?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will mark the mining purchase as completed and stop it from counting as active.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => terminateMiningPurchase.mutate({ purchaseId: o.productId })}
+                                        >
+                                          Terminate
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                ) : (
+                                  "—"
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="p-4 border-b border-border">
                 <h3 className="font-semibold">Spend / Order History</h3>
                 <p className="text-xs text-muted-foreground">Latest orders for this user</p>
               </div>
@@ -1631,6 +1751,7 @@ export function DatabaseAdmin() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead>Amount</TableHead>
@@ -1640,13 +1761,16 @@ export function DatabaseAdmin() {
                   <TableBody>
                     {selectedOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
                           No orders found
                         </TableCell>
                       </TableRow>
                     ) : (
                       selectedOrders.slice(0, 50).map((o) => (
                         <TableRow key={o.id}>
+                          <TableCell>
+                            {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : (o.details?.purchaseDate ? new Date(o.details.purchaseDate).toLocaleDateString() : "—")}
+                          </TableCell>
                           <TableCell className="font-medium">{o.type}</TableCell>
                           <TableCell>{o.productName}</TableCell>
                           <TableCell>

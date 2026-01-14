@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Zap, 
   Target, 
@@ -15,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
+import { useToast } from "@/hooks/use-toast";
+import { getCurrentUser } from "@/lib/firebase";
 import {
   Accordion,
   AccordionContent,
@@ -82,6 +85,34 @@ export function SoloMining() {
   const [hashpower, setHashpower] = useState([50]);
   const [duration, setDuration] = useState([6]);
   const { btcPrice } = useBTCPrice();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const user = getCurrentUser();
+
+  const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
+  const storedUser = userStr
+    ? (() => {
+        try {
+          return JSON.parse(userStr);
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+  const dbUserId: string | null = storedUser?.id || null;
+
+  const { data: balanceData } = useQuery<{ balances: Array<{ symbol: string; balance: number }>; pending: Record<string, number> }>({
+    queryKey: ["/api/balances", dbUserId],
+    queryFn: async () => {
+      if (!dbUserId) return { balances: [], pending: {} };
+      const res = await fetch(`/api/balances/${dbUserId}`);
+      if (!res.ok) throw new Error("Failed to fetch balances");
+      return res.json();
+    },
+    enabled: !!dbUserId,
+  });
+
+  const availableUSDT = balanceData?.balances?.find((w) => w.symbol === "USDT")?.balance || 0;
 
   const calculations = useMemo(() => {
     const ph = hashpower[0];
@@ -120,6 +151,82 @@ export function SoloMining() {
   }, [hashpower, duration]);
 
   const isRecommended = hashpower[0] === 50 && duration[0] === 6;
+
+  const createSoloPurchase = useMutation({
+    mutationFn: async () => {
+      if (!dbUserId) throw new Error("Account not ready");
+
+      const months = duration[0];
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + months);
+
+      const res = await fetch("/api/mining/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: dbUserId,
+          packageName: `Solo Mining • ${hashpower[0]} PH/s • ${months} months`,
+          crypto: "BTC",
+          symbol: "USDT",
+          amount: calculations.cost,
+          hashrate: hashpower[0],
+          hashrateUnit: "PH/s",
+          efficiency: "Solo",
+          dailyReturnBTC: 0,
+          returnPercent: 0,
+          paybackMonths: months,
+          expiryDate: expiryDate.toISOString(),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to purchase");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", dbUserId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users", dbUserId, "mining-purchases"] });
+      toast({ title: "Solo Mining Started", description: "Your solo mining contract is now active." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Purchase Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleStartSoloMining = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to start solo mining.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!dbUserId) {
+      toast({
+        title: "Account Not Ready",
+        description: "Please refresh once, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (availableUSDT < calculations.cost) {
+      const needed = calculations.cost - availableUSDT;
+      toast({
+        title: "Deposit Required",
+        description: `You need $${needed.toFixed(2)} more USDT to start this contract.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createSoloPurchase.mutate();
+  };
 
   return (
     <>
@@ -360,9 +467,11 @@ export function SoloMining() {
             <Button 
               className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 border-blue-400/50 text-white"
               data-testid="button-start-mining"
+              onClick={handleStartSoloMining}
+              disabled={createSoloPurchase.isPending}
             >
               <Zap className="w-5 h-5 mr-2" />
-              Start Solo Mining
+              {createSoloPurchase.isPending ? "Processing..." : "Start Solo Mining"}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>

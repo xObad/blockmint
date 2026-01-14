@@ -10,7 +10,7 @@ import {
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or, desc, lte } from "drizzle-orm";
 import { generateSecret, generate, verify } from "otplib";
 import QRCode from "qrcode";
 
@@ -474,6 +474,13 @@ export async function registerRoutes(
     try {
       const { userId } = req.params;
       const { orders, miningPurchases, earnSubscriptions } = await import("@shared/schema");
+
+      // Auto-complete expired mining purchases for accurate admin view
+      await db
+        .update(miningPurchases)
+        .set({ status: "completed" })
+        .where(and(eq(miningPurchases.userId, userId), eq(miningPurchases.status, "active"), lte(miningPurchases.expiryDate, new Date())))
+        .catch(() => {});
       
       // Get all orders for this user
       const userOrders = await db.select()
@@ -506,6 +513,7 @@ export async function registerRoutes(
               status: mining.status,
               totalEarned: mining.totalEarned,
               purchaseDate: mining.purchaseDate,
+              expiryDate: mining.expiryDate,
             };
           }
         } else if (order.type === "earn_subscription") {
@@ -534,6 +542,53 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting user purchases:", error);
       res.status(500).json({ error: "Failed to get user purchases" });
+    }
+  });
+
+  // Admin: Terminate a mining purchase (mark completed)
+  app.post("/api/admin/mining-purchases/:purchaseId/terminate", async (req, res) => {
+    try {
+      const { purchaseId } = req.params;
+      const { reason } = (req.body || {}) as { reason?: string };
+
+      const { miningPurchases } = await import("@shared/schema");
+
+      const [purchase] = await db.select().from(miningPurchases).where(eq(miningPurchases.id, purchaseId));
+      if (!purchase) return res.status(404).json({ error: "Purchase not found" });
+
+      const [updated] = await db
+        .update(miningPurchases)
+        .set({ status: "completed", expiryDate: purchase.expiryDate || new Date() })
+        .where(eq(miningPurchases.id, purchaseId))
+        .returning();
+
+      await db
+        .insert(notifications)
+        .values({
+          userId: purchase.userId,
+          type: "purchase",
+          category: "user",
+          title: "Mining Contract Ended",
+          message: reason ? `Your mining contract was ended by admin: ${reason}` : "Your mining contract has ended.",
+          priority: "normal",
+          data: { purchaseId },
+        })
+        .catch(() => {});
+
+      await db
+        .insert(adminActions)
+        .values({
+          adminId: "system",
+          targetUserId: purchase.userId,
+          actionType: "terminate_mining_purchase",
+          details: { purchaseId, reason: reason || null },
+        })
+        .catch(() => {});
+
+      res.json({ success: true, purchase: updated });
+    } catch (error) {
+      console.error("Error terminating mining purchase:", error);
+      res.status(500).json({ error: "Failed to terminate purchase" });
     }
   });
 
@@ -1186,7 +1241,10 @@ export async function registerRoutes(
   // Get user's earn subscriptions
   app.get("/api/users/:userId/earn-subscriptions", async (req, res) => {
     try {
-      const { userId } = req.params;
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
       const { earnSubscriptions } = await import("@shared/schema");
       
       const subs = await db.select()
@@ -1214,7 +1272,8 @@ export async function registerRoutes(
         efficiency,
         dailyReturnBTC, 
         returnPercent,
-        paybackMonths
+        paybackMonths,
+        expiryDate
       } = req.body;
       const { miningPurchases, wallets, orders, notifications } = await import("@shared/schema");
 
@@ -1257,6 +1316,7 @@ export async function registerRoutes(
         dailyReturnBTC,
         returnPercent,
         paybackMonths,
+        expiryDate: expiryDate ? new Date(expiryDate) : undefined,
         status: "active",
       }).returning();
 
@@ -1296,8 +1356,18 @@ export async function registerRoutes(
   // Get user's mining purchases
   app.get("/api/users/:userId/mining-purchases", async (req, res) => {
     try {
-      const { userId } = req.params;
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+      }
       const { miningPurchases } = await import("@shared/schema");
+
+      // Auto-complete expired purchases so clients stop counting them as active
+      await db
+        .update(miningPurchases)
+        .set({ status: "completed" })
+        .where(and(eq(miningPurchases.userId, userId), eq(miningPurchases.status, "active"), lte(miningPurchases.expiryDate, new Date())))
+        .catch(() => {});
       
       const purchases = await db.select()
         .from(miningPurchases)

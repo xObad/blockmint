@@ -948,10 +948,30 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     createPurchase.mutate(purchasePayload);
   };
   
-  const totalHashrate = contracts.reduce((sum, c) => {
+  const activePurchases = (miningPurchases || []).filter((p: any) => p?.status === "active");
+
+  const totalHashrateFromContracts = contracts.reduce((sum, c) => {
     if (c.hashrateUnit === "TH/s") return sum + c.hashrate;
     if (c.hashrateUnit === "MH/s") return sum + c.hashrate / 1000000;
+    if (c.hashrateUnit === "PH/s") return sum + c.hashrate * 1000;
     return sum + c.hashrate / 1000;
+  }, 0);
+
+  const totalHashrateFromPurchases = activePurchases.reduce((sum: number, p: any) => {
+    const unit = p?.hashrateUnit;
+    const value = Number(p?.hashrate) || 0;
+    if (unit === "TH/s") return sum + value;
+    if (unit === "MH/s") return sum + value / 1000000;
+    if (unit === "PH/s") return sum + value * 1000;
+    return sum + value;
+  }, 0);
+
+  const totalHashrate = totalHashrateFromContracts + totalHashrateFromPurchases;
+  const investedAmount = activePurchases.reduce((sum: number, p: any) => sum + (Number(p?.amount) || 0), 0);
+  const projectedAmount = activePurchases.reduce((sum: number, p: any) => {
+    const amount = Number(p?.amount) || 0;
+    const roi = Number(p?.returnPercent) || 0;
+    return sum + amount * (1 + roi / 100);
   }, 0);
 
   const btcPackages = miningPackages.filter(p => p.crypto === "BTC");
@@ -986,6 +1006,9 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
               Your Active Hashpower
             </h2>
             <AnimatedHashrateDisplay value={totalHashrate} unit="TH/s" />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Invested: ${investedAmount.toFixed(2)} USDT • Projected: ${projectedAmount.toFixed(2)} USDT
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <motion.div
@@ -994,14 +1017,14 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
               transition={{ duration: 1.5, repeat: Infinity }}
             />
             <span className="text-xs text-muted-foreground">
-              {contracts.length} active
+              {contracts.length + activePurchases.length} active
             </span>
           </div>
         </div>
       </GlassCard>
 
       {/* Active Mining Purchases */}
-      <ActiveMiningPurchases purchases={miningPurchases} btcPrice={useBTCPrice().btcPrice} />
+      <ActiveMiningPurchases purchases={miningPurchases} btcPrice={btcPrice} />
 
       {/* Tabs */}
       <motion.div
