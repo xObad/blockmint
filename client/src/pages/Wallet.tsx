@@ -523,7 +523,6 @@ export function Wallet({
         <div className="absolute -right-4 -top-4 w-28 h-28 pointer-events-none opacity-20">
           <div className="w-full h-full rounded-full bg-gradient-to-br from-emerald-500 to-transparent blur-2xl" />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-2xl" />
         
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">

@@ -111,7 +111,6 @@ function TrustMarketingSection() {
             autoplay
           />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 pointer-events-none" />
         <div className="relative z-10">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
