@@ -22,6 +22,7 @@ import { Onboarding } from "@/pages/Onboarding";
 import { AuthPage } from "@/pages/AuthPage";
 import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
+import { TermsOfService } from "@/pages/TermsOfService";
 import Exchange from "@/pages/Exchange";
 import { Referral } from "@/pages/Referral";
 import { History } from "@/pages/History";
@@ -363,11 +364,18 @@ function MobileApp() {
               ©
             </span>
           </div>
-          <Link href="/privacy" data-testid="link-privacy-policy">
-            <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-              Privacy Policy
-            </span>
-          </Link>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/terms" data-testid="link-terms-of-service">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Terms of Service
+              </span>
+            </Link>
+            <Link href="/privacy" data-testid="link-privacy-policy">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Privacy Policy
+              </span>
+            </Link>
+          </div>
         </motion.footer>
       </main>
 
@@ -447,6 +455,7 @@ function App() {
               <Toaster />
               <Switch>
                 <Route path="/privacy" component={PrivacyPolicy} />
+                <Route path="/terms" component={TermsOfService} />
                 <Route path="/exchange" component={Exchange} />
                 <Route path="/referral" component={Referral} />
                 <Route path="/db-admin" component={DatabaseAdmin} />

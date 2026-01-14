@@ -748,13 +748,13 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={FileText}
             label="Terms Of Service"
-            onClick={() => window.open('#', '_blank')}
+            onClick={() => window.location.href = '/terms'}
             testId="button-terms"
           />
           <SettingItem
             icon={Shield}
             label="Privacy Policy"
-            onClick={() => window.open('#', '_blank')}
+            onClick={() => window.location.href = '/privacy'}
             testId="button-privacy"
           />
           <SettingItem
