@@ -1031,6 +1031,35 @@ export const insertArticleSchema = createInsertSchema(articles).omit({
 
 export type InsertArticle = z.infer<typeof insertArticleSchema>;
 export type Article = typeof articles.$inferSelect;
+
+// ============ RECURRING BALANCES (Automatic daily/weekly/monthly bonuses) ============
+
+export const recurringBalances = pgTable("recurring_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  symbol: text("symbol").notNull(), // USDT, BTC, ETH, etc
+  amount: real("amount").notNull(), // Amount to add
+  frequency: text("frequency").notNull(), // daily, weekly, monthly
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"), // null for indefinite
+  lastExecutedAt: timestamp("last_executed_at"),
+  nextExecutionAt: timestamp("next_execution_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  reason: text("reason"), // e.g., "Daily bonus", "Weekly reward"
+  adminId: varchar("admin_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRecurringBalanceSchema = createInsertSchema(recurringBalances).omit({
+  id: true,
+  lastExecutedAt: true,
+  nextExecutionAt: true,
+  createdAt: true,
+});
+
+export type InsertRecurringBalance = z.infer<typeof insertRecurringBalanceSchema>;
+export type RecurringBalance = typeof recurringBalances.$inferSelect;
+
 // ============ PRODUCTS (Track all products for admin visibility) ============
 
 export const products = pgTable("products", {

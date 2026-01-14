@@ -2289,5 +2289,155 @@ export async function registerRoutes(
     }
   });
 
+  // ============ RECURRING BALANCE MANAGEMENT (Admin) ============
+
+  // Get all recurring balances
+  app.get("/api/admin/recurring-balances", async (_req, res) => {
+    try {
+      const { recurringBalances } = await import("@shared/schema");
+      const balances = await db.select()
+        .from(recurringBalances)
+        .orderBy(desc(recurringBalances.createdAt));
+      res.json(balances);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get recurring balances" });
+    }
+  });
+
+  // Get recurring balances for a specific user
+  app.get("/api/admin/recurring-balances/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { recurringBalances } = await import("@shared/schema");
+      const balances = await db.select()
+        .from(recurringBalances)
+        .where(eq(recurringBalances.userId, userId))
+        .orderBy(desc(recurringBalances.createdAt));
+      res.json(balances);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get user recurring balances" });
+    }
+  });
+
+  // Create recurring balance (admin)
+  app.post("/api/admin/recurring-balances", async (req, res) => {
+    try {
+      const { userId, symbol, amount, frequency, startDate, endDate, reason, adminId } = req.body;
+      const { recurringBalances } = await import("@shared/schema");
+      
+      if (!userId || !symbol || !amount || !frequency) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (!["daily", "weekly", "monthly"].includes(frequency)) {
+        return res.status(400).json({ error: "Frequency must be daily, weekly, or monthly" });
+      }
+
+      // Calculate next execution time
+      const start = new Date(startDate || new Date());
+      const next = new Date(start);
+      if (frequency === "daily") next.setDate(next.getDate() + 1);
+      else if (frequency === "weekly") next.setDate(next.getDate() + 7);
+      else if (frequency === "monthly") next.setMonth(next.getMonth() + 1);
+
+      const [balance] = await db.insert(recurringBalances).values({
+        userId,
+        symbol,
+        amount: parseFloat(amount),
+        frequency,
+        startDate: start,
+        endDate: endDate ? new Date(endDate) : null,
+        nextExecutionAt: next,
+        reason: reason || `${frequency} ${symbol} bonus`,
+        adminId,
+        isActive: true,
+      }).returning();
+
+      res.json(balance);
+    } catch (error) {
+      console.error("Error creating recurring balance:", error);
+      res.status(500).json({ error: "Failed to create recurring balance" });
+    }
+  });
+
+  // Update recurring balance
+  app.patch("/api/admin/recurring-balances/:balanceId", async (req, res) => {
+    try {
+      const { balanceId } = req.params;
+      const { amount, frequency, endDate, isActive, reason } = req.body;
+      const { recurringBalances } = await import("@shared/schema");
+      
+      const [balance] = await db.update(recurringBalances)
+        .set({
+          ...(amount !== undefined && { amount: parseFloat(amount) }),
+          ...(frequency && { frequency }),
+          ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+          ...(isActive !== undefined && { isActive }),
+          ...(reason && { reason }),
+        })
+        .where(eq(recurringBalances.id, balanceId))
+        .returning();
+
+      res.json(balance);
+    } catch (error) {
+      console.error("Error updating recurring balance:", error);
+      res.status(500).json({ error: "Failed to update recurring balance" });
+    }
+  });
+
+  // Delete recurring balance
+  app.delete("/api/admin/recurring-balances/:balanceId", async (req, res) => {
+    try {
+      const { balanceId } = req.params;
+      const { recurringBalances } = await import("@shared/schema");
+      
+      await db.delete(recurringBalances)
+        .where(eq(recurringBalances.id, balanceId));
+
+      res.json({ success: true, message: "Recurring balance deleted" });
+    } catch (error) {
+      console.error("Error deleting recurring balance:", error);
+      res.status(500).json({ error: "Failed to delete recurring balance" });
+    }
+  });
+
+  // ============ CRON JOBS ============
+
+  // Execute recurring balances (call this from a cron job every 5-10 minutes)
+  app.post("/api/cron/execute-recurring-balances", async (req, res) => {
+    try {
+      // Optional: Add simple auth check
+      const authToken = req.headers["authorization"];
+      const expectedToken = process.env.CRON_SECRET || "default-cron-secret";
+      
+      if (!authToken || !authToken.includes(expectedToken)) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { RecurringBalanceService } = await import("./services/recurringBalanceService");
+      const result = await RecurringBalanceService.executeRecurring();
+      
+      res.json({
+        success: true,
+        timestamp: new Date(),
+        ...result
+      });
+    } catch (error) {
+      console.error("Error executing cron job:", error);
+      res.status(500).json({ error: "Failed to execute cron job" });
+    }
+  });
+
+  // Get recurring balance stats
+  app.get("/api/cron/recurring-stats", async (req, res) => {
+    try {
+      const { RecurringBalanceService } = await import("./services/recurringBalanceService");
+      const stats = await RecurringBalanceService.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
   return httpServer;
 }
