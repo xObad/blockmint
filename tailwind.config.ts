@@ -86,8 +86,8 @@ export default {
       },
       fontFamily: {
         sans: ['Sansation', 'system-ui', 'sans-serif'],
-        heading: ['Outfit', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        heading: ['Enriqueta', 'serif'],
+        display: ['Enriqueta', 'serif'],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },

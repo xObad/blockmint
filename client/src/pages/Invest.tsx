@@ -24,6 +24,7 @@ import {
   PiggyBank
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
+import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -49,13 +50,14 @@ const cryptoAssets = [
   },
 ];
 
-// APR Rates by duration - REAL FIXED APR
-const aprRates = {
-  daily: { rate: 17.90, label: "Daily", period: 1, icon: Timer },
-  weekly: { rate: 18.00, label: "Weekly", period: 7, icon: CalendarDays },
-  monthly: { rate: 18.25, label: "Monthly", period: 30, icon: Calendar },
-  quarterly: { rate: 18.70, label: "Quarterly", period: 90, icon: CalendarRange },
-  yearly: { rate: 19.25, label: "Yearly", period: 365, icon: CalendarRange },
+type DurationType = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+
+const periodDaysByDuration: Record<string, number> = {
+  daily: 1,
+  weekly: 7,
+  monthly: 30,
+  quarterly: 90,
+  yearly: 365,
 };
 
 // Trust badges for marketing
@@ -63,7 +65,7 @@ const trustBadges = [
   { icon: Shield, label: "100% Secure", description: "Bank-grade security", color: "text-emerald-400" },
   { icon: Lock, label: "Insured Funds", description: "Protected deposits", color: "text-blue-400" },
   { icon: Zap, label: "Instant Access", description: "Withdraw anytime", color: "text-amber-400" },
-  { icon: Award, label: "19.25% APR", description: "Industry leading", color: "text-purple-400" },
+  { icon: Award, label: "19% APR", description: "Industry leading", color: "text-purple-400" },
 ];
 
 // Partner logos (trust indicators) - well-known fund security services
@@ -76,7 +78,7 @@ const partnerLogos = [
 const defaultFaqItems = [
   {
     question: "Why are your APR rates higher than Binance or other platforms?",
-    answer: "Our competitive APR rates (up to 19.25%) are made possible through our optimized DeFi strategies, institutional-grade mining operations, and lower operational overhead. Unlike traditional platforms, we leverage advanced yield farming protocols, liquidity provision, and mining rewards to generate higher returns for our users while maintaining full security and transparency."
+    answer: "Our competitive APR rates (up to 19%) are made possible through our optimized strategies and lower operational overhead. Unlike traditional platforms, we focus on generating consistent returns while maintaining strong security and transparency."
   },
   {
     question: "Is my investment safe? Can I withdraw anytime?",
@@ -166,7 +168,7 @@ function TrustMarketingSection() {
 function APRCalculator() {
   const { convert, getSymbol } = useCurrency();
   const [selectedCrypto] = useState(cryptoAssets[0]);
-  const [selectedDuration, setSelectedDuration] = useState<keyof typeof aprRates>("yearly"); // Default to annual (yearly)
+  const [selectedDuration, setSelectedDuration] = useState<DurationType>("yearly"); // Default to annual (yearly)
   const [investmentAmount, setInvestmentAmount] = useState(1000);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -181,6 +183,29 @@ function APRCalculator() {
     }
   })() : null;
   const dbUserId: string | null = storedUser?.id || null;
+
+  const { data: estimateConfig } = useQuery<{ investAprAnnualPercent: number }>({
+    queryKey: ["/api/config/estimates"],
+    queryFn: async () => {
+      const res = await fetch("/api/config/estimates");
+      if (!res.ok) return { investAprAnnualPercent: 19 };
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
+  const investAprAnnualPercent = Number(estimateConfig?.investAprAnnualPercent ?? 19);
+
+  const aprRates = useMemo(() => {
+    const rate = Number.isFinite(investAprAnnualPercent) ? investAprAnnualPercent : 19;
+    return {
+      daily: { rate, label: "Daily", period: 1, icon: Timer },
+      weekly: { rate, label: "Weekly", period: 7, icon: CalendarDays },
+      monthly: { rate, label: "Monthly", period: 30, icon: Calendar },
+      quarterly: { rate, label: "Quarterly", period: 90, icon: CalendarRange },
+      yearly: { rate, label: "Yearly", period: 365, icon: CalendarRange },
+    } as const;
+  }, [investAprAnnualPercent]);
 
   // Fetch earn plans so we can use a real planId (required by FK)
   const { data: earnPlans = [] } = useQuery<Array<{ id: string; symbol: string }>>({
@@ -564,6 +589,16 @@ function ActiveInvestments() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: estimateConfig } = useQuery<{ investAprAnnualPercent: number }>({
+    queryKey: ["/api/config/estimates"],
+    queryFn: async () => {
+      const res = await fetch("/api/config/estimates");
+      if (!res.ok) return { investAprAnnualPercent: 19 };
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
   const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
   const storedUser = userStr ? (() => {
     try {
@@ -618,6 +653,36 @@ function ActiveInvestments() {
     return null;
   }
 
+  const secondsSinceMidnight = (() => {
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((Date.now() - midnight.getTime()) / 1000));
+  })();
+
+  const investAprAnnualPercent = Number(estimateConfig?.investAprAnnualPercent ?? 19);
+
+  const totals = activeInvestments.reduce(
+    (acc: { principal: number; perSecond: number }, sub: any) => {
+      const amount = Number(sub?.amount) || 0;
+      const apr = Number(sub?.aprRate) || (Number.isFinite(investAprAnnualPercent) ? investAprAnnualPercent : 19);
+      const periodDays = periodDaysByDuration[String(sub?.durationType || "yearly")] ?? 365;
+
+      // Explicitly compute total return over the selected period using annual APR,
+      // then derive "earnings today" from that period (as requested).
+      const totalReturnForPeriod = amount * (apr / 100) * (periodDays / 365);
+      const perDay = periodDays > 0 ? totalReturnForPeriod / periodDays : 0;
+      const perSecond = perDay / 86400;
+
+      return {
+        principal: acc.principal + amount,
+        perSecond: acc.perSecond + perSecond,
+      };
+    },
+    { principal: 0, perSecond: 0 }
+  );
+
+  const earnedSoFarToday = totals.perSecond * secondsSinceMidnight;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -625,14 +690,65 @@ function ActiveInvestments() {
       transition={{ delay: 0.1 }}
       className="space-y-3"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <TrendingUp className="w-5 h-5 text-emerald-400" />
-        <h2 className="text-lg font-semibold text-foreground">Your Active Investments</h2>
-      </div>
+      <GlassCard className="relative overflow-hidden p-6" glow="btc" variant="strong" animate={false}>
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-gradient-to-br from-emerald-500/18 via-teal-500/10 to-transparent blur-2xl" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-gradient-to-tr from-blue-500/12 via-cyan-500/10 to-transparent blur-2xl" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  Active Investment
+                </Badge>
+                <Badge className="bg-primary/10 text-primary border-primary/25">USDT</Badge>
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Your yield is live</h2>
+              <p className="text-sm text-muted-foreground">Estimate updates every second (visual only).</p>
+            </div>
+
+            <motion.div
+              className="w-10 h-10 rounded-full border border-emerald-400/30 bg-emerald-400/10 flex items-center justify-center"
+              animate={{ boxShadow: ["0 0 0px rgba(16,185,129,0.0)", "0 0 26px rgba(16,185,129,0.25)", "0 0 0px rgba(16,185,129,0.0)"] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Sparkles className="w-5 h-5 text-emerald-300" />
+            </motion.div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="liquid-glass rounded-xl p-4">
+              <p className="text-xs text-muted-foreground">Total invested</p>
+              <p className="text-2xl font-bold text-foreground">{getSymbol()}{convert(totals.principal).toFixed(2)}</p>
+            </div>
+            <div className="liquid-glass rounded-xl p-4">
+              <p className="text-xs text-muted-foreground">Estimated earnings today</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm text-muted-foreground">{getSymbol()}</span>
+                <LiveGrowingBalance
+                  value={convert(earnedSoFarToday)}
+                  perSecond={convert(totals.perSecond)}
+                  active={totals.perSecond > 0}
+                  decimals={2}
+                  className="text-2xl font-bold text-foreground"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Based on {Number.isFinite(investAprAnnualPercent) ? investAprAnnualPercent : 19}% annual rate
+              </p>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
 
       {activeInvestments.map((sub: any, index: number) => {
         const crypto = cryptoAssets.find(c => c.symbol === sub.symbol) || cryptoAssets[0];
-        const dailyReturn = (sub.amount * (sub.aprRate / 100)) / 365;
+        const periodDays = periodDaysByDuration[String(sub?.durationType || "yearly")] ?? 365;
+        const totalReturnForPeriod = (sub.amount * (sub.aprRate / 100)) * (periodDays / 365);
+        const dailyReturn = periodDays > 0 ? totalReturnForPeriod / periodDays : 0;
         const annualReturn = sub.amount * (sub.aprRate / 100);
         
         return (
@@ -642,7 +758,7 @@ function ActiveInvestments() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 * index }}
           >
-            <GlassCard className="p-4" animate={false}>
+            <GlassCard className="p-4" animate={false} variant="subtle">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-lg ${crypto.bgColor} flex items-center justify-center`}>
@@ -781,7 +897,7 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
           transition={{ delay: 0.2 }}
           data-testid="text-headline-apr"
         >
-          Up to 19.25% APR
+          Up to 19% APR
         </motion.div>
         
         <p className="text-muted-foreground mb-4">
@@ -806,11 +922,11 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
         </div>
       </motion.div>
 
+      {/* Active Investments (top priority) */}
+      <ActiveInvestments />
+
       {/* Trust & Marketing Section */}
       <TrustMarketingSection />
-
-      {/* Active Investments */}
-      <ActiveInvestments />
 
       {/* APR Calculator Card */}
       <APRCalculator />

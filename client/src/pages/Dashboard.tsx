@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { GlassCard, LiquidGlassCard } from "@/components/GlassCard";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
 import { OffersSlider } from "@/components/OffersSlider";
 import { EducationalSlider } from "@/components/EducationalSlider";
 import { GlobalHeader } from "@/components/GlobalHeader";
@@ -199,8 +200,9 @@ export function Dashboard({
   // 1) USDT
   // 2) BTC
   // 3) LTC
+  // 4) ETH
   // then the rest by balance (highest first), then alphabetically.
-  const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2 };
+  const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2, ETH: 3 };
   const sortedBalances = [...balancesWithZeros].sort((a, b) => {
     const aPri = assetPriority[a.symbol] ?? 999;
     const bPri = assetPriority[b.symbol] ?? 999;
@@ -288,6 +290,45 @@ export function Dashboard({
   const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem("user") : null;
   const user = userStr ? JSON.parse(userStr) : null;
   const userId = user?.dbId || user?.id || user?.uid;
+
+  const { data: miningPurchases = [] } = useQuery<any[]>({
+    queryKey: ["/api/users", userId, "mining-purchases"],
+    queryFn: async () => {
+      if (!userId) return [];
+      const res = await fetch(`/api/users/${userId}/mining-purchases`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!userId,
+    refetchInterval: 30000,
+  });
+
+  const activeMiningPurchases = (miningPurchases || []).filter((p: any) => p?.status === "active");
+  const btcUsdPrice = cryptoPrices?.BTC?.price ?? 0;
+    const { data: estimateConfig } = useQuery<{ miningEstimateMultiplier: number }>({
+      queryKey: ["/api/config/estimates"],
+      queryFn: async () => {
+        const res = await fetch("/api/config/estimates");
+        if (!res.ok) return { miningEstimateMultiplier: 1 };
+        return res.json();
+      },
+      staleTime: 60000,
+    });
+
+    const miningPerSecondUSDBase = activeMiningPurchases.reduce((sum: number, p: any) => {
+      const dailyReturnBTC = Number(p?.dailyReturnBTC) || 0;
+      if (dailyReturnBTC <= 0 || btcUsdPrice <= 0) return sum;
+      return sum + (dailyReturnBTC * btcUsdPrice) / 86400;
+    }, 0);
+    const miningEstimateMultiplier = Number(estimateConfig?.miningEstimateMultiplier) || 1;
+    const miningPerSecondUSD = miningPerSecondUSDBase * miningEstimateMultiplier;
+
+    const secondsSinceMidnight = (() => {
+      const midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      return Math.max(0, Math.floor((Date.now() - midnight.getTime()) / 1000));
+    })();
+    const miningEstimatedTodayUSD = miningPerSecondUSD * secondsSinceMidnight;
 
   // Fetch pending deposits
   const { data: pendingDeposits } = useQuery({
@@ -528,8 +569,10 @@ export function Dashboard({
           <div className="mb-1">
             <div className="flex items-center gap-2">
               <span className="text-lg text-muted-foreground">{getSymbol()}</span>
-              <AnimatedCounter
+              <LiveGrowingBalance
                 value={convertedBalance}
+                perSecond={convert(miningPerSecondUSD)}
+                active={activeMiningPurchases.length > 0}
                 decimals={2}
                 className="text-3xl font-bold text-foreground tracking-tight"
                 triggerGlow={balanceIncreased}
@@ -555,6 +598,25 @@ export function Dashboard({
             </span>
             <span className="text-sm text-muted-foreground">24H Change</span>
           </div>
+
+          {activeMiningPurchases.length > 0 && miningPerSecondUSD > 0 && (
+            <div className="mb-4 flex items-center justify-between gap-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div>
+                <p className="text-xs text-emerald-300 font-medium">Estimated earnings today</p>
+                <p className="text-sm text-emerald-200">
+                  {getSymbol()}
+                  <LiveGrowingBalance
+                    value={convert(miningEstimatedTodayUSD)}
+                    perSecond={convert(miningPerSecondUSD)}
+                    active={true}
+                    decimals={2}
+                    className="text-sm text-emerald-200"
+                  />
+                </p>
+              </div>
+              <span className="text-[10px] font-semibold text-emerald-200/80">LIVE</span>
+            </div>
+          )}
 
           {/* Pending Deposits Display */}
           {pendingTotal > 0 && (

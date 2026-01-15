@@ -215,7 +215,7 @@ export function GlobalHeader({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-x-4 sm:left-1/2 sm:-translate-x-1/2 top-20 w-auto sm:w-[calc(100%-2rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden mx-auto"
+              className="fixed left-1/2 -translate-x-1/2 top-20 w-[min(92vw,28rem)] bg-background border border-border rounded-2xl shadow-2xl z-[101] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between p-4 border-b border-border">

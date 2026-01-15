@@ -12,6 +12,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
+import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -89,6 +90,16 @@ export function SoloMining() {
   const queryClient = useQueryClient();
   const user = getCurrentUser();
 
+  const { data: estimateConfig } = useQuery<{ soloEstimateMultiplier: number }>({
+    queryKey: ["/api/config/estimates"],
+    queryFn: async () => {
+      const res = await fetch("/api/config/estimates");
+      if (!res.ok) return { soloEstimateMultiplier: 1 };
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
   const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
   const storedUser = userStr
     ? (() => {
@@ -113,6 +124,57 @@ export function SoloMining() {
   });
 
   const availableUSDT = balanceData?.balances?.find((w) => w.symbol === "USDT")?.balance || 0;
+
+  const { data: miningPurchases = [] } = useQuery<any[]>({
+    queryKey: ["/api/users", dbUserId, "mining-purchases"],
+    queryFn: async () => {
+      if (!dbUserId) return [];
+      const res = await fetch(`/api/users/${dbUserId}/mining-purchases`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!dbUserId,
+    refetchInterval: 30000,
+  });
+
+  const activeSoloPurchases = useMemo(() => {
+    return (miningPurchases || []).filter(
+      (p: any) => p?.status === "active" && String(p?.packageName || "").includes("Solo Mining")
+    );
+  }, [miningPurchases]);
+
+  const soloStats = useMemo(() => {
+    const totalPH = activeSoloPurchases.reduce((sum: number, p: any) => sum + (Number(p?.hashrate) || 0), 0);
+    const networkHashratePH = NETWORK_HASHRATE_EH * 1000;
+    const expectedDailyBTC = networkHashratePH > 0 ? (144 * BLOCK_REWARD * totalPH) / networkHashratePH : 0;
+    const soloEstimateMultiplier = Number(estimateConfig?.soloEstimateMultiplier) || 1;
+    const perSecondUSDBase = btcPrice > 0 ? (expectedDailyBTC * btcPrice) / 86400 : 0;
+    const perSecondUSD = perSecondUSDBase * soloEstimateMultiplier;
+
+    const now = Date.now();
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const secondsSinceMidnight = Math.max(0, Math.floor((now - midnight.getTime()) / 1000));
+    const expectedSoFarTodayUSD = perSecondUSD > 0 ? perSecondUSD * secondsSinceMidnight : 0;
+
+    const sortedByExpiry = [...activeSoloPurchases].sort((a: any, b: any) => {
+      const aTime = a?.expiryDate ? new Date(a.expiryDate).getTime() : Number.POSITIVE_INFINITY;
+      const bTime = b?.expiryDate ? new Date(b.expiryDate).getTime() : Number.POSITIVE_INFINITY;
+      return aTime - bTime;
+    });
+
+    const nearestExpiry = sortedByExpiry[0]?.expiryDate ? new Date(sortedByExpiry[0].expiryDate) : null;
+    const hoursToExpiry = nearestExpiry ? Math.max(0, Math.floor((nearestExpiry.getTime() - now) / (1000 * 60 * 60))) : null;
+
+    return {
+      totalPH,
+      expectedDailyBTC,
+      perSecondUSD,
+      expectedSoFarTodayUSD,
+      nearestExpiry,
+      hoursToExpiry,
+    };
+  }, [activeSoloPurchases, btcPrice, estimateConfig]);
 
   const calculations = useMemo(() => {
     const ph = hashpower[0];
@@ -292,6 +354,163 @@ export function SoloMining() {
           </div>
         </GlassCard>
       </motion.section>
+
+      {activeSoloPurchases.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <GlassCard className="relative overflow-hidden p-6" glow="btc" variant="strong">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-gradient-to-br from-amber-500/18 via-orange-500/10 to-transparent blur-2xl" />
+              <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-gradient-to-tr from-cyan-500/14 via-blue-500/8 to-transparent blur-2xl" />
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Active Contracts
+                    </Badge>
+                    <Badge className="bg-primary/10 text-primary border-primary/25">Solo Mining</Badge>
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">Your Solo Mining is Live</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Expected value updates every second (visual only).
+                  </p>
+                </div>
+
+                <motion.div
+                  className="relative w-14 h-14 shrink-0"
+                  animate={{ rotate: [0, 6, 0, -6, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <div className="absolute inset-0 rounded-full bg-amber-400/15 blur-xl" />
+                  <div className="absolute inset-0 rounded-full border border-amber-400/30 animate-pulse" />
+                  <img src={btcCoin} alt="Bitcoin" className="relative w-full h-full object-contain drop-shadow" />
+                </motion.div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="liquid-glass rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground">Active contracts</p>
+                  <p className="text-2xl font-bold text-foreground">{activeSoloPurchases.length}</p>
+                </div>
+                <div className="liquid-glass rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground">Network share</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {((soloStats.totalPH / (NETWORK_HASHRATE_EH * 1000)) * 100).toFixed(6)}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 liquid-glass rounded-xl p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Estimated earnings today</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-muted-foreground">$</span>
+                      <LiveGrowingBalance
+                        value={soloStats.expectedSoFarTodayUSD}
+                        perSecond={soloStats.perSecondUSD}
+                        active={soloStats.perSecondUSD > 0}
+                        decimals={2}
+                        className="text-2xl font-bold text-foreground"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      EV/day: {soloStats.expectedDailyBTC.toFixed(6)} BTC
+                    </p>
+                  </div>
+
+                  {soloStats.nearestExpiry && (
+                    <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/25">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {soloStats.hoursToExpiry !== null ? `${soloStats.hoursToExpiry}h to expiry` : "Expiry set"}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-xs text-muted-foreground mb-2">Active contract details</p>
+                <div className="space-y-2">
+                  {activeSoloPurchases.slice(0, 3).map((p: any, idx: number) => {
+                    const expiryLabel = p?.expiryDate
+                      ? new Date(p.expiryDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+                      : "—";
+                    return (
+                      <motion.div
+                        key={p?.id ?? idx}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.18 + idx * 0.05 }}
+                        className="flex items-center justify-between rounded-xl px-4 py-3 liquid-glass"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{p?.packageName || "Solo Mining"}</p>
+                          <p className="text-xs text-muted-foreground">Expires: {expiryLabel}</p>
+                        </div>
+                        <Badge className="bg-primary/10 text-primary border-primary/25 shrink-0">
+                          {Number(p?.hashrate || 0).toFixed(0)} PH/s
+                        </Badge>
+                      </motion.div>
+                    );
+                  })}
+
+                  {activeSoloPurchases.length > 3 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{activeSoloPurchases.length - 3} more active contracts
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+        </motion.section>
+      )}
+
+      {activeSoloPurchases.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+        >
+          <GlassCard className="relative overflow-hidden p-5" glow="btc" variant="strong">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-gradient-to-br from-orange-500/16 via-amber-500/10 to-transparent blur-2xl" />
+              <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full bg-gradient-to-tr from-blue-500/10 via-cyan-500/10 to-transparent blur-2xl" />
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-primary/10 text-primary border-primary/25">Solo Mining</Badge>
+                  <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
+                    Active Hashpower
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Total running power (from your active Solo contracts)</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{soloStats.totalPH.toFixed(0)} PH/s</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Share: {((soloStats.totalPH / (NETWORK_HASHRATE_EH * 1000)) * 100).toFixed(6)}% of network
+                </p>
+              </div>
+
+              <motion.div
+                className="w-10 h-10 rounded-full border border-amber-400/30 bg-amber-400/10 flex items-center justify-center"
+                animate={{ boxShadow: ["0 0 0px rgba(251,191,36,0.0)", "0 0 24px rgba(251,191,36,0.25)", "0 0 0px rgba(251,191,36,0.0)"] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Cpu className="w-5 h-5 text-amber-300" />
+              </motion.div>
+            </div>
+          </GlassCard>
+        </motion.section>
+      )}
 
       <motion.section
         initial={{ opacity: 0, y: 20 }}

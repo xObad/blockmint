@@ -48,6 +48,7 @@ import {
   RefreshCw,
   Database,
   DollarSign,
+  TrendingUp,
   Bell,
   Settings,
   Users,
@@ -144,7 +145,7 @@ const ARTICLE_CATEGORIES = [
   "News",
 ];
 
-type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config";
+type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates";
 
 interface DepositRequest {
   id: string;
@@ -247,6 +248,11 @@ export function DatabaseAdmin() {
   const [editingConfig, setEditingConfig] = useState<AppConfig | null>(null);
   const [editConfigValue, setEditConfigValue] = useState("");
   const [deleteConfigId, setDeleteConfigId] = useState<string | null>(null);
+
+  // Estimates (UI settings)
+  const [estimateInvestAprAnnual, setEstimateInvestAprAnnual] = useState("19");
+  const [estimateMiningMultiplier, setEstimateMiningMultiplier] = useState("1");
+  const [estimateSoloMultiplier, setEstimateSoloMultiplier] = useState("1");
   
   // Update app states
   const [forceUpdateEnabled, setForceUpdateEnabled] = useState(false);
@@ -342,8 +348,22 @@ export function DatabaseAdmin() {
 
   const { data: config = [] } = useQuery<AppConfig[]>({
     queryKey: ["/api/admin/config"],
-    enabled: isAuthenticated && activeNav === "config",
+    enabled: isAuthenticated && (activeNav === "config" || activeNav === "estimates"),
   });
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (activeNav !== "estimates") return;
+
+    const getVal = (key: string, fallback: string) => {
+      const row = config.find((c) => c.key === key);
+      return row?.value ?? fallback;
+    };
+
+    setEstimateInvestAprAnnual(getVal("public_invest_apr_annual_percent", "19"));
+    setEstimateMiningMultiplier(getVal("public_mining_estimate_multiplier", "1"));
+    setEstimateSoloMultiplier(getVal("public_solo_estimate_multiplier", "1"));
+  }, [activeNav, config, isAuthenticated]);
 
   const { data: articles = [] } = useQuery<Article[]>({
     queryKey: ["/api/articles"],
@@ -592,6 +612,7 @@ export function DatabaseAdmin() {
   const settingsItems = [
     { id: "articles" as NavItem, icon: FileText, label: "Articles" },
     { id: "update-app" as NavItem, icon: Smartphone, label: "Update App" },
+    { id: "estimates" as NavItem, icon: TrendingUp, label: "Estimates" },
     { id: "config" as NavItem, icon: Sliders, label: "Config" },
   ];
 
@@ -1408,6 +1429,124 @@ export function DatabaseAdmin() {
                         </Button>
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Estimates Tab */}
+              {activeNav === "estimates" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Earnings Estimates</h2>
+                    <p className="text-muted-foreground">Controls the "Estimated earnings today" cards in Mining / Invest / Solo pages</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Invest */}
+                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Invest</p>
+                          <p className="text-lg font-bold">Annual APR (%)</p>
+                        </div>
+                        <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">Editable</Badge>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">APR</Label>
+                        <Input value={estimateInvestAprAnnual} onChange={(e) => setEstimateInvestAprAnnual(e.target.value)} />
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          Preview: ${((1000 * (Number(estimateInvestAprAnnual || 0) / 100)) / 365).toFixed(2)} / day per $1,000
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() =>
+                          addConfig.mutate({
+                            key: "public_invest_apr_annual_percent",
+                            value: String(Number(estimateInvestAprAnnual || 19)),
+                            category: "estimates",
+                            description: "Public: Invest annual APR percent (used for Estimated earnings today)",
+                          })
+                        }
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+
+                    {/* Mining */}
+                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Mining</p>
+                          <p className="text-lg font-bold">Estimate multiplier</p>
+                        </div>
+                        <Badge className="bg-primary/10 text-primary border-primary/25">Global</Badge>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Multiplier</Label>
+                        <Input value={estimateMiningMultiplier} onChange={(e) => setEstimateMiningMultiplier(e.target.value)} />
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          1.0 = normal • 2.0 = double • 0.5 = half
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() =>
+                          addConfig.mutate({
+                            key: "public_mining_estimate_multiplier",
+                            value: String(Number(estimateMiningMultiplier || 1)),
+                            category: "estimates",
+                            description: "Public: Mining estimate multiplier (affects live earnings displays)",
+                          })
+                        }
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+
+                    {/* Solo */}
+                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Solo</p>
+                          <p className="text-lg font-bold">Estimate multiplier</p>
+                        </div>
+                        <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/25">Global</Badge>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Multiplier</Label>
+                        <Input value={estimateSoloMultiplier} onChange={(e) => setEstimateSoloMultiplier(e.target.value)} />
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          Multiplies the Solo "Estimated earnings today" display
+                        </p>
+                      </div>
+
+                      <Button
+                        onClick={() =>
+                          addConfig.mutate({
+                            key: "public_solo_estimate_multiplier",
+                            value: String(Number(estimateSoloMultiplier || 1)),
+                            category: "estimates",
+                            description: "Public: Solo estimate multiplier (affects live earnings displays)",
+                          })
+                        }
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <p className="text-sm font-medium">Notes</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      These settings are used for UI estimates only ("live" counters). They do not change stored wallet balances.
+                    </p>
                   </div>
                 </div>
               )}

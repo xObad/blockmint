@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
+import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
 import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
 import btcMineImg from "@assets/Bitcoin_Mine_1766014388617.webp";
@@ -777,6 +778,16 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   const user = getCurrentUser();
   const { btcPrice } = useBTCPrice();
 
+  const { data: estimateConfig } = useQuery<{ miningEstimateMultiplier: number }>({
+    queryKey: ["/api/config/estimates"],
+    queryFn: async () => {
+      const res = await fetch("/api/config/estimates");
+      if (!res.ok) return { miningEstimateMultiplier: 1 };
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
   const userStr = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null;
   const storedUser = userStr ? (() => {
     try {
@@ -974,6 +985,24 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     return sum + amount * (1 + roi / 100);
   }, 0);
 
+  const miningEarningsPerSecondUSDTBase = activePurchases.reduce((sum: number, p: any) => {
+    const dailyReturnBTC = Number(p?.dailyReturnBTC) || 0;
+    if (dailyReturnBTC <= 0) return sum;
+    const dailyUSDT = dailyReturnBTC * btcPrice;
+    return sum + dailyUSDT / 86400;
+  }, 0);
+
+  const miningEstimateMultiplier = Number(estimateConfig?.miningEstimateMultiplier) || 1;
+  const miningEarningsPerSecondUSDT = miningEarningsPerSecondUSDTBase * miningEstimateMultiplier;
+
+  const secondsSinceMidnight = (() => {
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((Date.now() - midnight.getTime()) / 1000));
+  })();
+
+  const miningEstimatedTodayUSDT = miningEarningsPerSecondUSDT * secondsSinceMidnight;
+
   const btcPackages = miningPackages.filter(p => p.crypto === "BTC");
 
   return (
@@ -997,31 +1026,56 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
           </p>
         </motion.div>
 
-      {/* Active Hashpower Card (Smaller) */}
-      <GlassCard delay={0.1} variant="strong" className="relative py-4 px-5">
-        <FloatingParticles />
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xs font-semibold text-muted-foreground mb-1">
-              Your Active Hashpower
-            </h2>
-            <AnimatedHashrateDisplay value={totalHashrate} unit="TH/s" />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Invested: ${investedAmount.toFixed(2)} USDT • Projected: ${projectedAmount.toFixed(2)} USDT
-            </p>
+      {/* Active Hashpower Card */}
+      {(contracts.length + activePurchases.length > 0) && (
+        <GlassCard delay={0.1} variant="strong" className="relative overflow-hidden py-5 px-5" glow="btc">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-gradient-to-br from-amber-500/18 via-orange-500/10 to-transparent blur-2xl" />
+            <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-gradient-to-tr from-cyan-500/14 via-blue-500/8 to-transparent blur-2xl" />
           </div>
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="w-2 h-2 rounded-full bg-emerald-400"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-            <span className="text-xs text-muted-foreground">
-              {contracts.length + activePurchases.length} active
-            </span>
+
+          <FloatingParticles />
+
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xs font-semibold text-muted-foreground mb-1">Your Active Hashpower</h2>
+                <AnimatedHashrateDisplay value={totalHashrate} unit="TH/s" />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Invested: ${investedAmount.toFixed(2)} USDT • Projected: ${projectedAmount.toFixed(2)} USDT
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <motion.div
+                  className="w-2 h-2 rounded-full bg-emerald-400"
+                  animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                <span className="text-xs text-muted-foreground">{contracts.length + activePurchases.length} active</span>
+              </div>
+            </div>
+
+            <div className="mt-3 liquid-glass rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Estimated earnings today</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm text-muted-foreground">$</span>
+                    <LiveGrowingBalance
+                      value={miningEstimatedTodayUSDT}
+                      perSecond={miningEarningsPerSecondUSDT}
+                      active={miningEarningsPerSecondUSDT > 0}
+                      decimals={2}
+                      className="text-xl font-bold text-foreground"
+                    />
+                  </div>
+                </div>
+                <Badge className="bg-primary/10 text-primary border-primary/25">USDT</Badge>
+              </div>
+            </div>
           </div>
-        </div>
-      </GlassCard>
+        </GlassCard>
+      )}
 
       {/* Active Mining Purchases */}
       <ActiveMiningPurchases purchases={miningPurchases} btcPrice={btcPrice} />
@@ -1064,7 +1118,14 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">Available USDT balance</p>
           <p className="text-sm font-semibold text-foreground" data-testid="text-mining-usdt-balance">
-            ${availableBalance.toFixed(2)}
+            <LiveGrowingBalance
+              value={availableBalance}
+              perSecond={miningEarningsPerSecondUSDT}
+              active={activePurchases.length > 0}
+              decimals={2}
+              prefix="$"
+              className="text-sm font-semibold text-foreground"
+            />
           </p>
         </div>
       </GlassCard>
@@ -1117,7 +1178,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
                 <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">USDT</Badge>
               </div>
               <div className="text-xs text-muted-foreground" data-testid="text-mining-pay-with-usdt">
-                Available: ${availableBalance.toFixed(2)} USDT
+                Available: <LiveGrowingBalance value={availableBalance} perSecond={miningEarningsPerSecondUSDT} active={activePurchases.length > 0} decimals={2} prefix="$" className="text-xs text-muted-foreground" /> USDT
               </div>
             </div>
 

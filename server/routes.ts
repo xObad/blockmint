@@ -10,7 +10,7 @@ import {
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
-import { eq, and, or, desc, lte } from "drizzle-orm";
+import { eq, and, or, desc, lte, inArray } from "drizzle-orm";
 import { generateSecret, generate, verify } from "otplib";
 import QRCode from "qrcode";
 
@@ -1086,6 +1086,33 @@ export async function registerRoutes(
   app.get("/api/earn-plans", async (_req, res) => {
     try {
       const { earnPlans } = await import("@shared/schema");
+      // Ensure at least a USDT plan exists so the Invest page can always subscribe.
+      const existingUsdt = await db
+        .select()
+        .from(earnPlans)
+        .where(eq(earnPlans.symbol, "USDT"));
+
+      if (existingUsdt.length === 0) {
+        await db
+          .insert(earnPlans)
+          .values({
+            symbol: "USDT",
+            name: "Tether",
+            icon: "₮",
+            colorPrimary: "#10b981",
+            colorSecondary: "#22c55e",
+            minAmount: 100,
+            dailyApr: 19,
+            weeklyApr: 19,
+            monthlyApr: 19,
+            quarterlyApr: 19,
+            yearlyApr: 19,
+            isActive: true,
+            order: 0,
+          })
+          .onConflictDoNothing();
+      }
+
       const plans = await db.select()
         .from(earnPlans)
         .where(eq(earnPlans.isActive, true))
@@ -1093,6 +1120,37 @@ export async function registerRoutes(
       res.json(plans);
     } catch (error) {
       res.status(500).json({ error: "Failed to get earn plans" });
+    }
+  });
+
+  // Public UI estimates config (safe allowlist)
+  app.get("/api/config/estimates", async (_req, res) => {
+    try {
+      const { appConfig } = await import("@shared/schema");
+      const keys = [
+        "public_invest_apr_annual_percent",
+        "public_mining_estimate_multiplier",
+        "public_solo_estimate_multiplier",
+      ];
+
+      const rows = await db
+        .select()
+        .from(appConfig)
+        .where(inArray(appConfig.key, keys));
+
+      const map = new Map(rows.map((r) => [r.key, r.value]));
+
+      const investApr = Number(map.get("public_invest_apr_annual_percent") ?? "19");
+      const miningMultiplier = Number(map.get("public_mining_estimate_multiplier") ?? "1");
+      const soloMultiplier = Number(map.get("public_solo_estimate_multiplier") ?? "1");
+
+      res.json({
+        investAprAnnualPercent: Number.isFinite(investApr) ? investApr : 19,
+        miningEstimateMultiplier: Number.isFinite(miningMultiplier) ? miningMultiplier : 1,
+        soloEstimateMultiplier: Number.isFinite(soloMultiplier) ? soloMultiplier : 1,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get estimates config" });
     }
   });
 
