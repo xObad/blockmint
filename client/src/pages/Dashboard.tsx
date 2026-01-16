@@ -760,6 +760,7 @@ export function Dashboard({
                     active={true}
                     decimals={2}
                     className="text-sm text-emerald-200"
+                    showBadge={false}
                   />
                 </p>
               </div>

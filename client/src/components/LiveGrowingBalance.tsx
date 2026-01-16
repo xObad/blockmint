@@ -12,6 +12,7 @@ interface LiveGrowingBalanceProps {
   prefix?: string;
   suffix?: string;
   triggerGlow?: boolean;
+  showBadge?: boolean;
 }
 
 export function LiveGrowingBalance({
@@ -23,6 +24,7 @@ export function LiveGrowingBalance({
   prefix = "",
   suffix = "",
   triggerGlow = false,
+  showBadge = true,
 }: LiveGrowingBalanceProps) {
   const [anchor, setAnchor] = useState(() => ({ base: value, atMs: Date.now() }));
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -46,7 +48,7 @@ export function LiveGrowingBalance({
     return anchor.base + perSecond * elapsedSeconds;
   }, [active, perSecond, value, nowMs, anchor]);
 
-  const showLive = active && perSecond > 0;
+  const showLive = active && perSecond > 0 && showBadge;
 
   return (
     <span className="inline-flex items-center gap-2">
