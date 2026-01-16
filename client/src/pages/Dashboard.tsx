@@ -736,12 +736,7 @@ export function Dashboard({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-6">
-            <span className={`text-sm font-medium ${isPositiveChange ? "text-emerald-400" : "text-red-400"}`}>
-              {isPositiveChange ? "+" : ""}{safeChange24h.toFixed(2)}%
-            </span>
-            <span className="text-sm text-muted-foreground">24H Change</span>
-          </div>
+
 
           {activeMiningPurchases.length > 0 && miningPerSecondUSD > 0 && (
             <div className="mb-4 flex items-center justify-between gap-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
@@ -1457,15 +1452,7 @@ export function Dashboard({
         </GlassCard>
       </motion.div>
 
-      {/* Recent Activity Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.57 }}
-      >
-        <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
-        <RecentActivity userId={localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user") || "{}").dbId || JSON.parse(localStorage.getItem("user") || "{}").id || JSON.parse(localStorage.getItem("user") || "{}").uid : null} />
-      </motion.div>
+
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
