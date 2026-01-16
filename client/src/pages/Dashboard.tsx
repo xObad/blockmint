@@ -142,6 +142,83 @@ const currencies = [
   { code: 'AED' as const, symbol: '\u062F.\u0625', name: 'UAE Dirham' },
 ];
 
+// Recent Activity Component
+function RecentActivity({ userId }: { userId: string | null }) {
+  const { data: activity = [], isLoading } = useQuery({
+    queryKey: ["/api/wallet/activity", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const res = await fetch(`/api/wallet/activity/${userId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!userId,
+    refetchInterval: 30000,
+  });
+
+  if (isLoading) {
+    return (
+      <GlassCard className="p-4">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      </GlassCard>
+    );
+  }
+
+  if (!activity || activity.length === 0) {
+    return (
+      <GlassCard className="p-4">
+        <div className="text-center py-8">
+          <p className="text-muted-foreground text-sm">No recent activity</p>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard className="p-4">
+      <div className="space-y-3">
+        {activity.slice(0, 5).map((item: any, index: number) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="flex items-center justify-between gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.type === 'deposit' ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
+                {item.type === 'deposit' ? (
+                  <ArrowDownToLine className="w-5 h-5 text-emerald-400" />
+                ) : (
+                  <ArrowUpFromLine className="w-5 h-5 text-amber-400" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-sm text-foreground capitalize">{item.type}</p>
+                <p className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`font-medium text-sm ${item.type === 'deposit' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {item.type === 'deposit' ? '+' : '-'}{item.amount} {item.currency}
+              </p>
+              <p className={`text-xs px-2 py-0.5 rounded-full inline-block ${
+                item.status === 'confirmed' || item.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                item.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {item.status}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
+
 export function Dashboard({ 
   balances = [], 
   totalBalance = 0, 
@@ -290,6 +367,8 @@ export function Dashboard({
   const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem("user") : null;
   const user = userStr ? JSON.parse(userStr) : null;
   const userId = user?.dbId || user?.id || user?.uid;
+  
+  console.log("Dashboard user check:", { userStr: !!userStr, user: !!user, userId });
 
   const { data: miningPurchases = [] } = useQuery<any[]>({
     queryKey: ["/api/users", userId, "mining-purchases"],
@@ -352,13 +431,23 @@ export function Dashboard({
   // Submit deposit request mutation
   const submitDepositMutation = useMutation({
     mutationFn: async (data: { amount: string; currency: string; network: string; walletAddress: string }) => {
-      if (!userId) throw new Error("Please log in to submit deposit");
+      // Recheck userId at submission time
+      const currentUserStr = localStorage.getItem("user");
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid;
+      
+      console.log("Submitting deposit:", { currentUser, currentUserId, data });
+      
+      if (!currentUserId) {
+        console.error("No userId found:", { currentUserStr, currentUser });
+        throw new Error("Please log in to submit deposit");
+      }
 
       const res = await fetch("/api/deposits/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: currentUserId,
           amount: data.amount,
           currency: data.currency,
           network: data.network,
@@ -401,16 +490,20 @@ export function Dashboard({
     // Calculate USD value and check minimum deposit of $20
     const amount = parseFloat(depositAmount);
     const price = cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 0;
-    const usdValue = amount * price;
     
-    if (usdValue < 20) {
-      const minAmount = (20 / price).toFixed(8);
-      toast({
-        title: "Minimum Deposit Not Met",
-        description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
-        variant: "destructive",
-      });
-      return;
+    // Only validate if price is loaded (not 0)
+    if (price > 0) {
+      const usdValue = amount * price;
+      
+      if (usdValue < 20) {
+        const minAmount = (20 / price).toFixed(8);
+        toast({
+          title: "Minimum Deposit Not Met",
+          description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     submitDepositMutation.mutate({
@@ -1297,10 +1390,20 @@ export function Dashboard({
         </GlassCard>
       </motion.div>
 
+      {/* Recent Activity Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.56 }}
+        transition={{ delay: 0.57 }}
+      >
+        <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
+        <RecentActivity userId={localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user") || "{}").dbId || JSON.parse(localStorage.getItem("user") || "{}").id || JSON.parse(localStorage.getItem("user") || "{}").uid : null} />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.59 }}
       >
         <h2 className="text-lg font-semibold text-foreground mb-4 font-display">Premium Features</h2>
         <div className="space-y-3">

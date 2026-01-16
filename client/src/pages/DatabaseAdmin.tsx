@@ -306,6 +306,12 @@ export function DatabaseAdmin() {
     enabled: isAuthenticated && activeNav === "deposits",
   });
 
+  const { data: pendingWithdrawals = [], isLoading: isLoadingWithdrawals } = useQuery<any[]>({
+    queryKey: ["/api/admin/withdrawals/pending"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && activeNav === "users",
@@ -418,6 +424,43 @@ export function DatabaseAdmin() {
       setBroadcastMessage("");
     },
   });
+
+  const processWithdrawal = useMutation({
+    mutationFn: async ({ id, action, txHash, note }: { id: string; action: "approve" | "reject"; txHash?: string; note?: string }) => {
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : null;
+      const adminId = user?.dbId || user?.id || user?.uid;
+
+      const res = await fetch(`/api/admin/withdrawals/${id}/process`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminId, action, txHash, note }),
+      });
+      if (!res.ok) throw new Error("Failed to process withdrawal");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/withdrawals/pending"] });
+      toast({ title: "Withdrawal Processed" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Process Failed", 
+        description: error.message || "Failed to process withdrawal",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleProcessWithdrawal = (id: string, action: "approve" | "reject") => {
+    if (action === "approve") {
+      const txHash = prompt("Enter transaction hash or tracking number (optional):");
+      processWithdrawal.mutate({ id, action, txHash: txHash || undefined });
+    } else {
+      const note = prompt("Enter rejection reason (optional):");
+      processWithdrawal.mutate({ id, action, note: note || undefined });
+    }
+  };
 
   const toggleUserStatus = useMutation({
     mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) =>
@@ -1188,14 +1231,102 @@ export function DatabaseAdmin() {
               {/* Withdrawals Tab */}
               {activeNav === "withdrawals" && (
                 <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">Withdrawal Management</h2>
-                    <p className="text-muted-foreground">Review and process withdrawal requests</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">Withdrawal Management</h2>
+                      <p className="text-muted-foreground">Review and process withdrawal requests</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/withdrawals/pending"] })}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
+                    </Button>
                   </div>
-                  <div className="bg-card rounded-xl border border-border p-8 text-center">
-                    <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                    <p className="text-muted-foreground">No withdrawal requests at this time</p>
-                  </div>
+
+                  {isLoadingWithdrawals ? (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                      <p className="text-muted-foreground">Loading withdrawal requests...</p>
+                    </div>
+                  ) : pendingWithdrawals && pendingWithdrawals.length > 0 ? (
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Network</TableHead>
+                            <TableHead>Address</TableHead>
+                            <TableHead>Fee</TableHead>
+                            <TableHead>Net Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pendingWithdrawals.map((withdrawal: any) => (
+                            <TableRow key={withdrawal.id}>
+                              <TableCell className="text-xs">
+                                {new Date(withdrawal.requestedAt).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="font-medium">{withdrawal.userId}</TableCell>
+                              <TableCell className="font-mono">
+                                {withdrawal.amount} {withdrawal.symbol}
+                              </TableCell>
+                              <TableCell className="text-xs">{withdrawal.network}</TableCell>
+                              <TableCell className="text-xs font-mono">
+                                {withdrawal.toAddress?.substring(0, 10)}...
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {withdrawal.fee} {withdrawal.symbol}
+                              </TableCell>
+                              <TableCell className="font-mono">
+                                {withdrawal.netAmount} {withdrawal.symbol}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  withdrawal.status === "completed" ? "default" :
+                                  withdrawal.status === "pending" ? "secondary" :
+                                  "destructive"
+                                }>
+                                  {withdrawal.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {withdrawal.status === "pending" && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => handleProcessWithdrawal(withdrawal.id, "approve")}
+                                    >
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleProcessWithdrawal(withdrawal.id, "reject")}
+                                    >
+                                      Reject
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                      <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-muted-foreground">No withdrawal requests at this time</p>
+                    </div>
+                  )}
                 </div>
               )}
 

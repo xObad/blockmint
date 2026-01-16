@@ -155,6 +155,19 @@ export function Wallet({
   const { convert, getSymbol } = useCurrency();
   const { toast } = useToast();
   const { prices: cryptoPricesData } = useCryptoPrices();
+  
+  // Create cryptoPrices object early so it can be used in calculations
+  const cryptoPrices: Record<string, number> = {
+    BTC: cryptoPricesData.BTC?.price || 67000,
+    LTC: cryptoPricesData.LTC?.price || 85,
+    ETH: cryptoPricesData.ETH?.price || 3500,
+    USDT: cryptoPricesData.USDT?.price || 1,
+    USDC: cryptoPricesData.USDC?.price || 1,
+    TON: cryptoPricesData.TON?.price || 5.5,
+    ZCASH: cryptoPricesData.ZCASH?.price || 30,
+    BNB: cryptoPricesData.BNB?.price || 600,
+  };
+  
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [exchangeOpen, setExchangeOpen] = useState(false);
@@ -200,6 +213,8 @@ export function Wallet({
   const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem("user") : null;
   const user = userStr ? JSON.parse(userStr) : null;
   const userId = user?.dbId || user?.id || user?.uid;
+  
+  console.log("Wallet user check:", { userStr: !!userStr, user: !!user, userId });
 
   // Fetch pending deposits
   const { data: pendingDeposits } = useQuery({
@@ -223,17 +238,24 @@ export function Wallet({
   // Submit deposit request mutation
   const submitDepositMutation = useMutation({
     mutationFn: async (data: { amount: string; currency: string; network: string; walletAddress: string }) => {
-      if (!userId) {
-        console.error("Deposit submission: No userId found in localStorage", { user });
+      // Recheck userId at submission time
+      const currentUserStr = localStorage.getItem("user");
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid;
+      
+      console.log("Submitting deposit:", { currentUser, currentUserId, data });
+      
+      if (!currentUserId) {
+        console.error("Deposit submission: No userId found", { currentUserStr, currentUser });
         throw new Error("Please log in to submit deposit");
       }
 
-      console.log("Submitting deposit request:", { userId, ...data });
+      console.log("Submitting deposit request:", { userId: currentUserId, ...data });
       const res = await fetch("/api/deposits/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
+          userId: currentUserId,
           amount: data.amount,
           currency: data.currency,
           network: data.network,
@@ -280,16 +302,20 @@ export function Wallet({
     // Calculate USD value and check minimum deposit of $20
     const amount = parseFloat(depositAmount);
     const price = cryptoPrices[selectedCrypto] || 0;
-    const usdValue = amount * price;
     
-    if (usdValue < 20) {
-      const minAmount = (20 / price).toFixed(8);
-      toast({
-        title: "Minimum Deposit Not Met",
-        description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
-        variant: "destructive",
-      });
-      return;
+    // Only validate if price is loaded (not 0)
+    if (price > 0) {
+      const usdValue = amount * price;
+      
+      if (usdValue < 20) {
+        const minAmount = (20 / price).toFixed(8);
+        toast({
+          title: "Minimum Deposit Not Met",
+          description: `Minimum deposit is $20. Please deposit at least ${minAmount} ${selectedCrypto} (${getSymbol()}${convert(20).toFixed(2)}).`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     submitDepositMutation.mutate({
@@ -298,17 +324,6 @@ export function Wallet({
       network: selectedNetwork,
       walletAddress: depositAddress,
     });
-  };
-
-  const cryptoPrices: Record<string, number> = {
-    BTC: cryptoPricesData.BTC?.price || 67000,
-    LTC: cryptoPricesData.LTC?.price || 85,
-    ETH: cryptoPricesData.ETH?.price || 3500,
-    USDT: cryptoPricesData.USDT?.price || 1,
-    USDC: cryptoPricesData.USDC?.price || 1,
-    TON: cryptoPricesData.TON?.price || 5.5,
-    ZCASH: cryptoPricesData.ZCASH?.price || 30,
-    BNB: cryptoPricesData.BNB?.price || 600,
   };
 
   const pricedBalances = useMemo(() => {
@@ -432,12 +447,22 @@ export function Wallet({
     setWithdrawOpen(true);
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const balance = getCurrentBalance(selectedCrypto);
     const amount = parseFloat(withdrawAmount);
     const fee = getSelectedNetworkFee();
     
-    if (amount <= 0) {
+    // Validate address first
+    if (!withdrawAddress || withdrawAddress.trim().length === 0) {
+      toast({
+        title: "Address Required",
+        description: "Please enter a withdrawal address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (amount <= 0 || isNaN(amount)) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid withdrawal amount.",
@@ -446,29 +471,104 @@ export function Wallet({
       return;
     }
     
+    // Check if amount exceeds balance
     if (amount > balance) {
       toast({
         title: "Insufficient Balance",
-        description: `You don't have enough ${selectedCrypto} to complete this withdrawal.`,
+        description: `You don't have enough ${selectedCrypto}. Your balance is ${balance.toFixed(8)} ${selectedCrypto}.`,
         variant: "destructive",
       });
       return;
     }
     
+    // Check if amount is greater than fee
     if (amount <= fee) {
       toast({
         title: "Amount Too Low",
-        description: "Withdrawal amount must be greater than the network fee.",
+        description: `Withdrawal amount must be greater than the network fee of ${fee} ${selectedCrypto}.`,
         variant: "destructive",
       });
       return;
     }
+
+    // Check minimum $20 USD equivalent
+    const price = cryptoPrices[selectedCrypto] || 0;
+    const usdValue = amount * price;
     
-    toast({
-      title: "Withdrawal Submitted",
-      description: `Your withdrawal of ${(amount - fee).toFixed(6)} ${selectedCrypto} is being processed.`,
-    });
-    setWithdrawOpen(false);
+    if (price > 0 && usdValue < 20) {
+      const minAmount = (20 / price).toFixed(8);
+      toast({
+        title: "Minimum Withdrawal Not Met",
+        description: `Minimum withdrawal is $20 USD. Please withdraw at least ${minAmount} ${selectedCrypto}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get userId
+    const currentUserStr = localStorage.getItem("user");
+    const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+    const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid;
+
+    if (!currentUserId) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to submit withdrawal request.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Submitting withdrawal:", {
+        userId: currentUserId,
+        symbol: selectedCrypto,
+        network: selectedNetwork,
+        amount: amount,
+        toAddress: withdrawAddress,
+      });
+
+      // Submit withdrawal request to API
+      const response = await fetch("/api/wallet/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          symbol: selectedCrypto,
+          network: selectedNetwork,
+          amount: amount,
+          toAddress: withdrawAddress,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Withdrawal error:", error);
+        throw new Error(error.error || "Failed to submit withdrawal request");
+      }
+
+      const result = await response.json();
+      console.log("Withdrawal success:", result);
+      
+      toast({
+        title: "Withdrawal Submitted",
+        description: `Your withdrawal of ${(amount - fee).toFixed(6)} ${selectedCrypto} is being processed.`,
+      });
+      
+      setWithdrawOpen(false);
+      setWithdrawAmount("");
+      setWithdrawAddress("");
+      
+      // Refresh balances
+      queryClient.invalidateQueries({ queryKey: ["balances"] });
+    } catch (error: any) {
+      console.error("Withdrawal error:", error);
+      toast({
+        title: "Withdrawal Failed",
+        description: error.message || "Failed to submit withdrawal request",
+        variant: "destructive",
+      });
+    }
   };
 
   const calculateExchangeOutput = () => {
@@ -865,14 +965,40 @@ export function Wallet({
 
                       <div className="space-y-2">
                         <Label htmlFor="withdraw-address">Withdrawal Address</Label>
-                        <Input
-                          id="withdraw-address"
-                          placeholder={`Enter ${selectedCrypto} address`}
-                          value={withdrawAddress}
-                          onChange={(e) => setWithdrawAddress(e.target.value)}
-                          className="liquid-glass border-white/10 font-mono text-sm"
-                          data-testid="input-withdraw-address"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="withdraw-address"
+                            placeholder={`Enter ${selectedCrypto} address`}
+                            value={withdrawAddress}
+                            onChange={(e) => setWithdrawAddress(e.target.value)}
+                            className="liquid-glass border-white/10 font-mono text-sm pr-20"
+                            data-testid="input-withdraw-address"
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3 text-xs"
+                            onClick={async () => {
+                              try {
+                                const text = await navigator.clipboard.readText();
+                                setWithdrawAddress(text);
+                                toast({
+                                  title: "Pasted",
+                                  description: "Address pasted from clipboard",
+                                });
+                              } catch (err) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to read clipboard",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            Paste
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">

@@ -254,6 +254,7 @@ function MobileApp() {
                 onNavigateToMining={() => setActiveTab("mining")}
                 onNavigateToWallet={() => setActiveTab("wallet")}
                 onNavigateToHome={() => setActiveTab("home")}
+                onWithdraw={() => setActiveTab("wallet")}
                 isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
                 onRefreshBalances={refetchBalances}
                 isFetching={isFetching}

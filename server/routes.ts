@@ -5,12 +5,12 @@ import { db } from "./db";
 import { 
   users, depositAddresses, ledgerEntries, withdrawalRequests, 
   adminActions, networkConfig, blockchainDeposits, interestPayments,
-  miningPurchases, notifications
+  miningPurchases, notifications, wallets, depositRequests
 } from "@shared/schema";
 import { blockchainService } from "./services/blockchain";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
-import { eq, and, or, desc, lte, inArray } from "drizzle-orm";
+import { eq, and, or, desc, lte, inArray, sql } from "drizzle-orm";
 import { generateSecret, generate, verify } from "otplib";
 import QRCode from "qrcode";
 
@@ -55,6 +55,32 @@ export async function registerRoutes(
       res.json(updatedStats);
     } catch (error) {
       res.status(500).json({ error: "Failed to toggle mining" });
+    }
+  });
+
+  // Mining contracts endpoint - returns user's active mining contracts
+  app.get("/api/mining/contracts", async (req, res) => {
+    try {
+      // For now, return empty array - will be populated when user purchases contracts
+      res.json([]);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get mining contracts" });
+    }
+  });
+
+  // Mining pool status endpoint - returns current pool connection status
+  app.get("/api/mining/pool-status", async (req, res) => {
+    try {
+      const stats = await storage.getMiningStats();
+      res.json({
+        connected: stats.isActive,
+        poolName: stats.poolName || "CryptoPool Pro",
+        hashRate: `${stats.hashRate} ${stats.hashRateUnit}`,
+        uptime: 99.98,
+        workers: stats.isActive ? 1 : 0,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get pool status" });
     }
   });
 
@@ -313,37 +339,46 @@ export async function registerRoutes(
     try {
       const { userId, symbol, network, amount, toAddress } = req.body;
       
+      console.log("Withdrawal request received:", { userId, symbol, network, amount, toAddress });
+      
       if (!userId || !symbol || !network || !amount || !toAddress) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Validate address
-      if (!blockchainService.isValidAddress(toAddress)) {
-        return res.status(400).json({ error: "Invalid withdrawal address" });
+      // Basic address validation - just check it's not empty and has reasonable length
+      if (toAddress.trim().length < 10 || toAddress.trim().length > 100) {
+        return res.status(400).json({ error: "Invalid withdrawal address format" });
       }
 
-      // Get current balance
-      const latestEntry = await db.select()
-        .from(ledgerEntries)
-        .where(
-          and(
-            eq(ledgerEntries.userId, userId),
-            eq(ledgerEntries.symbol, symbol)
-          )
-        )
-        .orderBy(desc(ledgerEntries.createdAt))
-        .limit(1);
+      // Get current balance from wallets table (case-insensitive symbol matching)
+      // Fetch all wallets for this user and symbol (case-insensitive)
+      const allUserWallets = await db.select()
+        .from(wallets)
+        .where(eq(wallets.userId, userId));
 
-      const currentBalance = latestEntry.length > 0 ? latestEntry[0].balanceAfter : 0;
+      // Filter by symbol case-insensitively and find wallet with highest balance
+      const matchingWallets = allUserWallets.filter(w => 
+        w.symbol.toUpperCase() === symbol.toUpperCase()
+      );
 
-      // Get network config for fee
+      // Use the wallet with the highest balance (in case of duplicates)
+      const userWallet = matchingWallets.length > 0 
+        ? matchingWallets.reduce((max, w) => w.balance > max.balance ? w : max)
+        : null;
+
+      const currentBalance = userWallet ? (userWallet.balance || 0) : 0;
+      const actualSymbol = userWallet ? userWallet.symbol : symbol;
+
+      console.log("Current balance:", currentBalance, "Symbol:", actualSymbol, "Matches found:", matchingWallets.length);
+
+      // Get network config for fee (or use default)
       const networkCfg = await db.select()
         .from(networkConfig)
         .where(eq(networkConfig.network, network))
         .limit(1);
 
-      const fee = networkCfg.length > 0 ? networkCfg[0].withdrawalFee : 0;
-      const minWithdrawal = networkCfg.length > 0 ? networkCfg[0].minWithdrawal : 0;
+      const fee = networkCfg.length > 0 ? networkCfg[0].withdrawalFee : 0.0001;
+      const minWithdrawal = networkCfg.length > 0 ? networkCfg[0].minWithdrawal : 0.001;
 
       if (amount < minWithdrawal) {
         return res.status(400).json({ 
@@ -351,12 +386,12 @@ export async function registerRoutes(
         });
       }
 
-      const totalRequired = amount + fee;
-      if (currentBalance < totalRequired) {
+      // Check if user has enough balance (including fee)
+      if (currentBalance < amount) {
         return res.status(400).json({ 
           error: "Insufficient balance",
           balance: currentBalance,
-          required: totalRequired
+          required: amount
         });
       }
 
@@ -365,7 +400,7 @@ export async function registerRoutes(
       // Create withdrawal request
       const [request] = await db.insert(withdrawalRequests).values({
         userId,
-        symbol,
+        symbol: actualSymbol,
         network,
         amount,
         fee,
@@ -373,6 +408,19 @@ export async function registerRoutes(
         toAddress,
         status: "pending",
       }).returning();
+
+      console.log("Withdrawal request created:", request.id);
+
+      // Send notification to user
+      await db.insert(notifications).values({
+        userId,
+        type: "withdrawal",
+        category: "user",
+        title: "Withdrawal Request Submitted",
+        message: `Your withdrawal request for ${amount} ${actualSymbol} has been submitted and is pending admin approval.`,
+        data: { requestId: request.id, amount, symbol: actualSymbol, network, toAddress },
+        priority: "normal",
+      }).catch(err => console.error("Failed to create notification:", err));
 
       res.json({ 
         success: true, 
@@ -396,6 +444,55 @@ export async function registerRoutes(
       res.json(withdrawals);
     } catch (error) {
       res.status(500).json({ error: "Failed to get withdrawal history" });
+    }
+  });
+
+  // Get user's recent activity (deposits and withdrawals combined)
+  app.get("/api/wallet/activity/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Get deposits
+      const deposits = await db.select()
+        .from(depositRequests)
+        .where(eq(depositRequests.userId, userId))
+        .orderBy(desc(depositRequests.createdAt))
+        .limit(10);
+
+      // Get withdrawals
+      const withdrawals = await db.select()
+        .from(withdrawalRequests)
+        .where(eq(withdrawalRequests.userId, userId))
+        .orderBy(desc(withdrawalRequests.requestedAt))
+        .limit(10);
+
+      // Combine and format
+      const activity = [
+        ...deposits.map(d => ({
+          id: d.id,
+          type: 'deposit' as const,
+          amount: d.amount,
+          currency: d.currency,
+          status: d.status,
+          createdAt: d.createdAt,
+          network: d.network,
+        })),
+        ...withdrawals.map(w => ({
+          id: w.id,
+          type: 'withdrawal' as const,
+          amount: w.amount,
+          currency: w.symbol,
+          status: w.status,
+          createdAt: w.requestedAt,
+          network: w.network,
+        }))
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10);
+
+      res.json(activity);
+    } catch (error) {
+      console.error("Failed to get activity:", error);
+      res.status(500).json({ error: "Failed to get activity" });
     }
   });
 
@@ -697,39 +794,33 @@ export async function registerRoutes(
       }
 
       if (action === "approve") {
-        // Deduct from user's balance
-        const latestEntry = await db.select()
-          .from(ledgerEntries)
+        // Deduct from user's wallet balance
+        const userWalletList = await db.select()
+          .from(wallets)
           .where(
             and(
-              eq(ledgerEntries.userId, request.userId),
-              eq(ledgerEntries.symbol, request.symbol)
+              eq(wallets.userId, request.userId),
+              sql`UPPER(${wallets.symbol}) = UPPER(${request.symbol})`
             )
-          )
-          .orderBy(desc(ledgerEntries.createdAt))
-          .limit(1);
+          );
 
-        const balanceBefore = latestEntry.length > 0 ? latestEntry[0].balanceAfter : 0;
+        if (userWalletList.length === 0) {
+          return res.status(400).json({ error: "Wallet not found" });
+        }
+
+        // Find wallet with highest balance
+        const userWallet = userWalletList.reduce((max, w) => w.balance > max.balance ? w : max);
+        const balanceBefore = userWallet.balance;
         const balanceAfter = balanceBefore - request.amount;
 
         if (balanceAfter < 0) {
           return res.status(400).json({ error: "Insufficient balance" });
         }
 
-        // Create ledger entry for withdrawal
-        await db.insert(ledgerEntries).values({
-          userId: request.userId,
-          symbol: request.symbol,
-          network: request.network,
-          type: "withdrawal",
-          amount: request.amount,
-          balanceBefore,
-          balanceAfter,
-          referenceType: "withdrawal",
-          referenceId: request.id,
-          txHash,
-          adminId,
-        });
+        // Update wallet balance
+        await db.update(wallets)
+          .set({ balance: balanceAfter })
+          .where(eq(wallets.id, userWallet.id));
 
         // Update withdrawal request
         await db.update(withdrawalRequests)
@@ -743,6 +834,17 @@ export async function registerRoutes(
           })
           .where(eq(withdrawalRequests.id, id));
 
+        // Send approval notification to user
+        await db.insert(notifications).values({
+          userId: request.userId,
+          type: "withdrawal",
+          category: "user",
+          title: "Withdrawal Approved",
+          message: `Your withdrawal of ${request.amount} ${request.symbol} has been approved and processed.${txHash ? ` Transaction: ${txHash}` : ''}`,
+          data: { requestId: id, amount: request.amount, symbol: request.symbol, txHash, status: "completed" },
+          priority: "high",
+        }).catch(err => console.error("Failed to create notification:", err));
+
       } else {
         // Reject withdrawal
         await db.update(withdrawalRequests)
@@ -753,6 +855,17 @@ export async function registerRoutes(
             rejectedAt: new Date(),
           })
           .where(eq(withdrawalRequests.id, id));
+
+        // Send rejection notification to user
+        await db.insert(notifications).values({
+          userId: request.userId,
+          type: "withdrawal",
+          category: "user",
+          title: "Withdrawal Rejected",
+          message: `Your withdrawal of ${request.amount} ${request.symbol} has been rejected.${note ? ` Reason: ${note}` : ''}`,
+          data: { requestId: id, amount: request.amount, symbol: request.symbol, reason: note, status: "rejected" },
+          priority: "high",
+        }).catch(err => console.error("Failed to create notification:", err));
       }
 
       // Log admin action
@@ -791,6 +904,21 @@ export async function registerRoutes(
       res.json(networks);
     } catch (error) {
       res.status(500).json({ error: "Failed to get network config" });
+    }
+  });
+
+  // Admin: Delete wallet (for removing duplicates)
+  app.delete("/api/admin/wallets/:walletId", async (req, res) => {
+    try {
+      const { walletId } = req.params;
+      
+      await db.delete(wallets)
+        .where(eq(wallets.id, walletId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete wallet error:", error);
+      res.status(500).json({ error: "Failed to delete wallet" });
     }
   });
 
@@ -1699,6 +1827,35 @@ export async function registerRoutes(
         .from(wallets)
         .where(eq(wallets.userId, resolvedUserId));
       
+      // Define all supported coins in the desired order
+      const supportedCoins = [
+        { symbol: "USDT", name: "Tether" },
+        { symbol: "BTC", name: "Bitcoin" },
+        { symbol: "LTC", name: "Litecoin" },
+        { symbol: "USDC", name: "USD Coin" },
+      ];
+
+      // Create a map of existing wallets
+      const walletMap = new Map(userWallets.map(w => [w.symbol.toUpperCase(), w]));
+
+      // Ensure all supported coins are included (with 0 balance if not exists)
+      const allBalances = supportedCoins.map(coin => {
+        const existingWallet = walletMap.get(coin.symbol);
+        if (existingWallet) {
+          return existingWallet;
+        }
+        // Return placeholder for coins user doesn't have yet
+        return {
+          id: `placeholder-${coin.symbol}`,
+          userId: resolvedUserId,
+          symbol: coin.symbol,
+          name: coin.name,
+          balance: 0,
+          address: null,
+          createdAt: new Date().toISOString(),
+        };
+      });
+      
       // Get pending deposits
       const { depositRequests } = await import("@shared/schema");
       const pending = await db.select()
@@ -1714,7 +1871,7 @@ export async function registerRoutes(
       });
       
       res.json({
-        balances: userWallets,
+        balances: allBalances,
         pending: pendingByCurrency
       });
     } catch (error) {

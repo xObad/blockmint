@@ -96,18 +96,21 @@ async function fetchCryptoPrices(): Promise<Record<CryptoType, CryptoPrice>> {
   } catch (error) {
     console.error("Error fetching crypto prices:", error);
     // Return fallback prices
-    return {
-      BTC: { symbol: "BTC", name: "Bitcoin", price: 97245.32, change24h: 2.45, logo: "btc", color: "bg-amber-500" },
-      LTC: { symbol: "LTC", name: "Litecoin", price: 102.34, change24h: 3.12, logo: "ltc", color: "bg-slate-400" },
-      ETH: { symbol: "ETH", name: "Ethereum", price: 3450, change24h: -1.23, logo: "eth", color: "bg-purple-500" },
-      ZCASH: { symbol: "ZCASH", name: "Zcash", price: 45.20, change24h: 1.15, logo: "zcash", color: "bg-amber-500" },
-      TON: { symbol: "TON", name: "Toncoin", price: 5.20, change24h: 1.56, logo: "ton", color: "bg-cyan-500" },
-      USDT: { symbol: "USDT", name: "Tether", price: 1, change24h: 0, logo: "usdt", color: "bg-emerald-500" },
-      USDC: { symbol: "USDC", name: "USD Coin", price: 1, change24h: 0, logo: "usdc", color: "bg-blue-500" },
-      BNB: { symbol: "BNB", name: "BNB", price: 600, change24h: 0, logo: "bnb", color: "bg-yellow-500" },
-    };
+    return defaultPrices;
   }
 }
+
+// Default fallback prices to use immediately
+const defaultPrices: Record<CryptoType, CryptoPrice> = {
+  BTC: { symbol: "BTC", name: "Bitcoin", price: 97245.32, change24h: 2.45, logo: "btc", color: "bg-amber-500" },
+  LTC: { symbol: "LTC", name: "Litecoin", price: 102.34, change24h: 3.12, logo: "ltc", color: "bg-slate-400" },
+  ETH: { symbol: "ETH", name: "Ethereum", price: 3450, change24h: -1.23, logo: "eth", color: "bg-purple-500" },
+  ZCASH: { symbol: "ZCASH", name: "Zcash", price: 45.20, change24h: 1.15, logo: "zcash", color: "bg-amber-500" },
+  TON: { symbol: "TON", name: "Toncoin", price: 5.20, change24h: 1.56, logo: "ton", color: "bg-cyan-500" },
+  USDT: { symbol: "USDT", name: "Tether", price: 1, change24h: 0, logo: "usdt", color: "bg-emerald-500" },
+  USDC: { symbol: "USDC", name: "USD Coin", price: 1, change24h: 0, logo: "usdc", color: "bg-blue-500" },
+  BNB: { symbol: "BNB", name: "BNB", price: 600, change24h: 0, logo: "bnb", color: "bg-yellow-500" },
+};
 
 export function useCryptoPrices() {
   const { data: prices, isLoading, error } = useQuery({
@@ -116,10 +119,11 @@ export function useCryptoPrices() {
     staleTime: 60 * 1000, // 1 minute
     refetchInterval: 120 * 1000, // Refresh every 2 minutes
     retry: 1,
+    initialData: defaultPrices, // Use default prices immediately
   });
 
   return {
-    prices: (prices ?? ({} as Record<CryptoType, CryptoPrice>)),
+    prices: prices ?? defaultPrices,
     isLoading,
     error,
   };
