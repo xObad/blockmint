@@ -247,7 +247,7 @@ export function Wallet({
       
       if (!currentUserId) {
         console.error("Deposit submission: No userId found in localStorage:", { currentUserStr, currentUser });
-        throw new Error("Session expired. Please refresh the page and log in again.");
+        throw new Error("Authentication error. Please log out and log in again.");
       }
 
       console.log("Submitting deposit request:", { userId: currentUserId, ...data });
@@ -693,7 +693,7 @@ export function Wallet({
                   side="bottom"
                   align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto p-2 md:p-4"
                   data-testid="popover-wallet-deposit"
                 >
                   <div className="space-y-2 md:space-y-3">
@@ -903,7 +903,7 @@ export function Wallet({
                   side="bottom"
                   align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto p-2 md:p-4"
                   data-testid="popover-wallet-withdraw"
                 >
                   <div className="space-y-2 md:space-y-3">

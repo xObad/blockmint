@@ -1735,8 +1735,20 @@ export async function registerRoutes(
       const { userId, amount, currency, network, walletAddress } = req.body;
       const { depositRequests, notifications } = await import("@shared/schema");
       
+      console.log("Deposit request received:", { userId, amount, currency, network, walletAddress });
+      
       if (!userId || !amount || !currency || !network || !walletAddress) {
+        console.error("Missing required fields:", { userId, amount, currency, network, walletAddress });
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Verify user exists
+      const { users } = await import("@shared/schema");
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      
+      if (!user) {
+        console.error("User not found:", userId);
+        return res.status(404).json({ error: "User not found. Please log in again." });
       }
 
       // Create deposit request
@@ -1748,6 +1760,8 @@ export async function registerRoutes(
         walletAddress,
         status: "pending",
       }).returning();
+
+      console.log("Deposit request created:", request.id);
 
       // Create notification for user
       await db.insert(notifications).values({
@@ -1766,7 +1780,7 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Error creating deposit request:", error);
-      res.status(500).json({ error: "Failed to create deposit request" });
+      res.status(500).json({ error: "Failed to create deposit request. Please try again." });
     }
   });
 
