@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { auth } from "@/lib/firebase";
 import { Link } from "wouter";
 import {
   Select,
@@ -81,7 +83,57 @@ export default function Exchange() {
   const [exchangeAmount, setExchangeAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  const exchangeMutation = useMutation({
+    mutationFn: async (data: { fromSymbol: string; toSymbol: string; amount: number; toAmount: number }) => {
+      const token = await auth.currentUser?.getIdToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+         ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      };
+      
+      const res = await fetch("/api/wallet/exchange", {
+         method: "POST",
+         headers,
+         body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+         const json = await res.json().catch(() => ({}));
+         throw new Error(json.error || "Exchange failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/balances"] });
+      toast({
+        title: "Exchange Successful",
+        description: `Converted ${exchangeFrom} to ${exchangeTo}`,
+      });
+      setExchangeAmount("");
+      setIsSubmitting(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Exchange Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    },
+  });
+
   const { data: walletData, isLoading: isLoadingBalances } = useQuery<{ balances: any[], totalBalance: number }>({
+    queryKey: ["/api/wallet/balances"],
+    queryFn: async () => {
+      const token = await auth.currentUser?.getIdToken();
+      const headers: HeadersInit = token ? { "Authorization": `Bearer ${token}` } : {};
+      const res = await fetch("/api/wallet/balances", { headers });
+      if (!res.ok) throw new Error("Failed to fetch balances");
+      return res.json();
+    }
+  });
     queryKey: ["/api/wallet/balances"],
   });
 
@@ -121,7 +173,7 @@ export default function Exchange() {
     const fromBalance = getCurrentBalance(exchangeFrom);
     const amount = parseFloat(exchangeAmount);
     
-    if (amount <= 0) {
+    if (isNaN(amount) || amount <= 0) {
       toast({
         title: "Invalid Amount",
         description: "Please enter a valid exchange amount.",
@@ -141,15 +193,14 @@ export default function Exchange() {
 
     setIsSubmitting(true);
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({
-      title: "Exchange Submitted",
-      description: `Converting ${amount} ${exchangeFrom} to ${calculateExchangeOutput()} ${exchangeTo}. Your balance will be updated shortly.`,
+    const toAmount = parseFloat(calculateExchangeOutput());
+
+    exchangeMutation.mutate({
+      fromSymbol: exchangeFrom,
+      toSymbol: exchangeTo,
+      amount: amount,
+      toAmount: toAmount
     });
-    
-    setExchangeAmount("");
-    setIsSubmitting(false);
   };
 
   const CryptoIcon = ({ crypto, className }: { crypto: CryptoType; className?: string }) => {

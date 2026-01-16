@@ -8,6 +8,7 @@ import {
   miningPurchases, notifications, wallets, depositRequests
 } from "@shared/schema";
 import { blockchainService } from "./services/blockchain";
+import { walletService } from "./services/walletService";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
 import { eq, and, or, desc, lte, inArray, sql } from "drizzle-orm";
@@ -119,14 +120,107 @@ export async function registerRoutes(
   });
 
   // Wallet
-  app.get("/api/wallet/balances", async (_req, res) => {
+  app.get("/api/wallet/balances", async (req, res) => {
     try {
-      const balances = await storage.getWalletBalances();
+      let userId = res.locals.user?.id;
+      
+      // If not in locals, check header
+      if (!userId) {
+         const authHeader = req.headers.authorization;
+         if (authHeader?.startsWith("Bearer ")) {
+            const token = authHeader.split(" ")[1];
+            const payload = await authService.verifyToken(token);
+            if (payload) {
+               // Resolve to internal DB ID
+               // Note: walletService methods expect Internal DB ID usually.
+               // But my walletService logic uses `userId` which in `authService.getOrCreateUser` maps 
+               // firebaseUid to usres table.
+               // For simplicity, I'll try to resolve firebase UID -> User ID.
+               
+               // But wait, the walletService uses `userId` column in `wallets` table.
+               // Is that column a UUID or the Firebase UID?
+               // schema: userId: varchar("user_id").notNull().references(() => users.id),
+               // users.id is UUID. users.firebaseUid is text.
+               
+               // I need to look up the user ID from the firebase UID.
+               const user = await db.query.users.findFirst({
+                 where: eq(users.firebaseUid, payload.uid)
+               });
+               userId = user?.id;
+            }
+         }
+      }
+
+      if (!userId) {
+         // Fallback for dev/mock without auth? No, assume auth required for sync.
+         return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const userWallets = await walletService.getUserWallets(userId);
+      
+      const prices: Record<string, number> = {
+        BTC: 98500, LTC: 125, ETH: 3450, USDT: 1, USDC: 1, TON: 5.2
+      };
+
+      const balances = userWallets.map(w => ({
+        symbol: w.symbol,
+        balance: w.balance,
+        usdValue: w.balance * (prices[w.symbol] || 0),
+        address: w.address
+      }));
+
       const totalBalance = balances.reduce((sum, b) => sum + b.usdValue, 0);
-      const change24h = storage.get24hChange();
+      const change24h = 0; 
+
       res.json({ balances, totalBalance, change24h });
     } catch (error) {
+      console.error("Failed to get wallet balances:", error);
       res.status(500).json({ error: "Failed to get wallet balances" });
+    }
+  });
+
+  app.post("/api/wallet/exchange", async (req, res) => {
+    try {
+      let userId = res.locals.user?.id;
+      
+      if (!userId) {
+         const authHeader = req.headers.authorization;
+         if (authHeader?.startsWith("Bearer ")) {
+            const token = authHeader.split(" ")[1];
+            const payload = await authService.verifyToken(token);
+            if (payload) {
+               const user = await db.query.users.findFirst({
+                 where: eq(users.firebaseUid, payload.uid)
+               });
+               userId = user?.id;
+            }
+         }
+      }
+      
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const { fromSymbol, toSymbol, amount, toAmount } = req.body;
+
+      if (!fromSymbol || !toSymbol || !amount || !toAmount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const result = await walletService.exchange(
+        userId,
+        fromSymbol,
+        toSymbol,
+        Number(amount),
+        Number(toAmount)
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Exchange error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

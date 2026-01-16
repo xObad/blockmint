@@ -103,6 +103,56 @@ export const walletService = {
   },
 
   /**
+   * Exchange crypto balances
+   */
+  async exchange(userId: string, fromSymbol: string, toSymbol: string, amount: number, toAmount: number): Promise<{ success: boolean; error?: string }> {
+    // 1. Check source balance
+    const fromWallet = await this.getWallet(userId, fromSymbol);
+    if (!fromWallet || fromWallet.balance < amount) {
+      return { success: false, error: "Insufficient balance" };
+    }
+
+    // 2. Perform Debit
+    const debitResult = await this.adjustBalance({
+      userId,
+      symbol: fromSymbol,
+      amount,
+      type: "debit",
+      note: `Exchange to ${toSymbol}`
+    });
+
+    if (!debitResult.success) {
+      return { success: false, error: debitResult.error || "Failed to debit source wallet" };
+    }
+
+    // 3. Ensure target wallet exists
+    await this.ensureWallet(userId, toSymbol, toSymbol);
+
+    // 4. Perform Credit
+    const creditResult = await this.adjustBalance({
+      userId,
+      symbol: toSymbol,
+      amount: toAmount,
+      type: "credit",
+      note: `Exchange from ${fromSymbol}`
+    });
+
+    if (!creditResult.success) {
+      // Rollback debit
+      await this.adjustBalance({
+        userId,
+        symbol: fromSymbol,
+        amount,
+        type: "credit",
+        note: `ROLLBACK: Exchange to ${toSymbol} failed`
+      });
+      return { success: false, error: creditResult.error || "Failed to credit target wallet" };
+    }
+
+    return { success: true };
+  },
+
+  /**
    * Credit user balance
    */
   async credit(userId: string, symbol: string, amount: number, note?: string, adminId?: string): Promise<boolean> {
