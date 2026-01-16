@@ -46,6 +46,40 @@ export async function registerRoutes(
     }
   });
 
+  // BTC Price Proxy
+  app.get("/api/prices/btc", async (_req, res) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+        { 
+          signal: controller.signal,
+          headers: { "Accept": "application/json" }
+        }
+      );
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch from Coingecko");
+      }
+
+      const data = await response.json() as any;
+      const price = Number(data?.bitcoin?.usd);
+      
+      if (Number.isFinite(price) && price > 0) {
+        res.json({ price });
+      } else {
+        throw new Error("Invalid price data");
+      }
+    } catch (error) {
+      console.error("Price fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch price" });
+    }
+  });
+
   app.post("/api/mining/toggle", async (_req, res) => {
     try {
       const currentStats = await storage.getMiningStats();

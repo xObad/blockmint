@@ -81,14 +81,14 @@ const miningPackages: MiningPackage[] = [
     id: "btc-pro",
     name: "Pro",
     crypto: "BTC",
-    cost: 79.99,
+    cost: 169.99,
     hashrate: "6 TH/s",
     hashrateValue: 6,
     hashrateUnit: "TH/s",
     duration: 0, // One-time
-    returnPercent: 34,
-    dailyReturnBTC: 0.00000390,
-    paybackMonths: 8,
+    returnPercent: 125,
+    dailyReturnBTC: 0.00000630,
+    paybackMonths: 9,
     efficiency: "15W/TH",
     image: btcMiningCart,
   },
@@ -96,14 +96,14 @@ const miningPackages: MiningPackage[] = [
     id: "btc-premium",
     name: "Premium",
     crypto: "BTC",
-    cost: 219.99,
+    cost: 349.99,
     hashrate: "14 TH/s",
     hashrateValue: 14,
     hashrateUnit: "TH/s",
     duration: 0, // One-time
-    returnPercent: 38,
-    dailyReturnBTC: 0.0000088,
-    paybackMonths: 7,
+    returnPercent: 145,
+    dailyReturnBTC: 0.00001470,
+    paybackMonths: 8,
     efficiency: "15W/TH",
     image: btcMineImg,
     popular: true,
@@ -112,14 +112,14 @@ const miningPackages: MiningPackage[] = [
     id: "btc-premium-plus",
     name: "Premium+",
     crypto: "BTC",
-    cost: 419.99,
+    cost: 699.99,
     hashrate: "30 TH/s",
     hashrateValue: 30,
     hashrateUnit: "TH/s",
     duration: 0, // One-time
-    returnPercent: 38,
-    dailyReturnBTC: 0.00002,
-    paybackMonths: 6,
+    returnPercent: 155,
+    dailyReturnBTC: 0.00003150,
+    paybackMonths: 7,
     efficiency: "15W/TH",
     image: btcMiningCart,
   },
@@ -372,8 +372,25 @@ function ActiveMiningPurchases({
 
         <div className="space-y-3">
           {activePurchases.map((purchase) => {
-            const dailyUSD = purchase.dailyReturnBTC * btcPrice;
-            const totalEarnedUSD = purchase.totalEarned * btcPrice;
+            const isSolo = String(purchase.packageName || "").includes("Solo Mining");
+            
+            let dailyUSD = purchase.dailyReturnBTC * btcPrice;
+            let totalEarnedUSD = purchase.totalEarned * btcPrice;
+            let displayedDailyBTC = purchase.dailyReturnBTC;
+
+            if (isSolo) {
+               // Solo Mining logic: 0.5% of investment daily
+               const investment = Number(purchase.amount) || 0;
+               dailyUSD = investment * 0.005;
+               
+               // Calculate total earned based on duration
+               const now = Date.now();
+               const start = purchase.purchaseDate ? new Date(purchase.purchaseDate).getTime() : now;
+               const daysActive = Math.max(0, (now - start) / (1000 * 60 * 60 * 24));
+               totalEarnedUSD = dailyUSD * daysActive;
+               
+               displayedDailyBTC = btcPrice > 0 ? dailyUSD / btcPrice : 0;
+            }
 
             return (
               <motion.div
@@ -401,7 +418,7 @@ function ActiveMiningPurchases({
                       +{getSymbol()}{convert(dailyUSD).toFixed(2)}/day
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      ₿{purchase.dailyReturnBTC.toFixed(8)}
+                      ₿{displayedDailyBTC.toFixed(8)}
                     </p>
                   </div>
                 </div>

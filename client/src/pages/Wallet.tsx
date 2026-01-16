@@ -327,10 +327,32 @@ export function Wallet({
   };
 
   const pricedBalances = useMemo(() => {
-    return balances.map((balance) => {
+    // Ensure all required currencies are shown even with 0 balance
+    const requiredAssets = ["USDT", "BTC", "ETH", "LTC"];
+    
+    // Create map of existing balances
+    const balanceMap = new Map(balances.map(b => [b.symbol, b]));
+    
+    // Merge with required assets
+    const mergedBalances = requiredAssets.map(symbol => {
+      const existing = balanceMap.get(symbol);
+      if (existing) return existing;
+      
+      return {
+         id: `zero-${symbol}`, 
+         symbol, 
+         name: cryptoConfig[symbol as CryptoType]?.name || symbol, 
+         balance: 0, 
+         usdValue: 0, 
+         change24h: 0 
+      } as WalletBalance;
+    });
+
+    return mergedBalances.map((balance) => {
       const symbol = balance.symbol as CryptoType;
       const price = cryptoPrices[symbol] ?? 0;
       const usdValue = (balance.balance ?? 0) * price;
+      // Use price change if balance change is not available or 0
       const change24h = cryptoPricesData[symbol]?.change24h ?? balance.change24h ?? 0;
 
       return {
@@ -342,17 +364,13 @@ export function Wallet({
   }, [balances, cryptoPrices, cryptoPricesData]);
 
   const orderedBalances = useMemo(() => {
-    const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2 };
+    const assetPriority: Record<string, number> = { USDT: 0, BTC: 1, LTC: 2, ETH: 3 };
+    
+    // pricedBalances now already contains exactly the assets we want (merged and filtered)
     return [...pricedBalances].sort((a, b) => {
       const aPri = assetPriority[a.symbol] ?? 999;
       const bPri = assetPriority[b.symbol] ?? 999;
       if (aPri !== bPri) return aPri - bPri;
-
-      if (aPri === 999 && bPri === 999) {
-        const vDiff = (b.usdValue ?? 0) - (a.usdValue ?? 0);
-        if (vDiff !== 0) return vDiff;
-      }
-
       return a.symbol.localeCompare(b.symbol);
     });
   }, [pricedBalances]);
@@ -717,7 +735,7 @@ export function Wallet({
                             <SelectValue placeholder="Select crypto" />
                           </SelectTrigger>
                           <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                            {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
+                            {(["USDT", "BTC", "ETH", "LTC"] as CryptoType[]).map((crypto) => (
                               <SelectItem key={crypto} value={crypto} data-testid={`option-deposit-crypto-${crypto.toLowerCase()}`}>
                                 <div className="flex items-center gap-2">
                                   <CryptoIcon crypto={crypto} className="w-4 h-4" />
@@ -927,7 +945,7 @@ export function Wallet({
                             <SelectValue placeholder="Select crypto" />
                           </SelectTrigger>
                           <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
-                            {(["USDT", "USDC", "BTC", "LTC", "ETH", "ZCASH", "TON", "BNB"] as CryptoType[]).map((crypto) => (
+                            {(["USDT", "BTC", "ETH", "LTC"] as CryptoType[]).map((crypto) => (
                               <SelectItem key={crypto} value={crypto} data-testid={`option-withdraw-crypto-${crypto.toLowerCase()}`}>
                                 <div className="flex items-center gap-2">
                                   <CryptoIcon crypto={crypto} className="w-4 h-4" />

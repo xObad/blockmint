@@ -246,16 +246,12 @@ export function Dashboard({
   const { toast } = useToast();
   const { prices: cryptoPrices } = useCryptoPrices();
   
-  // Ensure all 8 currencies are shown even with 0 balance
+  // Ensure required currencies are shown even with 0 balance
   const allCurrencies = [
     { symbol: "USDT", name: "Tether" },
     { symbol: "BTC", name: "Bitcoin" },
     { symbol: "ETH", name: "Ethereum" },
     { symbol: "LTC", name: "Litecoin" },
-    { symbol: "BNB", name: "BNB" },
-    { symbol: "USDC", name: "USD Coin" },
-    { symbol: "ZCASH", name: "ZCash" },
-    { symbol: "TON", name: "TON" },
   ];
 
   // Merge actual balances with all currencies (show 0 if not found)
@@ -557,9 +553,44 @@ export function Dashboard({
   const daysActive = 0;
   const convertedBalance = convert(totalBalance);
   
-  const hashRate = miningStats?.hashRate ?? 0;
-  const hashRateUnit = miningStats?.hashRateUnit ?? "TH/s";
-  const miningPower = hashRate > 0 ? `${hashRate} ${hashRateUnit}` : "0 TH/s";
+  const calculateTotalHashrateTH = () => {
+    if (!activeMiningPurchases.length) return 0;
+    
+    return activeMiningPurchases
+      .filter((p: any) => !String(p?.packageName || "").includes("Solo Mining"))
+      .reduce((acc, p) => {
+      let val = Number(p.hashrate) || 0;
+      const unit = (p.hashrateUnit || "TH/s").toUpperCase();
+      
+      // Normalize to TH/s
+      if (unit.includes("MH")) val = val / 1000000;
+      else if (unit.includes("GH")) val = val / 1000;
+      else if (unit.includes("PH")) val = val * 1000;
+      else if (unit.includes("EH")) val = val * 1000000;
+      
+      return acc + val;
+    }, 0);
+  };
+
+  const totalHashrateTH = calculateTotalHashrateTH();
+  
+  const formatHashrate = (th: number) => {
+    if (th === 0) return "0 TH/s";
+    
+    // Format large numbers with K suffix as requested (e.g. 50000 TH -> 50K TH)
+    if (th >= 1000) {
+      return `${(th / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}K TH/s`;
+    }
+    
+    // If very small (less than 0.01 TH), show as GH or MH
+    if (th < 0.000001) return `${(th * 1000000).toFixed(0)} MH/s`;
+    if (th < 0.001) return `${(th * 1000).toFixed(0)} GH/s`;
+    
+    return `${Number(th.toFixed(2))} TH/s`;
+  };
+
+  const miningPower = formatHashrate(totalHashrateTH);
+  const activeContractsCount = activeMiningPurchases.length;
   const selectedBalance = balances.find((b) => b.symbol === selectedCrypto)?.balance ?? 0;
 
   const handleSelectCrypto = (value: string) => {
@@ -1073,7 +1104,7 @@ export function Dashboard({
           <GlassCard delay={0.3} className="p-4 hover-elevate cursor-pointer" glow="primary" data-testid="card-active-contracts">
             <div className="flex items-center justify-between gap-3">
               <div className="text-left">
-                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContracts}</p>
+                <p className="text-2xl font-bold text-foreground font-display" data-testid="text-active-contracts">{activeContractsCount}</p>
                 <p className="text-xs text-muted-foreground">Active Contracts</p>
               </div>
               <motion.img 

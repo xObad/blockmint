@@ -145,11 +145,14 @@ export function SoloMining() {
 
   const soloStats = useMemo(() => {
     const totalPH = activeSoloPurchases.reduce((sum: number, p: any) => sum + (Number(p?.hashrate) || 0), 0);
-    const networkHashratePH = NETWORK_HASHRATE_EH * 1000;
-    const expectedDailyBTC = networkHashratePH > 0 ? (144 * BLOCK_REWARD * totalPH) / networkHashratePH : 0;
-    const soloEstimateMultiplier = Number(estimateConfig?.soloEstimateMultiplier) || 1;
-    const perSecondUSDBase = btcPrice > 0 ? (expectedDailyBTC * btcPrice) / 86400 : 0;
-    const perSecondUSD = perSecondUSDBase * soloEstimateMultiplier;
+    
+    // New Calculation: 0.5% of investment daily
+    const totalInvestment = activeSoloPurchases.reduce((sum: number, p: any) => sum + (Number(p?.amount) || 0), 0);
+    const dailyEarningsUSD = totalInvestment * 0.005;
+    
+    // Derived values for UI compatibility
+    const expectedDailyBTC = btcPrice > 0 ? dailyEarningsUSD / btcPrice : 0;
+    const perSecondUSD = dailyEarningsUSD > 0 ? dailyEarningsUSD / 86400 : 0;
 
     const now = Date.now();
     const midnight = new Date();
@@ -174,7 +177,7 @@ export function SoloMining() {
       nearestExpiry,
       hoursToExpiry,
     };
-  }, [activeSoloPurchases, btcPrice, estimateConfig]);
+  }, [activeSoloPurchases, btcPrice]);
 
   const calculations = useMemo(() => {
     const ph = hashpower[0];

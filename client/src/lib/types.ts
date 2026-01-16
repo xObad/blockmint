@@ -21,12 +21,14 @@ export interface WalletBalance {
 
 export interface Transaction {
   id: string;
-  type: 'earned' | 'withdrawn' | 'received' | 'deposit' | 'exchange';
+  type: 'earned' | 'withdrawn' | 'received' | 'deposit' | 'exchange' | 'withdrawal' | 'purchase' | 'promotion' | 'balance';
   amount: number;
-  symbol: string;
-  usdValue: number;
-  timestamp: Date;
-  status: 'completed' | 'pending' | 'failed';
+  symbol?: string;
+  currency?: string;
+  usdValue?: number;
+  timestamp?: Date | string;
+  createdAt?: string;
+  status: 'completed' | 'pending' | 'failed' | 'confirmed' | 'rejected';
 }
 
 export interface CryptoNetwork {
