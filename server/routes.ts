@@ -1833,6 +1833,10 @@ export async function registerRoutes(
         { symbol: "BTC", name: "Bitcoin" },
         { symbol: "LTC", name: "Litecoin" },
         { symbol: "USDC", name: "USD Coin" },
+        { symbol: "ETH", name: "Ethereum" },
+        { symbol: "ZCASH", name: "Zcash" },
+        { symbol: "BNB", name: "BNB" },
+        { symbol: "TON", name: "Toncoin" },
       ];
 
       // Create a map of existing wallets

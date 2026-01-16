@@ -585,10 +585,12 @@ export function Dashboard({
     toast({ title: "Copied", description: "Deposit address copied to clipboard." });
   };
 
-  const openDeposit = () => {
+  const openDeposit = (e?: React.MouseEvent) => {
     if (onDeposit) return onDeposit();
     // Redirect to wallet page instead of opening popup
     if (onNavigateToWallet) {
+      e?.preventDefault();
+      e?.stopPropagation();
       onNavigateToWallet();
       return;
     }
@@ -598,10 +600,12 @@ export function Dashboard({
     setDepositOpen((v) => !v);
   };
 
-  const openWithdraw = () => {
+  const openWithdraw = (e?: React.MouseEvent) => {
     if (onWithdraw) return onWithdraw();
     // Redirect to wallet page instead of opening popup
     if (onNavigateToWallet) {
+      e?.preventDefault();
+      e?.stopPropagation();
       onNavigateToWallet();
       return;
     }
@@ -745,7 +749,15 @@ export function Dashboard({
               <PopoverTrigger asChild>
                 <Button
                   data-testid="button-deposit"
-                  onClick={openDeposit}
+                  onClick={(e) => {
+                    if (onNavigateToWallet) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onNavigateToWallet();
+                    } else {
+                      openDeposit(e);
+                    }
+                  }}
                   className="flex-1 liquid-glass border-0 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 flex items-center justify-center h-12 rounded-2xl"
                   variant="ghost"
                   type="button"
@@ -757,20 +769,20 @@ export function Dashboard({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
                 data-testid="popover-deposit"
               >
-                <div className="space-y-4">
+                <div className="space-y-2 md:space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Deposit</p>
-                      <p className="text-xs text-muted-foreground">Choose currency and network</p>
+                      <p className="text-xs md:text-sm font-semibold text-foreground">Deposit</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground">Choose currency and network</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Currency</Label>
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-xs">Currency</Label>
                       <Select value={selectedCrypto} onValueChange={handleSelectCrypto}>
                         <SelectTrigger className="liquid-glass border-white/10">
                           <SelectValue placeholder="Select" />
@@ -798,49 +810,49 @@ export function Dashboard({
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Deposit address</Label>
+                  <div className="space-y-1 md:space-y-2">
+                    <Label className="text-xs">Deposit address</Label>
                     <div className="flex gap-2">
-                      <Input readOnly value={depositAddress} className="liquid-glass border-white/10 text-xs" />
-                      <Button variant="secondary" className="liquid-glass border-0" onClick={copyDepositAddress} type="button">
-                        {copiedDeposit ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      <Input readOnly value={depositAddress} className="liquid-glass border-white/10 text-[10px] md:text-xs" />
+                      <Button variant="secondary" className="liquid-glass border-0 h-9 px-2" onClick={copyDepositAddress} type="button">
+                        {copiedDeposit ? <Check className="w-3 h-3 md:w-4 md:h-4" /> : <Copy className="w-3 h-3 md:w-4 md:h-4" />}
                       </Button>
                     </div>
-                    <div className="flex flex-col items-center gap-2 pt-3">
+                    <div className="flex flex-col items-center gap-2 pt-2">
                       <div className="relative group">
                         <img
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
                           alt="Deposit QR Code"
-                          className="w-48 h-48 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform"
+                          className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
                           onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
                         />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          <div className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                          <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
                             Click to enlarge
                           </div>
                         </div>
                       </div>
-                      <p className="text-xs text-center text-muted-foreground max-w-[280px]">
+                      <p className="text-[10px] md:text-xs text-center text-muted-foreground max-w-[280px]">
                         Scan QR code to deposit. Click to view larger. Ensure network matches exactly to avoid loss of funds.
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Amount</Label>
+                  <div className="space-y-1 md:space-y-2">
+                    <Label className="text-xs">Amount</Label>
                     <Input
                       value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
                       placeholder={`0.00 ${selectedCrypto}`}
-                      className="liquid-glass border-white/10"
+                      className="liquid-glass border-white/10 h-9 text-xs"
                       inputMode="decimal"
                     />
-                    <p className="text-xs text-emerald-400">
+                    <p className="text-[10px] md:text-xs text-emerald-400">
                       Minimum deposit: {getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 1))).toFixed(8)} {selectedCrypto})
                     </p>
                   </div>
 
-                  <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="text-[10px] md:text-xs text-muted-foreground space-y-0.5">
                     <p>Live price: {getSymbol()}{convert(cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price ?? 0).toFixed(2)}</p>
                     <p className="text-amber-400">⚠️ Warning: Sending on the wrong network can result in permanent loss.</p>
                   </div>
@@ -848,36 +860,36 @@ export function Dashboard({
                   {/* Deposit Confirmation Button */}
                   {!depositSubmitted ? (
                     <Button
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-9 md:h-10 text-xs md:text-sm"
                       onClick={handleSubmitDeposit}
                       disabled={submitDepositMutation.isPending || !depositAmount || !depositAddress}
                       data-testid="button-confirm-deposit"
                     >
                       {submitDepositMutation.isPending ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-2 animate-spin" />
                           Submitting...
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                           I Have Completed My Deposit
                         </>
                       )}
                     </Button>
                   ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-2 md:p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-emerald-400">Submitted!</p>
-                          <p className="text-xs text-muted-foreground">We'll verify within 10-30 min.</p>
+                          <p className="text-xs md:text-sm font-medium text-emerald-400">Submitted!</p>
+                          <p className="text-[10px] md:text-xs text-muted-foreground">We'll verify within 10-30 min.</p>
                         </div>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full"
+                        className="w-full h-8 text-xs"
                         onClick={() => {
                           setDepositSubmitted(false);
                           setDepositAmount("");
@@ -905,7 +917,15 @@ export function Dashboard({
               <PopoverTrigger asChild>
                 <Button
                   data-testid="button-withdraw"
-                  onClick={openWithdraw}
+                  onClick={(e) => {
+                    if (onNavigateToWallet) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onNavigateToWallet();
+                    } else {
+                      openWithdraw(e);
+                    }
+                  }}
                   className="flex-1 liquid-glass border-0 bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center justify-center h-12 rounded-2xl"
                   variant="ghost"
                   type="button"
@@ -917,18 +937,18 @@ export function Dashboard({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
                 data-testid="popover-withdraw"
               >
-                <div className="space-y-4">
+                <div className="space-y-2 md:space-y-3">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Withdraw</p>
-                    <p className="text-xs text-muted-foreground">Choose currency and network</p>
+                    <p className="text-xs md:text-sm font-semibold text-foreground">Withdraw</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground">Choose currency and network</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Currency</Label>
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-xs">Currency</Label>
                       <Select value={selectedCrypto} onValueChange={handleSelectCrypto}>
                         <SelectTrigger className="liquid-glass border-white/10">
                           <SelectValue placeholder="Select" />
@@ -941,63 +961,63 @@ export function Dashboard({
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Network</Label>
+                    <div className="space-y-1 md:space-y-2">
+                      <Label className="text-xs">Network</Label>
                       <Select value={selectedNetwork} onValueChange={handleSelectNetwork}>
                         <SelectTrigger className="liquid-glass border-white/10">
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
                           {(cryptoNetworks[selectedCrypto] ?? []).map((n) => (
-                            <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+                            <SelectItem key={n} value={n.id}>{n.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Recipient address</Label>
+                  <div className="space-y-1 md:space-y-2">
+                    <Label className="text-xs">Recipient address</Label>
                     <Input
                       value={withdrawAddress}
                       onChange={(e) => setWithdrawAddress(e.target.value)}
                       placeholder="Paste address"
-                      className="liquid-glass border-white/10"
+                      className="liquid-glass border-white/10 h-9 text-xs"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Amount</Label>
+                  <div className="space-y-1 md:space-y-2">
+                    <Label className="text-xs">Amount</Label>
                     <div className="flex gap-2">
                       <Input
                         value={withdrawAmount}
                         onChange={(e) => setWithdrawAmount(e.target.value)}
                         placeholder={`0.00 ${selectedCrypto}`}
-                        className="liquid-glass border-white/10 flex-1"
+                        className="liquid-glass border-white/10 flex-1 h-9 text-xs"
                         inputMode="decimal"
                       />
                       <Button
                         variant="secondary"
-                        className="liquid-glass border-0"
+                        className="liquid-glass border-0 h-9 px-2 text-xs"
                         type="button"
                         onClick={() => setWithdrawAmount(selectedBalance.toString())}
                       >
                         Max
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">Balance: {selectedBalance.toFixed(6)} {selectedCrypto}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground">Balance: {selectedBalance.toFixed(6)} {selectedCrypto}</p>
                   </div>
 
-                  <div className="text-xs text-amber-400">
+                  <div className="text-[10px] md:text-xs text-amber-400 bg-amber-400/10 p-2 rounded-lg">
                     Warning: Selecting the wrong blockchain network can lead to irreversible loss of funds. Double-check the network before confirming.
                   </div>
 
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="secondary" className="liquid-glass border-0" onClick={() => setWithdrawOpen(false)} type="button">
+                    <Button variant="secondary" className="liquid-glass border-0 h-9 text-xs" onClick={() => setWithdrawOpen(false)} type="button">
                       Cancel
                     </Button>
                     <Button
-                      className="liquid-glass border-0 bg-primary/20 text-foreground"
+                      className="liquid-glass border-0 bg-primary/20 text-foreground h-9 text-xs"
                       onClick={confirmWithdraw}
                       type="button"
                       disabled={!withdrawAddress || !withdrawAmount}

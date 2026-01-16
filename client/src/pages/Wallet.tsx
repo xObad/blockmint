@@ -693,18 +693,18 @@ export function Wallet({
                   side="bottom"
                   align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
                   data-testid="popover-wallet-deposit"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-2 md:space-y-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Deposit Crypto</p>
-                      <p className="text-xs text-muted-foreground">Select a cryptocurrency and network to receive funds</p>
+                      <p className="text-xs md:text-sm font-semibold text-foreground">Deposit Crypto</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground">Select a cryptocurrency and network to receive funds</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="deposit-crypto">Cryptocurrency</Label>
+                    <div className="space-y-2 md:space-y-3">
+                      <div className="space-y-1 md:space-y-2">
+                        <Label htmlFor="deposit-crypto" className="text-xs">Cryptocurrency</Label>
                         <Select
                           value={selectedCrypto}
                           onValueChange={(value) => handleCryptoChange(value as CryptoType)}
@@ -730,8 +730,8 @@ export function Wallet({
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="deposit-network">Network</Label>
+                      <div className="space-y-1 md:space-y-2">
+                        <Label htmlFor="deposit-network" className="text-xs">Network</Label>
                         <Select
                           value={selectedNetwork}
                           onValueChange={handleNetworkChange}
@@ -755,11 +755,11 @@ export function Wallet({
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Your Deposit Address</Label>
-                        <div className="liquid-glass rounded-xl p-4 border border-white/10">
+                      <div className="space-y-1 md:space-y-2">
+                        <Label className="text-xs">Your Deposit Address</Label>
+                        <div className="liquid-glass rounded-xl p-2 md:p-3 border border-white/10">
                           <p 
-                            className="text-sm font-mono break-all text-foreground mb-3"
+                            className="text-[10px] md:text-xs font-mono break-all text-foreground mb-2"
                             data-testid="text-deposit-address"
                           >
                             {depositAddress || "Select network to generate address"}
@@ -767,19 +767,19 @@ export function Wallet({
                           <Button
                             variant="secondary"
                             size="sm"
-                            className="w-full liquid-glass border-0"
+                            className="w-full liquid-glass border-0 h-8 text-xs"
                             onClick={copyAddress}
                             disabled={!depositAddress}
                             data-testid="button-copy-address"
                           >
                             {copied ? (
                               <>
-                                <Check className="w-4 h-4 mr-2 text-emerald-400" />
+                                <Check className="w-3 h-3 mr-2 text-emerald-400" />
                                 Copied!
                               </>
                             ) : (
                               <>
-                                <Copy className="w-4 h-4 mr-2" />
+                                <Copy className="w-3 h-3 mr-2" />
                                 Copy Address
                               </>
                             )}
@@ -787,21 +787,21 @@ export function Wallet({
                           
                           {/* QR Code */}
                           {depositAddress && depositAddress !== "Select network to generate address" && (
-                            <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-white/10">
+                            <div className="flex flex-col items-center gap-2 mt-2 md:mt-3 pt-2 md:pt-3 border-t border-white/10">
                               <div className="relative group">
                                 <img
                                   src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
                                   alt="Deposit QR Code"
-                                  className="w-40 h-40 rounded-lg border-2 border-white/20 bg-white p-2 cursor-pointer hover:scale-105 transition-transform"
+                                  className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
                                   onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                  <div className="bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                                  <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
                                     Click to enlarge
                                   </div>
                                 </div>
                               </div>
-                              <p className="text-xs text-center text-muted-foreground">
+                              <p className="text-[10px] md:text-xs text-center text-muted-foreground">
                                 Scan QR code with your wallet app
                               </p>
                             </div>
@@ -809,29 +809,29 @@ export function Wallet({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
+                      <div className="space-y-1 md:space-y-2">
+                        <div className="flex items-center justify-between text-[10px] md:text-xs">
                           <span className="text-muted-foreground">Estimated Arrival</span>
                           <span>{getSelectedNetworkTime()}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-[10px] md:text-xs">
                           <span className="text-muted-foreground">Minimum Deposit</span>
                           <span className="text-emerald-400">{getSymbol()}20.00 ({((20 / (cryptoPrices[selectedCrypto] || 1))).toFixed(8)} {selectedCrypto})</span>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/20">
-                        <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-200/80">
+                      <div className="flex items-start gap-2 p-2 md:p-3 rounded-lg border border-amber-500/20">
+                        <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-[10px] md:text-xs text-amber-200/80">
                           Only send {selectedCrypto} via {cryptoNetworks[selectedCrypto]?.find(n => n.id === selectedNetwork)?.name || "selected network"} to this address. Sending via wrong network may result in permanent loss of funds.
                         </p>
                       </div>
 
                       {/* Deposit Amount and Confirmation */}
                       {!depositSubmitted ? (
-                        <div className="space-y-4 pt-2 border-t border-white/10">
-                          <div className="space-y-2">
-                            <Label htmlFor="deposit-amount">Amount Deposited</Label>
+                        <div className="space-y-2 md:space-y-3 pt-2 border-t border-white/10">
+                          <div className="space-y-1 md:space-y-2">
+                            <Label htmlFor="deposit-amount" className="text-xs">Amount Deposited</Label>
                             <Input
                               id="deposit-amount"
                               type="number"
@@ -839,12 +839,12 @@ export function Wallet({
                               placeholder={`Enter ${selectedCrypto} amount`}
                               value={depositAmount}
                               onChange={(e) => setDepositAmount(e.target.value)}
-                              className="liquid-glass border-white/10"
+                              className="liquid-glass border-white/10 h-9 text-xs"
                               data-testid="input-deposit-amount"
                             />
                           </div>
                           <Button
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-9 text-xs"
                             onClick={handleSubmitDeposit}
                             disabled={submitDepositMutation.isPending || !depositAmount || !depositAddress}
                             data-testid="button-confirm-deposit"
@@ -903,18 +903,18 @@ export function Wallet({
                   side="bottom"
                   align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[75vh] overflow-y-auto p-3 md:p-4"
                   data-testid="popover-wallet-withdraw"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-2 md:space-y-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Withdraw Crypto</p>
-                      <p className="text-xs text-muted-foreground">Transfer funds to your external wallet</p>
+                      <p className="text-xs md:text-sm font-semibold text-foreground">Withdraw Crypto</p>
+                      <p className="text-[10px] md:text-xs text-muted-foreground">Transfer funds to your external wallet</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="withdraw-crypto">Cryptocurrency</Label>
+                    <div className="space-y-2 md:space-y-3">
+                      <div className="space-y-1 md:space-y-2">
+                        <Label htmlFor="withdraw-crypto" className="text-xs">Cryptocurrency</Label>
                         <Select
                           value={selectedCrypto}
                           onValueChange={(value) => setSelectedCrypto(value as CryptoType)}
@@ -940,8 +940,8 @@ export function Wallet({
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="withdraw-network">Network</Label>
+                      <div className="space-y-1 md:space-y-2">
+                        <Label htmlFor="withdraw-network" className="text-xs">Network</Label>
                         <Select
                           value={selectedNetwork}
                           onValueChange={setSelectedNetwork}
@@ -963,22 +963,22 @@ export function Wallet({
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="withdraw-address">Withdrawal Address</Label>
+                      <div className="space-y-1 md:space-y-2">
+                        <Label htmlFor="withdraw-address" className="text-xs">Withdrawal Address</Label>
                         <div className="relative">
                           <Input
                             id="withdraw-address"
                             placeholder={`Enter ${selectedCrypto} address`}
                             value={withdrawAddress}
                             onChange={(e) => setWithdrawAddress(e.target.value)}
-                            className="liquid-glass border-white/10 font-mono text-sm pr-20"
+                            className="liquid-glass border-white/10 font-mono text-xs pr-16 h-9"
                             data-testid="input-withdraw-address"
                           />
                           <Button
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-3 text-xs"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-[10px]"
                             onClick={async () => {
                               try {
                                 const text = await navigator.clipboard.readText();
@@ -1001,12 +1001,12 @@ export function Wallet({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1 md:space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="withdraw-amount">Amount</Label>
+                          <Label htmlFor="withdraw-amount" className="text-xs">Amount</Label>
                           <button
                             type="button"
-                            className="text-xs text-primary hover:text-primary/80 font-medium"
+                            className="text-[10px] text-primary hover:text-primary/80 font-medium"
                             onClick={() => {
                               const balance = pricedBalances.find(b => b.symbol === selectedCrypto);
                               if (balance) {
@@ -1025,43 +1025,43 @@ export function Wallet({
                             value={withdrawAmount}
                             onChange={(e) => setWithdrawAmount(e.target.value)}
                             step="0.00000001"
-                            className="liquid-glass border-white/10 pr-16"
+                            className="liquid-glass border-white/10 pr-16 h-9 text-xs"
                             data-testid="input-withdraw-amount"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                             {selectedCrypto}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
                           Available: {(pricedBalances.find(b => b.symbol === selectedCrypto)?.balance ?? 0).toFixed(8)} {selectedCrypto}
                         </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
+                      <div className="space-y-1 md:space-y-2">
+                        <div className="flex items-center justify-between text-[10px] md:text-xs">
                           <span className="text-muted-foreground">Network Fee</span>
                           <span>{getSelectedNetworkFee()} {selectedCrypto}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-[10px] md:text-xs">
                           <span className="text-muted-foreground">You Will Receive</span>
                           <span className="font-semibold">{getWithdrawReceiveAmount()} {selectedCrypto}</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-[10px] md:text-xs">
                           <span className="text-muted-foreground">Estimated Time</span>
                           <span>{getSelectedNetworkTime()}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-500/20">
-                        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-200/80">
+                      <div className="flex items-start gap-2 p-2 md:p-3 rounded-lg border border-amber-500/20">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-[10px] md:text-xs text-amber-200/80">
                           Double check the address and network before confirming. Transactions cannot be reversed.
                         </p>
                       </div>
 
                       <Button
                         onClick={handleWithdraw}
-                        className="w-full liquid-glass border-0 bg-primary/20 hover:bg-primary/30"
+                        className="w-full liquid-glass border-0 bg-primary/20 hover:bg-primary/30 h-9 text-xs"
                         disabled={!withdrawAddress || !withdrawAmount || Number(withdrawAmount) <= 0}
                         data-testid="button-confirm-withdraw"
                       >
