@@ -115,8 +115,18 @@ export function useMiningData() {
 
   const transactionsQuery = useQuery<Transaction[]>({
     ...stableQueryOptions,
-    queryKey: ["/api/wallet/transactions"],
+    queryKey: ["/api/wallet/activity", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const res = await fetch(`/api/wallet/activity/${userId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!userId,
+    refetchInterval: 60000, // Refresh every 1 minute
+    refetchIntervalInBackground: false,
     placeholderData: keepPreviousData,
+    staleTime: 30000,
   });
 
   const poolsQuery = useQuery<MiningPool[]>({
