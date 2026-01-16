@@ -476,44 +476,7 @@ export function SoloMining() {
         </motion.section>
       )}
 
-      {activeSoloPurchases.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
-        >
-          <GlassCard className="relative overflow-hidden p-5" glow="btc" variant="strong">
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-gradient-to-br from-orange-500/16 via-amber-500/10 to-transparent blur-2xl" />
-              <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full bg-gradient-to-tr from-blue-500/10 via-cyan-500/10 to-transparent blur-2xl" />
-            </div>
 
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge className="bg-primary/10 text-primary border-primary/25">Solo Mining</Badge>
-                  <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
-                    Active Hashpower
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">Total running power (from your active Solo contracts)</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{soloStats.totalPH.toFixed(0)} PH/s</p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Share: {((soloStats.totalPH / (NETWORK_HASHRATE_EH * 1000)) * 100).toFixed(6)}% of network
-                </p>
-              </div>
-
-              <motion.div
-                className="w-10 h-10 rounded-full border border-amber-400/30 bg-amber-400/10 flex items-center justify-center"
-                animate={{ boxShadow: ["0 0 0px rgba(251,191,36,0.0)", "0 0 24px rgba(251,191,36,0.25)", "0 0 0px rgba(251,191,36,0.0)"] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Cpu className="w-5 h-5 text-amber-300" />
-              </motion.div>
-            </div>
-          </GlassCard>
-        </motion.section>
-      )}
 
       <motion.section
         initial={{ opacity: 0, y: 20 }}
