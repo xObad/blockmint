@@ -36,6 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { auth } from "@/lib/firebase";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 import gpuMining from "@assets/Gpu_Mining_1766014388614.webp";
@@ -440,12 +441,13 @@ export function Dashboard({
       // Recheck userId at submission time
       const currentUserStr = localStorage.getItem("user");
       const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid;
+      // Fallback to Firebase auth instance if localStorage is missing/stale
+      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid || auth?.currentUser?.uid;
       
       console.log("Submitting deposit:", { currentUser, currentUserId, data });
       
       if (!currentUserId) {
-        console.error("No userId found in localStorage:", { currentUserStr, currentUser });
+        console.error("No userId found in localStorage or Auth state:", { currentUserStr, currentUser, authUser: auth?.currentUser?.uid });
         // Try to get from firebaseUser as fallback
         const firebaseUserStr = localStorage.getItem("firebaseUser");
         if (firebaseUserStr) {

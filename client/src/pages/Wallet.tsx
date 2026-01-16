@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { auth } from "@/lib/firebase";
 import type { WalletBalance, Transaction } from "@/lib/types";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
@@ -241,12 +242,13 @@ export function Wallet({
       // Recheck userId at submission time
       const currentUserStr = localStorage.getItem("user");
       const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid;
+      // Fallback to Firebase auth instance if localStorage is missing/stale
+      const currentUserId = currentUser?.dbId || currentUser?.id || currentUser?.uid || auth?.currentUser?.uid;
       
       console.log("Submitting deposit:", { currentUser, currentUserId, data });
       
       if (!currentUserId) {
-        console.error("Deposit submission: No userId found in localStorage:", { currentUserStr, currentUser });
+        console.error("Deposit submission: No userId found in localStorage or Auth state:", { currentUserStr, currentUser, authUser: auth?.currentUser?.uid });
         throw new Error("Authentication error. Please log out and log in again.");
       }
 
