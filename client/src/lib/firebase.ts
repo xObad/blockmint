@@ -17,6 +17,7 @@ import {
   updateProfile,
   User
 } from "firebase/auth";
+import { getMessaging, getToken, onMessage, type Messaging } from "firebase/messaging";
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -26,6 +27,7 @@ const firebaseConfigured = Boolean(apiKey && projectId && appId);
 
 let app: FirebaseApp | null = null;
 let authInstance: ReturnType<typeof getAuth> | null = null;
+let messagingInstance: Messaging | null = null;
 
 if (firebaseConfigured) {
   try {
@@ -38,6 +40,15 @@ if (firebaseConfigured) {
     };
     app = initializeApp(firebaseConfig);
     authInstance = getAuth(app);
+    
+    // Initialize messaging for push notifications
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        messagingInstance = getMessaging(app);
+      } catch (msgError) {
+        console.warn("Firebase Messaging not available:", msgError);
+      }
+    }
   } catch (e) {
     console.error("Failed to initialize Firebase:", e);
     app = null;
@@ -210,3 +221,38 @@ export async function getIdToken(): Promise<string | null> {
 
 // Re-export User type
 export type { User };
+
+// Push Notifications
+export const messaging = messagingInstance;
+
+// Request notification permission and get FCM token
+export async function requestNotificationPermission(): Promise<string | null> {
+  if (!messagingInstance) {
+    console.warn("Firebase Messaging not initialized");
+    return null;
+  }
+  
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+      const token = await getToken(messagingInstance, { vapidKey });
+      console.log('FCM Token:', token);
+      return token;
+    } else {
+      console.log('Notification permission denied');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting FCM token:', error);
+    return null;
+  }
+}
+
+// Listen for foreground messages
+export function onForegroundMessage(callback: (payload: any) => void) {
+  if (!messagingInstance) {
+    return () => {}; // No-op unsubscribe
+  }
+  return onMessage(messagingInstance, callback);
+}

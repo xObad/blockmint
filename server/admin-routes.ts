@@ -1349,7 +1349,7 @@ export function registerAdminRoutes(app: Express) {
         return res.status(404).json({ error: "Article not found" });
       }
 
-      res.json({ article: articles[0] });
+      res.json(articles[0]); // Return article directly, not wrapped
     } catch (error) {
       console.error("Error fetching article:", error);
       res.status(500).json({ error: "Failed to fetch article" });
