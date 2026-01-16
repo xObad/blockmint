@@ -391,6 +391,16 @@ export function Dashboard({
     });
 
     const miningPerSecondUSDBase = activeMiningPurchases.reduce((sum: number, p: any) => {
+      const isSolo = String(p?.packageName || "").includes("Solo Mining");
+      
+      if (isSolo) {
+        // Solo mining: 0.5% daily of investment amount
+        const investment = Number(p?.amount) || 0;
+        const dailyUSD = investment * 0.005;
+        return sum + (dailyUSD / 86400);
+      }
+      
+      // Regular mining: based on dailyReturnBTC
       const dailyReturnBTC = Number(p?.dailyReturnBTC) || 0;
       if (dailyReturnBTC <= 0 || btcUsdPrice <= 0) return sum;
       return sum + (dailyReturnBTC * btcUsdPrice) / 86400;
@@ -696,7 +706,7 @@ export function Dashboard({
         exit={{ opacity: 0 }}
       >
         <LiquidGlassCard key={`portfolio-${convertedBalance}`} glow="btc" delay={0.1} variant="strong" className="relative">
-        <div className="absolute -right-4 -top-4 w-32 h-32 pointer-events-none">
+        <div className="absolute -right-4 -top-4 w-32 h-32 pointer-events-none z-20">
           <DotLottieReact
             src="https://lottie.host/fe692048-2d8f-4966-a2d0-8f9973ce2b3c/9cdpzaKRwx.lottie"
             loop
@@ -739,9 +749,9 @@ export function Dashboard({
 
 
           {activeMiningPurchases.length > 0 && miningPerSecondUSD > 0 && (
-            <div className="mb-4 flex items-center justify-between gap-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div className="mb-8 flex items-center justify-between gap-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div>
-                <p className="text-xs text-emerald-300 font-medium">Estimated earnings today</p>
+                <p className="text-xs text-emerald-300 font-medium">Estimated Earnings Today</p>
                 <p className="text-sm text-emerald-200">
                   {getSymbol()}
                   <LiveGrowingBalance
@@ -753,7 +763,6 @@ export function Dashboard({
                   />
                 </p>
               </div>
-              <span className="text-[10px] font-semibold text-emerald-200/80">LIVE</span>
             </div>
           )}
 
