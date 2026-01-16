@@ -439,8 +439,14 @@ export function Dashboard({
       console.log("Submitting deposit:", { currentUser, currentUserId, data });
       
       if (!currentUserId) {
-        console.error("No userId found:", { currentUserStr, currentUser });
-        throw new Error("Please log in to submit deposit");
+        console.error("No userId found in localStorage:", { currentUserStr, currentUser });
+        // Try to get from firebaseUser as fallback
+        const firebaseUserStr = localStorage.getItem("firebaseUser");
+        if (firebaseUserStr) {
+          const fbUser = JSON.parse(firebaseUserStr);
+          console.log("Trying firebaseUser fallback:", fbUser);
+        }
+        throw new Error("Session expired. Please refresh the page and log in again.");
       }
 
       const res = await fetch("/api/deposits/request", {
@@ -581,6 +587,11 @@ export function Dashboard({
 
   const openDeposit = () => {
     if (onDeposit) return onDeposit();
+    // Redirect to wallet page instead of opening popup
+    if (onNavigateToWallet) {
+      onNavigateToWallet();
+      return;
+    }
     setWithdrawOpen(false);
     setDepositAmount("");
     setDepositSubmitted(false);
@@ -589,6 +600,11 @@ export function Dashboard({
 
   const openWithdraw = () => {
     if (onWithdraw) return onWithdraw();
+    // Redirect to wallet page instead of opening popup
+    if (onNavigateToWallet) {
+      onNavigateToWallet();
+      return;
+    }
     setDepositOpen(false);
     setWithdrawOpen((v) => !v);
   };
@@ -741,7 +757,7 @@ export function Dashboard({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-1.5rem))]"
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
                 data-testid="popover-deposit"
               >
                 <div className="space-y-4">
@@ -901,7 +917,7 @@ export function Dashboard({
                 side="bottom"
                 align="center"
                 sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-1.5rem))]"
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
                 data-testid="popover-withdraw"
               >
                 <div className="space-y-4">

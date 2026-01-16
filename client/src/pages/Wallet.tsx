@@ -246,8 +246,8 @@ export function Wallet({
       console.log("Submitting deposit:", { currentUser, currentUserId, data });
       
       if (!currentUserId) {
-        console.error("Deposit submission: No userId found", { currentUserStr, currentUser });
-        throw new Error("Please log in to submit deposit");
+        console.error("Deposit submission: No userId found in localStorage:", { currentUserStr, currentUser });
+        throw new Error("Session expired. Please refresh the page and log in again.");
       }
 
       console.log("Submitting deposit request:", { userId: currentUserId, ...data });
@@ -691,9 +691,9 @@ export function Wallet({
                 </PopoverTrigger>
                 <PopoverContent
                   side="bottom"
-                  align="start"
+                  align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-1.5rem))] max-h-[85vh] overflow-y-auto"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
                   data-testid="popover-wallet-deposit"
                 >
                   <div className="space-y-4">
@@ -901,9 +901,9 @@ export function Wallet({
                 </PopoverTrigger>
                 <PopoverContent
                   side="bottom"
-                  align="end"
+                  align="center"
                   sideOffset={10}
-                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-1.5rem))] max-h-[85vh] overflow-y-auto"
+                  className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(400px,calc(100vw-2rem))] max-h-[80vh] overflow-y-auto"
                   data-testid="popover-wallet-withdraw"
                 >
                   <div className="space-y-4">
