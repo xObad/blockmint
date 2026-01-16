@@ -180,6 +180,7 @@ export function Wallet({
   const [depositAddress, setDepositAddress] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [depositSubmitted, setDepositSubmitted] = useState(false);
+  const [showDepositQR, setShowDepositQR] = useState(false);
   
   const [exchangeFrom, setExchangeFrom] = useState<CryptoType>("BTC");
   const [exchangeTo, setExchangeTo] = useState<CryptoType>("USDT");
@@ -452,6 +453,7 @@ export function Wallet({
     // Reset deposit state
     setDepositAmount("");
     setDepositSubmitted(false);
+    setShowDepositQR(false);
     setDepositOpen(true);
   };
 
@@ -808,22 +810,36 @@ export function Wallet({
                           {/* QR Code */}
                           {depositAddress && depositAddress !== "Select network to generate address" && (
                             <div className="flex flex-col items-center gap-2 mt-2 md:mt-3 pt-2 md:pt-3 border-t border-white/10">
-                              <div className="relative group">
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
-                                  alt="Deposit QR Code"
-                                  className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
-                                  onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                  <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
-                                    Click to enlarge
+                              {!showDepositQR ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full text-xs h-8 border-white/10 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400"
+                                  onClick={() => setShowDepositQR(true)}
+                                  type="button"
+                                >
+                                  Show QR Code
+                                </Button>
+                              ) : (
+                                <>
+                                  <div className="relative group">
+                                    <img
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
+                                      alt="Deposit QR Code"
+                                      className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
+                                      onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                      <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
+                                        Click to enlarge
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                              <p className="text-[10px] md:text-xs text-center text-muted-foreground">
-                                Scan QR code with your wallet app
-                              </p>
+                                  <p className="text-[10px] md:text-xs text-center text-muted-foreground">
+                                    Scan QR code with your wallet app
+                                  </p>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
