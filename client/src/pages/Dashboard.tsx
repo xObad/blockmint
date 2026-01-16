@@ -1224,8 +1224,8 @@ export function Dashboard({
         <h2 className="text-lg font-semibold text-foreground mb-4">Your Assets</h2>
         <GlassCard delay={0.5} className="p-4">
           <div className="space-y-4">
-            {balances.length > 0 ? (
-              balances.slice(0, 3).map((balance, index) => (
+            {balancesWithZeros.length > 0 ? (
+              balancesWithZeros.map((balance, index) => (
                 <motion.div
                   key={balance.id}
                   className="flex items-center justify-between gap-4"
