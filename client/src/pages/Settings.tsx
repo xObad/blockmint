@@ -4,7 +4,8 @@ import {
   User, Shield, Bell, Key, Fingerprint, Clock, 
   DollarSign, Globe, ChevronRight, Award, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
-  Link2, Unlink, Smartphone, Wallet, CalendarClock, ArrowDownToLine
+  Link2, Unlink, Smartphone, Wallet, CalendarClock, ArrowDownToLine,
+  Trash2, AlertTriangle
 } from "lucide-react";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
@@ -141,6 +142,11 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [autoWithdrawAddress, setAutoWithdrawAddress] = useState("");
   const [autoWithdrawPeriod, setAutoWithdrawPeriod] = useState("monthly");
   const [autoWithdrawMinAmount, setAutoWithdrawMinAmount] = useState("10");
+  
+  // Account deletion state
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Fetch security settings from API
   const { data: securitySettings } = useQuery<{ pinEnabled: boolean; biometricEnabled: boolean; lockOnBackground: boolean }>({
@@ -510,6 +516,61 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       }
     } else {
       toggleBiometricMutation.mutate(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type DELETE to confirm account deletion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) return;
+
+    setIsDeletingAccount(true);
+    try {
+      const idToken = await user.getIdToken();
+      const storedUser = localStorage.getItem("user");
+      const userId = storedUser ? JSON.parse(storedUser).id || user.uid : user.uid;
+      
+      const response = await fetch(`/api/auth/account/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete account");
+      }
+
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been scheduled for deletion.",
+      });
+
+      // Log out and clear local storage
+      localStorage.clear();
+      if (onLogout) {
+        onLogout();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete account. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteAccountDialog(false);
+      setDeleteConfirmText("");
     }
   };
 
@@ -957,12 +1018,88 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             <LogOut className="w-5 h-5 mr-2" />
             Sign Out
           </Button>
+          
+          <Button
+            variant="ghost"
+            className="w-full h-12 mt-2 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+            onClick={() => setShowDeleteAccountDialog(true)}
+            data-testid="button-delete-account"
+          >
+            <Trash2 className="w-5 h-5 mr-2" />
+            Delete Account
+          </Button>
         </div>
       )}
 
       <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
         v1.0.0
       </p>
+
+      {/* Account Deletion Dialog */}
+      <Dialog open={showDeleteAccountDialog} onOpenChange={setShowDeleteAccountDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-500">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Account
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-3">
+              <p>
+                This action is <strong>permanent and cannot be undone</strong>. All your data including:
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                <li>Account information and profile</li>
+                <li>Mining history and statistics</li>
+                <li>Wallet balances and transaction history</li>
+                <li>All associated data</li>
+              </ul>
+              <p className="text-red-400 font-medium">
+                Will be permanently deleted within 30 days.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">Type DELETE to confirm</Label>
+              <Input
+                id="delete-confirm"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                placeholder="Type DELETE"
+                className="border-red-500/30"
+                data-testid="input-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteAccountDialog(false);
+                setDeleteConfirmText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+              data-testid="button-confirm-delete"
+            >
+              {isDeletingAccount ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete My Account"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="sm:max-w-md">

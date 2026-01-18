@@ -3021,6 +3021,103 @@ export async function registerRoutes(
     }
   });
 
+  // ============ ACCOUNT DELETION (App Store Requirement) ============
+  
+  // Request account deletion
+  app.delete("/api/auth/account/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const token = authHeader.slice(7);
+      const decoded = await authService.verifyToken(token);
+      
+      if (!decoded) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      
+      // Resolve the database user ID
+      const dbUserId = await resolveDbUserId(userId);
+      if (!dbUserId) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Verify the user is deleting their own account
+      const [user] = await db.select().from(users).where(eq(users.id, dbUserId)).limit(1);
+      if (!user || user.firebaseUid !== decoded.uid) {
+        return res.status(403).json({ error: "Cannot delete another user's account" });
+      }
+      
+      // Check for pending withdrawals or deposits
+      const pendingWithdrawals = await db.select()
+        .from(withdrawalRequests)
+        .where(and(eq(withdrawalRequests.userId, dbUserId), eq(withdrawalRequests.status, "pending")));
+      
+      if (pendingWithdrawals.length > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete account with pending withdrawals",
+          pendingCount: pendingWithdrawals.length
+        });
+      }
+      
+      const pendingDeposits = await db.select()
+        .from(depositRequests)
+        .where(and(eq(depositRequests.userId, dbUserId), eq(depositRequests.status, "pending")));
+      
+      if (pendingDeposits.length > 0) {
+        return res.status(400).json({ 
+          error: "Cannot delete account with pending deposits",
+          pendingCount: pendingDeposits.length
+        });
+      }
+      
+      // Soft delete: Mark user as inactive and anonymize data
+      await db.update(users)
+        .set({
+          isActive: false,
+          email: `deleted_${Date.now()}@deleted.blockmint.app`,
+          displayName: "Deleted User",
+          photoUrl: null,
+          twoFactorEnabled: false,
+          twoFactorSecret: null,
+        })
+        .where(eq(users.id, dbUserId));
+      
+      // Delete notifications
+      await db.delete(notifications).where(eq(notifications.userId, dbUserId));
+      
+      // Log the deletion for audit
+      await db.insert(adminActions).values({
+        adminUserId: dbUserId,
+        actionType: "account_deletion_request",
+        targetId: dbUserId,
+        targetType: "user",
+        details: { deletedAt: new Date().toISOString(), reason: "user_requested" },
+      });
+      
+      // Delete from Firebase Auth
+      try {
+        const { auth } = await import("./firebase-admin");
+        await auth.deleteUser(decoded.uid);
+      } catch (firebaseError) {
+        console.error("Failed to delete Firebase user:", firebaseError);
+        // Continue anyway - user is already deactivated in our DB
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Account deletion initiated. Your data will be permanently removed within 30 days." 
+      });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
   // ============ PRODUCT MANAGEMENT (Admin) ============
 
   // Get all products

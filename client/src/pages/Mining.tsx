@@ -1258,6 +1258,30 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Risk Disclosure - App Store Compliance */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mt-6"
+      >
+        <GlassCard className="p-4 border-amber-500/20" variant="subtle">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-amber-400">Investment Risk Disclosure</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Cryptocurrency mining involves substantial risk. Mining returns are estimates only and depend on 
+                network difficulty, cryptocurrency prices, and other factors beyond our control. Past performance 
+                does not guarantee future results. You may lose some or all of your investment. This platform 
+                does not provide financial advice. Please conduct your own research and consult with a qualified 
+                financial advisor before purchasing any mining contracts.
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      </motion.div>
       </motion.div>
     </>
   );

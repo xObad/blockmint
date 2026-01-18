@@ -494,6 +494,14 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           <p className="text-center text-xs text-muted-foreground/60 mt-auto pt-8">
             By Continuing, You Agree To Our{" "}
             <Link 
+              href="/terms" 
+              className="text-primary/80 hover:text-primary underline"
+              data-testid="link-terms-of-service"
+            >
+              Terms of Service
+            </Link>
+            {" "}and{" "}
+            <Link 
               href="/privacy" 
               className="text-primary/80 hover:text-primary underline"
               data-testid="link-privacy-policy"

@@ -261,7 +261,15 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           )}
         </div>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-x-3">
+          <Link 
+            href="/terms" 
+            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            data-testid="link-terms-of-service"
+          >
+            Terms of Service
+          </Link>
+          <span className="text-xs text-muted-foreground/40">|</span>
           <Link 
             href="/privacy" 
             className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"

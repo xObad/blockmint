@@ -1083,6 +1083,23 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
       {/* FAQ Section */}
       <FAQSection />
 
+      {/* Risk Disclosure - App Store Compliance */}
+      <GlassCard className="p-4 border-amber-500/20" variant="subtle">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-amber-400">Risk Disclosure</h4>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Cryptocurrency investments involve significant risk. Past performance does not guarantee future results. 
+              The projected returns shown are estimates only and may not be achieved. You could lose some or all of 
+              your investment. This is not financial advice. Please consult a qualified financial advisor and conduct 
+              your own research before making any investment decisions. BlockMint is not responsible for any financial 
+              losses incurred through the use of this platform.
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+
       {/* Bottom CTA */}
       <GlassCard className="p-6 text-center" variant="strong">
         <h3 className="text-lg font-bold text-foreground mb-2">Ready to Start Earning?</h3>

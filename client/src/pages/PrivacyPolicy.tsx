@@ -39,7 +39,7 @@ export function PrivacyPolicy() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Privacy Policy</h1>
-              <p className="text-sm text-muted-foreground">Last Updated: December 2024</p>
+              <p className="text-sm text-muted-foreground">Last Updated: January 2026</p>
             </div>
           </div>
         </motion.header>
