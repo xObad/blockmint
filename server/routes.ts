@@ -346,9 +346,12 @@ export async function registerRoutes(
   // Get all deposit addresses for a user
   app.get("/api/wallet/deposit-addresses/:userId", async (req, res) => {
     try {
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) return res.status(404).json({ error: "User not found" });
+      
       const addresses = await db.select()
         .from(depositAddresses)
-        .where(eq(depositAddresses.userId, req.params.userId));
+        .where(eq(depositAddresses.userId, resolvedUserId));
       
       res.json(addresses);
     } catch (error) {
@@ -507,9 +510,12 @@ export async function registerRoutes(
   // Get user's withdrawal history
   app.get("/api/wallet/withdrawals/:userId", async (req, res) => {
     try {
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) return res.status(404).json({ error: "User not found" });
+      
       const withdrawals = await db.select()
         .from(withdrawalRequests)
-        .where(eq(withdrawalRequests.userId, req.params.userId))
+        .where(eq(withdrawalRequests.userId, resolvedUserId))
         .orderBy(desc(withdrawalRequests.requestedAt));
       
       res.json(withdrawals);
@@ -521,7 +527,8 @@ export async function registerRoutes(
   // Get user's recent activity (deposits, withdrawals, earnings, and daily rewards)
   app.get("/api/wallet/activity/:userId", async (req, res) => {
     try {
-      const { userId } = req.params;
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(404).json({ error: "User not found" });
       
       // Get deposits
       const deposits = await db.select()
@@ -1968,18 +1975,17 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Verify user exists
-      const { users } = await import("@shared/schema");
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      // Resolve userId - could be Firebase UID or database ID
+      const resolvedUserId = await resolveDbUserId(userId);
       
-      if (!user) {
+      if (!resolvedUserId) {
         console.error("User not found:", userId);
         return res.status(404).json({ error: "User not found. Please log in again." });
       }
 
-      // Create deposit request
+      // Create deposit request with resolved database user ID
       const [request] = await db.insert(depositRequests).values({
-        userId,
+        userId: resolvedUserId,
         amount: parseFloat(amount),
         currency,
         network,
@@ -1991,7 +1997,7 @@ export async function registerRoutes(
 
       // Create notification for user
       await db.insert(notifications).values({
-        userId,
+        userId: resolvedUserId,
         type: "deposit",
         category: "user",
         title: "Deposit Request Created",
@@ -2014,9 +2020,12 @@ export async function registerRoutes(
   app.get("/api/deposits/requests/:userId", async (req, res) => {
     try {
       const { depositRequests } = await import("@shared/schema");
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) return res.status(404).json({ error: "User not found" });
+      
       const requests = await db.select()
         .from(depositRequests)
-        .where(eq(depositRequests.userId, req.params.userId))
+        .where(eq(depositRequests.userId, resolvedUserId))
         .orderBy(desc(depositRequests.createdAt));
       
       res.json(requests);
@@ -2397,28 +2406,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error rejecting deposit:", error);
       res.status(500).json({ error: "Failed to reject deposit" });
-    }
-  });
-
-  // Get all users for admin
-  app.get("/api/admin/users", async (_req, res) => {
-    try {
-      const { wallets: walletsTable } = await import("@shared/schema");
-      const allUsers = await db.select({
-        id: users.id,
-        email: users.email,
-        displayName: users.displayName,
-        isActive: users.isActive,
-        role: users.role,
-        createdAt: users.createdAt,
-      })
-        .from(users)
-        .orderBy(desc(users.createdAt))
-        .limit(100);
-      
-      res.json(allUsers);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get users" });
     }
   });
 
