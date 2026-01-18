@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
+import { useCryptoPrices, CryptoType } from "@/hooks/useCryptoPrices";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentUser } from "@/lib/firebase";
 import {
@@ -26,6 +27,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import btcMine from "@assets/Bitcoin_Mine_1766014388617.webp";
 import btcCoin from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
@@ -83,10 +91,15 @@ function FloatingParticle({ delay, x, duration }: { delay: number; x: number; du
   );
 }
 
+// Supported payment currencies
+const paymentCurrencies: CryptoType[] = ["USDT", "BTC", "LTC", "ETH"];
+
 export function SoloMining() {
   const [hashpower, setHashpower] = useState([50]);
   const [duration, setDuration] = useState([6]);
+  const [paymentCurrency, setPaymentCurrency] = useState<CryptoType>("USDT");
   const { btcPrice } = useBTCPrice();
+  const { prices: cryptoPrices } = useCryptoPrices();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getCurrentUser();
@@ -124,7 +137,16 @@ export function SoloMining() {
     enabled: !!dbUserId,
   });
 
-  const availableUSDT = balanceData?.balances?.find((w) => w.symbol === "USDT")?.balance || 0;
+  // Get balance for selected payment currency (case-insensitive)
+  const wallets = balanceData?.balances || [];
+  const selectedWallet = wallets.find((w) => w.symbol.toUpperCase() === paymentCurrency.toUpperCase());
+  const availableBalance = selectedWallet?.balance || 0;
+  
+  // Convert USD cost to selected crypto currency
+  const convertUSDToCrypto = (usdAmount: number, currency: CryptoType): number => {
+    const price = cryptoPrices[currency]?.price || 1;
+    return usdAmount / price;
+  };
 
   const { data: miningPurchases = [] } = useQuery<any[]>({
     queryKey: ["/api/users", dbUserId, "mining-purchases"],
@@ -253,6 +275,9 @@ export function SoloMining() {
       const months = duration[0];
       const expiryDate = new Date();
       expiryDate.setMonth(expiryDate.getMonth() + months);
+      
+      // Convert cost to selected currency
+      const costInCrypto = convertUSDToCrypto(calculations.cost, paymentCurrency);
 
       const res = await fetch("/api/mining/purchase", {
         method: "POST",
@@ -261,8 +286,8 @@ export function SoloMining() {
           userId: dbUserId,
           packageName: `Solo Mining • ${hashpower[0]} PH/s • ${months} months`,
           crypto: "BTC",
-          symbol: "USDT",
-          amount: calculations.cost,
+          symbol: paymentCurrency,
+          amount: costInCrypto,
           hashrate: hashpower[0],
           hashrateUnit: "PH/s",
           efficiency: "Solo",
@@ -309,11 +334,14 @@ export function SoloMining() {
       return;
     }
 
-    if (availableUSDT < calculations.cost) {
-      const needed = calculations.cost - availableUSDT;
+    // Convert cost to selected currency for comparison
+    const costInCrypto = convertUSDToCrypto(calculations.cost, paymentCurrency);
+    
+    if (availableBalance < costInCrypto) {
+      const needed = costInCrypto - availableBalance;
       toast({
         title: "Deposit Required",
-        description: `You need $${needed.toFixed(2)} more USDT to start this contract.`,
+        description: `You need ${needed.toFixed(paymentCurrency === "USDT" ? 2 : 6)} more ${paymentCurrency} to start this contract.`,
         variant: "destructive",
       });
       return;
@@ -659,6 +687,26 @@ export function SoloMining() {
 
             <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
+            {/* Payment Currency Selector */}
+            <div className="flex items-center justify-between p-3 rounded-xl liquid-glass">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">Pay with:</p>
+                <Select value={paymentCurrency} onValueChange={(v) => setPaymentCurrency(v as CryptoType)}>
+                  <SelectTrigger className="h-8 w-24 text-sm bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentCurrencies.map((c) => (
+                      <SelectItem key={c} value={c} className="text-sm">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {paymentCurrency === "USDT" ? "$" : ""}{availableBalance.toFixed(paymentCurrency === "USDT" ? 2 : 6)} {paymentCurrency}
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="liquid-glass rounded-xl p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Total Cost</p>
@@ -666,7 +714,7 @@ export function SoloMining() {
                   className="text-2xl font-bold text-foreground"
                   data-testid="text-cost"
                 >
-                  ${calculations.cost.toLocaleString()}
+                  {paymentCurrency === "USDT" ? "$" : ""}{convertUSDToCrypto(calculations.cost, paymentCurrency).toFixed(paymentCurrency === "USDT" ? 0 : 4)} {paymentCurrency}
                 </p>
                 {calculations.discount > 0 && (
                   <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">

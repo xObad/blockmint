@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
+import { useCryptoPrices, CryptoType } from "@/hooks/useCryptoPrices";
 import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
 import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
@@ -788,12 +789,17 @@ function EmptyState({ onNavigateToInvest }: { onNavigateToInvest: () => void }) 
   );
 }
 
+// Supported payment currencies for mining purchases
+const paymentCurrencies: CryptoType[] = ["USDT", "BTC", "LTC", "ETH"];
+
 export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }: MiningProps) {
   const [activeTab, setActiveTab] = useState<"devices" | "hot">("devices");
+  const [paymentCurrency, setPaymentCurrency] = useState<CryptoType>("USDT");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const user = getCurrentUser();
   const { btcPrice } = useBTCPrice();
+  const { prices: cryptoPrices } = useCryptoPrices();
 
   const { data: estimateConfig } = useQuery<{ miningEstimateMultiplier: number }>({
     queryKey: ["/api/config/estimates"],
@@ -874,8 +880,15 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     },
   });
 
-  const usdtWallet = wallets.find((w: any) => w.symbol === "USDT");
-  const availableBalance = usdtWallet?.balance || 0;
+  // Get balance for selected payment currency (case-insensitive)
+  const selectedWallet = wallets.find((w: any) => w.symbol.toUpperCase() === paymentCurrency.toUpperCase());
+  const availableBalance = selectedWallet?.balance || 0;
+  
+  // Convert USD cost to selected crypto currency
+  const convertUSDToCrypto = (usdAmount: number, currency: CryptoType): number => {
+    const price = cryptoPrices[currency]?.price || 1;
+    return usdAmount / price;
+  };
   
   // Handle package purchase
   const handlePackagePurchase = (pkg: MiningPackage) => {
@@ -897,11 +910,14 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return;
     }
 
-    if (availableBalance < pkg.cost) {
-      const amountNeeded = pkg.cost - availableBalance;
+    // Convert USD cost to selected payment currency
+    const costInCrypto = convertUSDToCrypto(pkg.cost, paymentCurrency);
+    
+    if (availableBalance < costInCrypto) {
+      const amountNeeded = costInCrypto - availableBalance;
       toast({
         title: "Deposit Required",
-        description: `You need to deposit $${amountNeeded.toFixed(2)} USDT to buy this contract. Total cost: $${pkg.cost.toFixed(2)} USDT`,
+        description: `You need to deposit ${amountNeeded.toFixed(paymentCurrency === "USDT" ? 2 : 6)} ${paymentCurrency} to buy this contract. Total cost: ${costInCrypto.toFixed(paymentCurrency === "USDT" ? 2 : 6)} ${paymentCurrency}`,
         variant: "destructive",
       });
       return;
@@ -911,8 +927,8 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       userId: dbUserId,
       packageName: pkg.name,
       crypto: pkg.crypto,
-      symbol: "USDT",
-      amount: pkg.cost,
+      symbol: paymentCurrency,
+      amount: costInCrypto,
       hashrate: pkg.hashrateValue,
       hashrateUnit: pkg.hashrateUnit,
       efficiency: pkg.efficiency,
@@ -944,11 +960,14 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       return;
     }
     
-    if (availableBalance < data.cost) {
-      const amountNeeded = data.cost - availableBalance;
+    // Convert USD cost to selected payment currency
+    const costInCrypto = convertUSDToCrypto(data.cost, paymentCurrency);
+    
+    if (availableBalance < costInCrypto) {
+      const amountNeeded = costInCrypto - availableBalance;
       toast({
         title: "Deposit Required",
-        description: `You need to deposit $${amountNeeded.toFixed(2)} USDT to buy this contract. Total cost: $${data.cost.toFixed(2)} USDT`,
+        description: `You need to deposit ${amountNeeded.toFixed(paymentCurrency === "USDT" ? 2 : 6)} ${paymentCurrency} to buy this contract. Total cost: ${costInCrypto.toFixed(paymentCurrency === "USDT" ? 2 : 6)} ${paymentCurrency}`,
         variant: "destructive",
       });
       return;
@@ -963,8 +982,8 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
       userId: dbUserId,
       packageName: "Custom",
       crypto: "BTC",
-      symbol: "USDT",
-      amount: data.cost,
+      symbol: paymentCurrency,
+      amount: costInCrypto,
       hashrate: data.hashrate,
       hashrateUnit: "TH/s",
       efficiency: "15W/TH",
@@ -1136,16 +1155,21 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
 
       <GlassCard delay={0.16} className="py-3 px-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Available USDT balance</p>
-          <p className="text-sm font-semibold text-foreground" data-testid="text-mining-usdt-balance">
-            <LiveGrowingBalance
-              value={availableBalance}
-              perSecond={miningEarningsPerSecondUSDT}
-              active={activePurchases.length > 0}
-              decimals={2}
-              prefix="$"
-              className="text-sm font-semibold text-foreground"
-            />
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">Pay with:</p>
+            <Select value={paymentCurrency} onValueChange={(v) => setPaymentCurrency(v as CryptoType)}>
+              <SelectTrigger className="h-7 w-24 text-xs bg-white/5 border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentCurrencies.map((c) => (
+                  <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-sm font-semibold text-foreground" data-testid="text-mining-balance">
+            {paymentCurrency === "USDT" ? "$" : ""}{availableBalance.toFixed(paymentCurrency === "USDT" ? 2 : 6)} {paymentCurrency}
           </p>
         </div>
       </GlassCard>
@@ -1195,10 +1219,19 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
             <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-medium text-foreground">Pay with:</Label>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">USDT</Badge>
+                <Select value={paymentCurrency} onValueChange={(v) => setPaymentCurrency(v as CryptoType)}>
+                  <SelectTrigger className="h-7 w-24 text-xs bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentCurrencies.map((c) => (
+                      <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="text-xs text-muted-foreground" data-testid="text-mining-pay-with-usdt">
-                Available: <LiveGrowingBalance value={availableBalance} perSecond={miningEarningsPerSecondUSDT} active={activePurchases.length > 0} decimals={2} prefix="$" className="text-xs text-muted-foreground" /> USDT
+              <div className="text-xs text-muted-foreground" data-testid="text-mining-pay-with">
+                Available: {paymentCurrency === "USDT" ? "$" : ""}{availableBalance.toFixed(paymentCurrency === "USDT" ? 2 : 6)} {paymentCurrency}
               </div>
             </div>
 
