@@ -31,28 +31,42 @@ export function initializeFirebaseAdmin() {
         let trimmed = serviceAccountEnv.trim();
         console.log("Firebase Admin SDK: First 50 chars:", trimmed.substring(0, 50));
 
-        // Common .env pattern: wrap JSON in single quotes.
-        // Also tolerate a leading quote without a matching trailing quote (misformatted multi-line values).
-        if (trimmed.startsWith("'{") || trimmed.startsWith('"{')) {
-          trimmed = trimmed.slice(1);
-        } else if (
-          (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-          (trimmed.startsWith('"') && trimmed.endsWith('"'))
-        ) {
+        // Handle various malformed inputs
+        // Remove wrapping quotes if present
+        if ((trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+            (trimmed.startsWith('"') && trimmed.endsWith('"'))) {
           trimmed = trimmed.slice(1, -1).trim();
         }
+        if (trimmed.startsWith("'{") || trimmed.startsWith('"{')) {
+          trimmed = trimmed.slice(1);
+        }
+        
+        // If it starts with "type" instead of {"type", add the opening brace
+        if (trimmed.startsWith('"type"')) {
+          console.log("Firebase Admin SDK: JSON missing opening brace, adding it");
+          trimmed = '{' + trimmed;
+        }
+        
+        // If it doesn't end with }, try to add it (might be truncated)
+        if (!trimmed.endsWith('}')) {
+          console.log("Firebase Admin SDK: JSON might be missing closing brace, adding it");
+          trimmed = trimmed + '}';
+        }
+
+        // Replace escaped newlines with actual newlines in private_key
+        // This handles cases where the JSON was double-escaped
+        trimmed = trimmed.replace(/\\\\n/g, '\\n');
 
         // If the env var is accidentally multi-line in .env, dotenv usually only captures the first line
-        // which can look like just "{" or "'{". Treat this as invalid and fall back.
-        const looksTruncatedJson = trimmed === "{" || trimmed === "'{" || trimmed === '"{' || trimmed.length < 10;
+        const looksTruncatedJson = trimmed === "{" || trimmed === "'{" || trimmed === '"{' || trimmed.length < 100;
 
         if (looksTruncatedJson) {
-          console.warn("Firebase Admin SDK: Service account JSON appears truncated");
+          console.warn("Firebase Admin SDK: Service account JSON appears truncated, length:", trimmed.length);
         } else if (trimmed.startsWith("{")) {
-          console.log("Firebase Admin SDK: Parsing as inline JSON");
+          console.log("Firebase Admin SDK: Parsing as inline JSON, length:", trimmed.length);
           serviceAccount = JSON.parse(trimmed);
         } else {
-          console.log("Firebase Admin SDK: Attempting to read as file path:", trimmed);
+          console.log("Firebase Admin SDK: Attempting to read as file path:", trimmed.substring(0, 50));
           serviceAccount = JSON.parse(fs.readFileSync(trimmed, "utf8"));
         }
       } catch (e) {
