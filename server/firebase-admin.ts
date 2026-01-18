@@ -11,17 +11,24 @@ export function initializeFirebaseAdmin() {
   if (getApps().length > 0) {
     adminApp = getApps()[0];
     adminAuth = getAuth(adminApp);
+    console.log("Firebase Admin SDK: Using existing app");
     return;
   }
+
+  console.log("Firebase Admin SDK: Initializing...");
+  console.log("FIREBASE_SERVICE_ACCOUNT env var length:", process.env.FIREBASE_SERVICE_ACCOUNT?.length || 0);
+  console.log("VITE_FIREBASE_PROJECT_ID:", process.env.VITE_FIREBASE_PROJECT_ID || "not set");
 
   try {
     const serviceAccountEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     // Prefer explicit service account JSON if provided.
     if (serviceAccountEnv) {
+      console.log("Firebase Admin SDK: Service account env var found, attempting to parse...");
       let serviceAccount: any = null;
       try {
         let trimmed = serviceAccountEnv.trim();
+        console.log("Firebase Admin SDK: First 50 chars:", trimmed.substring(0, 50));
 
         // Common .env pattern: wrap JSON in single quotes.
         // Also tolerate a leading quote without a matching trailing quote (misformatted multi-line values).
@@ -38,31 +45,39 @@ export function initializeFirebaseAdmin() {
         // which can look like just "{" or "'{". Treat this as invalid and fall back.
         const looksTruncatedJson = trimmed === "{" || trimmed === "'{" || trimmed === '"{' || trimmed.length < 10;
 
-        if (!looksTruncatedJson) {
-          serviceAccount = trimmed.startsWith("{")
-            ? JSON.parse(trimmed)
-            : JSON.parse(fs.readFileSync(trimmed, "utf8"));
+        if (looksTruncatedJson) {
+          console.warn("Firebase Admin SDK: Service account JSON appears truncated");
+        } else if (trimmed.startsWith("{")) {
+          console.log("Firebase Admin SDK: Parsing as inline JSON");
+          serviceAccount = JSON.parse(trimmed);
+        } else {
+          console.log("Firebase Admin SDK: Attempting to read as file path:", trimmed);
+          serviceAccount = JSON.parse(fs.readFileSync(trimmed, "utf8"));
         }
       } catch (e) {
-        // Keep dev experience smooth; production should provide a valid JSON blob or a file path.
-        console.warn("FIREBASE_SERVICE_ACCOUNT present but unusable; falling back to projectId/ADC.");
+        console.error("Firebase Admin SDK: Failed to parse service account:", e instanceof Error ? e.message : e);
         serviceAccount = null;
       }
 
       if (serviceAccount) {
+        console.log("Firebase Admin SDK: Service account parsed, project_id:", serviceAccount.project_id);
         adminApp = initializeApp({
           credential: cert(serviceAccount),
         });
+        console.log("Firebase Admin SDK: Initialized with service account credentials");
       }
+    } else {
+      console.log("Firebase Admin SDK: No service account env var found");
     }
 
     // Fallback: use projectId only (relies on Application Default Credentials).
     if (!adminApp) {
       const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
       if (!projectId) {
-        console.warn("Firebase project ID not configured. Auth verification will be disabled.");
+        console.error("Firebase Admin SDK: CRITICAL - No project ID configured. Auth verification will be disabled!");
         return;
       }
+      console.log("Firebase Admin SDK: Falling back to projectId-only mode (ADC)");
       adminApp = initializeApp({ projectId });
     }
 
