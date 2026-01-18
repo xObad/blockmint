@@ -26,10 +26,11 @@ export const authService = {
   async verifyToken(idToken: string): Promise<TokenPayload | null> {
     try {
       const decoded = await verifyIdToken(idToken);
+      console.log("authService.verifyToken: decoded token uid:", decoded?.uid, "email:", decoded?.email);
       return decoded;
     } catch (error) {
       console.error("Token verification failed:", error);
-      return null;
+      throw error; // Re-throw so caller knows verification failed
     }
   },
 

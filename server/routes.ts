@@ -1957,19 +1957,35 @@ export async function registerRoutes(
       let payload;
       try {
         payload = await authService.verifyToken(idToken);
+        console.log("Auth sync: Token verified, payload keys:", payload ? Object.keys(payload) : "null");
+        console.log("Auth sync: Payload details:", JSON.stringify(payload, null, 2));
       } catch (verifyError) {
         console.error("Auth sync: Token verification error:", verifyError);
-        return res.status(401).json({ error: "Token verification failed. Firebase Admin may not be configured properly." });
+        return res.status(401).json({ error: `Token verification failed: ${verifyError instanceof Error ? verifyError.message : 'Unknown error'}` });
       }
       
-      if (!payload?.uid || !payload.email) {
-        console.warn("Auth sync: Invalid token payload", { uid: payload?.uid, email: payload?.email });
-        return res.status(400).json({ error: "Invalid auth token - missing uid or email" });
+      if (!payload) {
+        console.warn("Auth sync: Token verification returned null");
+        return res.status(401).json({ error: "Token verification failed - no payload returned" });
+      }
+      
+      // Firebase DecodedIdToken has 'uid' and 'email' (email may be in different places)
+      const uid = payload.uid;
+      const email = payload.email || (payload as any).firebase?.identities?.email?.[0];
+      
+      if (!uid) {
+        console.warn("Auth sync: Missing uid in payload", payload);
+        return res.status(400).json({ error: "Invalid auth token - missing uid" });
+      }
+      
+      if (!email) {
+        console.warn("Auth sync: Missing email in payload", payload);
+        return res.status(400).json({ error: "Invalid auth token - missing email. Please sign in with an email-based account." });
       }
 
-      const displayName = (payload as any).name;
-      const photoUrl = (payload as any).picture;
-      console.log("Auth sync: Creating/updating user", { uid: payload.uid, email: payload.email });
+      const displayName = (payload as any).name || (payload as any).displayName;
+      const photoUrl = (payload as any).picture || (payload as any).photoURL;
+      console.log("Auth sync: Creating/updating user", { uid, email, displayName });
       
       let result;
       try {
