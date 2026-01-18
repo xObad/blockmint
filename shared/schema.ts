@@ -881,6 +881,31 @@ export const insertNotificationPreferencesSchema = createInsertSchema(notificati
 export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
 export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
 
+// Auto-withdrawal settings
+export const autoWithdrawSettings = pgTable("auto_withdraw_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  enabled: boolean("enabled").notNull().default(false),
+  currency: text("currency").notNull().default("USDT"), // BTC, USDT, ETH, etc.
+  network: text("network").notNull().default("trc20"), // trc20, erc20, bep20, bitcoin, etc.
+  walletAddress: text("wallet_address"),
+  period: text("period").notNull().default("monthly"), // weekly, monthly
+  minAmount: real("min_amount").notNull().default(10), // Minimum amount to trigger withdrawal
+  lastWithdrawAt: timestamp("last_withdraw_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAutoWithdrawSettingsSchema = createInsertSchema(autoWithdrawSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastWithdrawAt: true,
+});
+
+export type InsertAutoWithdrawSettings = z.infer<typeof insertAutoWithdrawSettingsSchema>;
+export type AutoWithdrawSettings = typeof autoWithdrawSettings.$inferSelect;
+
 // Promotional offers/banners for slider
 export const promotionalOffers = pgTable("promotional_offers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

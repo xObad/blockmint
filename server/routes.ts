@@ -1440,6 +1440,89 @@ export async function registerRoutes(
   });
 
   // =====================================================
+  // AUTO-WITHDRAWAL SETTINGS
+  // =====================================================
+
+  // Get auto-withdrawal settings
+  app.get("/api/users/:userId/auto-withdraw", async (req, res) => {
+    try {
+      const { autoWithdrawSettings } = await import("@shared/schema");
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) return res.status(404).json({ error: "User not found" });
+
+      const [settings] = await db.select()
+        .from(autoWithdrawSettings)
+        .where(eq(autoWithdrawSettings.userId, resolvedUserId));
+
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          enabled: false,
+          currency: "USDT",
+          network: "trc20",
+          walletAddress: "",
+          period: "monthly",
+          minAmount: 10,
+        });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Error getting auto-withdraw settings:", error);
+      res.status(500).json({ error: "Failed to get auto-withdraw settings" });
+    }
+  });
+
+  // Update auto-withdrawal settings
+  app.patch("/api/users/:userId/auto-withdraw", async (req, res) => {
+    try {
+      const { autoWithdrawSettings } = await import("@shared/schema");
+      const resolvedUserId = await resolveDbUserId(req.params.userId);
+      if (!resolvedUserId) return res.status(404).json({ error: "User not found" });
+
+      const { enabled, currency, network, walletAddress, period, minAmount } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db.select()
+        .from(autoWithdrawSettings)
+        .where(eq(autoWithdrawSettings.userId, resolvedUserId));
+
+      if (existing) {
+        // Update existing
+        const [updated] = await db.update(autoWithdrawSettings)
+          .set({
+            enabled,
+            currency,
+            network,
+            walletAddress,
+            period,
+            minAmount,
+            updatedAt: new Date(),
+          })
+          .where(eq(autoWithdrawSettings.userId, resolvedUserId))
+          .returning();
+        res.json(updated);
+      } else {
+        // Create new
+        const [created] = await db.insert(autoWithdrawSettings)
+          .values({
+            userId: resolvedUserId,
+            enabled,
+            currency,
+            network,
+            walletAddress,
+            period,
+            minAmount,
+          })
+          .returning();
+        res.json(created);
+      }
+    } catch (error) {
+      console.error("Error updating auto-withdraw settings:", error);
+      res.status(500).json({ error: "Failed to update auto-withdraw settings" });
+    }
+  });
+
+  // =====================================================
   // EARN/YIELD PLANS (Public Routes)
   // =====================================================
 

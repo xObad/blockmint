@@ -4,7 +4,7 @@ import {
   User, Shield, Bell, Key, Fingerprint, Clock, 
   DollarSign, Globe, ChevronRight, Award, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
-  Link2, Unlink, Smartphone
+  Link2, Unlink, Smartphone, Wallet, CalendarClock, ArrowDownToLine
 } from "lucide-react";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
@@ -123,6 +123,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showNotificationPrefsDialog, setShowNotificationPrefsDialog] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
+  const [showAutoWithdrawDialog, setShowAutoWithdrawDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -132,6 +133,14 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Auto-withdrawal form state
+  const [autoWithdrawEnabled, setAutoWithdrawEnabled] = useState(false);
+  const [autoWithdrawCurrency, setAutoWithdrawCurrency] = useState("USDT");
+  const [autoWithdrawNetwork, setAutoWithdrawNetwork] = useState("trc20");
+  const [autoWithdrawAddress, setAutoWithdrawAddress] = useState("");
+  const [autoWithdrawPeriod, setAutoWithdrawPeriod] = useState("monthly");
+  const [autoWithdrawMinAmount, setAutoWithdrawMinAmount] = useState("10");
 
   // Fetch security settings from API
   const { data: securitySettings } = useQuery<{ pinEnabled: boolean; biometricEnabled: boolean; lockOnBackground: boolean }>({
@@ -166,6 +175,68 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       toast({
         title: enabled ? `${biometricName} Enabled` : `${biometricName} Disabled`,
         description: enabled ? `Your app is now protected with ${biometricName}.` : `${biometricName} authentication has been turned off.`,
+      });
+    },
+  });
+
+  // Auto-withdrawal settings query and mutation
+  const { data: autoWithdrawData } = useQuery<{
+    enabled: boolean;
+    currency: string;
+    network: string;
+    walletAddress: string;
+    period: string;
+    minAmount: string;
+  }>({
+    queryKey: ["/api/users", user?.uid, "auto-withdraw"],
+    queryFn: async () => {
+      if (!user?.uid) throw new Error("Not authenticated");
+      const response = await apiRequest("GET", `/api/users/${user.uid}/auto-withdraw`);
+      return response.json();
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Update local state when data loads
+  useEffect(() => {
+    if (autoWithdrawData) {
+      setAutoWithdrawEnabled(autoWithdrawData.enabled);
+      setAutoWithdrawCurrency(autoWithdrawData.currency);
+      setAutoWithdrawNetwork(autoWithdrawData.network);
+      setAutoWithdrawAddress(autoWithdrawData.walletAddress || "");
+      setAutoWithdrawPeriod(autoWithdrawData.period);
+      setAutoWithdrawMinAmount(autoWithdrawData.minAmount);
+    }
+  }, [autoWithdrawData]);
+
+  const saveAutoWithdrawMutation = useMutation({
+    mutationFn: async (data: {
+      enabled: boolean;
+      currency: string;
+      network: string;
+      walletAddress: string;
+      period: string;
+      minAmount: string;
+    }) => {
+      if (!user?.uid) throw new Error("Not authenticated");
+      const response = await apiRequest("PATCH", `/api/users/${user.uid}/auto-withdraw`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users", user?.uid, "auto-withdraw"] });
+      setShowAutoWithdrawDialog(false);
+      toast({
+        title: "Auto-Withdrawal Updated",
+        description: autoWithdrawEnabled 
+          ? "Your auto-withdrawal settings have been saved."
+          : "Auto-withdrawal has been disabled.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save auto-withdrawal settings",
+        variant: "destructive",
       });
     },
   });
@@ -792,6 +863,58 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         </GlassCard>
       </div>
 
+      {/* Auto-Withdrawal Section */}
+      <div>
+        <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">AUTO-WITHDRAWAL</h2>
+        <GlassCard delay={0.27} className="p-4">
+          <div className="py-3" data-testid="setting-auto-withdraw">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500/20 to-emerald-500/10 text-green-400">
+                <ArrowDownToLine className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Auto-Withdrawal</p>
+                <p className="text-sm text-muted-foreground">
+                  {autoWithdrawEnabled 
+                    ? `${autoWithdrawCurrency} • ${autoWithdrawPeriod === 'weekly' ? 'Weekly' : 'Monthly'}`
+                    : 'Automatically withdraw earnings'
+                  }
+                </p>
+              </div>
+              <Switch
+                data-testid="switch-auto-withdraw"
+                checked={autoWithdrawEnabled}
+                onCheckedChange={(checked) => {
+                  if (checked && !autoWithdrawAddress) {
+                    setShowAutoWithdrawDialog(true);
+                  } else {
+                    setAutoWithdrawEnabled(checked);
+                    saveAutoWithdrawMutation.mutate({
+                      enabled: checked,
+                      currency: autoWithdrawCurrency,
+                      network: autoWithdrawNetwork,
+                      walletAddress: autoWithdrawAddress,
+                      period: autoWithdrawPeriod,
+                      minAmount: autoWithdrawMinAmount,
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <SettingItem
+            icon={Wallet}
+            label="Withdrawal Settings"
+            description={autoWithdrawAddress 
+              ? `${autoWithdrawAddress.slice(0, 6)}...${autoWithdrawAddress.slice(-4)}`
+              : "Configure wallet address"
+            }
+            onClick={() => setShowAutoWithdrawDialog(true)}
+            testId="button-withdrawal-settings"
+          />
+        </GlassCard>
+      </div>
+
       <div>
         <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">ABOUT</h2>
         <GlassCard delay={0.3} className="p-4">
@@ -1124,6 +1247,148 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <DialogFooter>
             <Button onClick={() => setShowNotificationPrefsDialog(false)}>
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Withdrawal Settings Dialog */}
+      <Dialog open={showAutoWithdrawDialog} onOpenChange={setShowAutoWithdrawDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowDownToLine className="w-5 h-5 text-green-400" />
+              Auto-Withdrawal Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure automatic withdrawal of your mining earnings to your wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Enable Auto-Withdrawal</p>
+                <p className="text-sm text-muted-foreground">Automatically send earnings</p>
+              </div>
+              <Switch
+                checked={autoWithdrawEnabled}
+                onCheckedChange={setAutoWithdrawEnabled}
+                data-testid="dialog-switch-auto-withdraw"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-withdraw-currency">Currency</Label>
+              <Select value={autoWithdrawCurrency} onValueChange={setAutoWithdrawCurrency}>
+                <SelectTrigger id="auto-withdraw-currency" data-testid="select-auto-currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                  <SelectItem value="BTC">BTC (Bitcoin)</SelectItem>
+                  <SelectItem value="LTC">LTC (Litecoin)</SelectItem>
+                  <SelectItem value="ETH">ETH (Ethereum)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-withdraw-network">Network</Label>
+              <Select value={autoWithdrawNetwork} onValueChange={setAutoWithdrawNetwork}>
+                <SelectTrigger id="auto-withdraw-network" data-testid="select-auto-network">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {autoWithdrawCurrency === "USDT" && (
+                    <>
+                      <SelectItem value="trc20">TRC20 (Tron)</SelectItem>
+                      <SelectItem value="erc20">ERC20 (Ethereum)</SelectItem>
+                      <SelectItem value="bep20">BEP20 (BSC)</SelectItem>
+                    </>
+                  )}
+                  {autoWithdrawCurrency === "BTC" && (
+                    <SelectItem value="bitcoin">Bitcoin Network</SelectItem>
+                  )}
+                  {autoWithdrawCurrency === "LTC" && (
+                    <SelectItem value="litecoin">Litecoin Network</SelectItem>
+                  )}
+                  {autoWithdrawCurrency === "ETH" && (
+                    <SelectItem value="ethereum">Ethereum Network</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-withdraw-address">Wallet Address</Label>
+              <Input
+                id="auto-withdraw-address"
+                value={autoWithdrawAddress}
+                onChange={(e) => setAutoWithdrawAddress(e.target.value)}
+                placeholder="Enter your wallet address"
+                data-testid="input-auto-wallet"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-withdraw-period">Withdrawal Period</Label>
+              <Select value={autoWithdrawPeriod} onValueChange={setAutoWithdrawPeriod}>
+                <SelectTrigger id="auto-withdraw-period" data-testid="select-auto-period">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auto-withdraw-min">Minimum Amount (USD)</Label>
+              <Input
+                id="auto-withdraw-min"
+                type="number"
+                value={autoWithdrawMinAmount}
+                onChange={(e) => setAutoWithdrawMinAmount(e.target.value)}
+                placeholder="10"
+                min="1"
+                data-testid="input-auto-min"
+              />
+              <p className="text-xs text-muted-foreground">
+                Withdrawal will only trigger when balance exceeds this amount.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAutoWithdrawDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (autoWithdrawEnabled && !autoWithdrawAddress) {
+                  toast({
+                    title: "Wallet Address Required",
+                    description: "Please enter a wallet address to enable auto-withdrawal.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                saveAutoWithdrawMutation.mutate({
+                  enabled: autoWithdrawEnabled,
+                  currency: autoWithdrawCurrency,
+                  network: autoWithdrawNetwork,
+                  walletAddress: autoWithdrawAddress,
+                  period: autoWithdrawPeriod,
+                  minAmount: autoWithdrawMinAmount,
+                });
+              }}
+              disabled={saveAutoWithdrawMutation.isPending}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              {saveAutoWithdrawMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              Save Settings
             </Button>
           </DialogFooter>
         </DialogContent>
