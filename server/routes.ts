@@ -29,7 +29,7 @@ export async function registerRoutes(
       .where(or(eq(users.id, idOrFirebaseUid), eq(users.firebaseUid, idOrFirebaseUid)))
       .limit(1);
 
-    return user?.id || idOrFirebaseUid;
+    return user?.id || null;
   };
 
   const toFiniteNumber = (value: unknown): number | null => {
