@@ -338,6 +338,15 @@ export function DatabaseAdmin() {
     enabled: isAuthenticated && activeNav === "deposits",
   });
 
+  const { data: adminStats } = useQuery<{
+    deposits: { pending: { amount: number; count: number }; confirmed: { amount: number; count: number }; rejected: { amount: number; count: number } };
+    withdrawals: { pending: { amount: number; count: number }; completed: { amount: number; count: number }; rejected: { amount: number; count: number } };
+  }>({
+    queryKey: ["/api/admin/stats"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
   const { data: pendingWithdrawals = [], isLoading: isLoadingWithdrawals } = useQuery<any[]>({
     queryKey: ["/api/admin/withdrawals/pending"],
     enabled: isAuthenticated,
@@ -1036,18 +1045,25 @@ export function DatabaseAdmin() {
                     <p className="text-muted-foreground">Review and approve deposit requests</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="bg-card rounded-xl border border-border p-4">
                       <p className="text-xs text-muted-foreground">Pending</p>
-                      <p className="text-2xl font-bold">{pendingDeposits.length}</p>
+                      <p className="text-2xl font-bold text-amber-500">{adminStats?.deposits.pending.count || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">${(adminStats?.deposits.pending.amount || 0).toLocaleString()}</p>
                     </div>
                     <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Showing recent</p>
-                      <p className="text-2xl font-bold">{Math.min(allDeposits.length, 20)}</p>
+                      <p className="text-xs text-muted-foreground">Total Confirmed</p>
+                      <p className="text-2xl font-bold text-green-500">{adminStats?.deposits.confirmed.count || 0}</p>
+                      <p className="text-xs text-green-400 mt-1">${(adminStats?.deposits.confirmed.amount || 0).toLocaleString()}</p>
                     </div>
                     <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Confirmed (recent)</p>
-                      <p className="text-2xl font-bold">{allDeposits.slice(0, 20).filter(d => d.status === "confirmed").length}</p>
+                      <p className="text-xs text-muted-foreground">Total Rejected</p>
+                      <p className="text-2xl font-bold text-red-500">{adminStats?.deposits.rejected.count || 0}</p>
+                      <p className="text-xs text-red-400 mt-1">${(adminStats?.deposits.rejected.amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Showing Recent</p>
+                      <p className="text-2xl font-bold">{allDeposits.length}</p>
                     </div>
                   </div>
 
@@ -1355,6 +1371,29 @@ export function DatabaseAdmin() {
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Refresh
                     </Button>
+                  </div>
+
+                  {/* Withdrawal Stats */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Pending</p>
+                      <p className="text-2xl font-bold text-amber-500">{adminStats?.withdrawals.pending.count || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">${(adminStats?.withdrawals.pending.amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Completed</p>
+                      <p className="text-2xl font-bold text-green-500">{adminStats?.withdrawals.completed.count || 0}</p>
+                      <p className="text-xs text-green-400 mt-1">${(adminStats?.withdrawals.completed.amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Rejected</p>
+                      <p className="text-2xl font-bold text-red-500">{adminStats?.withdrawals.rejected.count || 0}</p>
+                      <p className="text-xs text-red-400 mt-1">${(adminStats?.withdrawals.rejected.amount || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Pending Queue</p>
+                      <p className="text-2xl font-bold">{pendingWithdrawals.length}</p>
+                    </div>
                   </div>
 
                   {isLoadingWithdrawals ? (

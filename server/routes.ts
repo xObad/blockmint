@@ -1191,9 +1191,15 @@ export async function registerRoutes(
       const limit = parseInt(req.query.limit as string) || 50;
       const includeRead = req.query.includeRead !== "false";
 
+      // Resolve userId - could be Firebase UID or database ID
+      const resolvedUserId = await resolveDbUserId(userId);
+      if (!resolvedUserId) {
+        return res.json({ notifications: [], unreadCount: 0 });
+      }
+
       const { notificationService } = await import("./services/notificationService");
-      const notifications = await notificationService.getUserNotifications(userId, limit, includeRead);
-      const unreadCount = await notificationService.getUnreadCount(userId);
+      const notifications = await notificationService.getUserNotifications(resolvedUserId, limit, includeRead);
+      const unreadCount = await notificationService.getUnreadCount(resolvedUserId);
 
       res.json({ notifications, unreadCount });
     } catch (error) {
@@ -1218,8 +1224,13 @@ export async function registerRoutes(
   app.post("/api/notifications/:userId/mark-all-read", async (req, res) => {
     try {
       const { userId } = req.params;
+      // Resolve userId - could be Firebase UID or database ID
+      const resolvedUserId = await resolveDbUserId(userId);
+      if (!resolvedUserId) {
+        return res.status(404).json({ error: "User not found" });
+      }
       const { notificationService } = await import("./services/notificationService");
-      await notificationService.markAllAsRead(userId);
+      await notificationService.markAllAsRead(resolvedUserId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to mark all notifications as read" });
@@ -2459,6 +2470,68 @@ export async function registerRoutes(
       res.json(deposits);
     } catch (error) {
       res.status(500).json({ error: "Failed to get deposits" });
+    }
+  });
+
+  // Get admin dashboard stats (deposit/withdrawal totals)
+  app.get("/api/admin/stats", async (_req, res) => {
+    try {
+      const { depositRequests, withdrawalRequests } = await import("@shared/schema");
+      
+      // Get deposit stats
+      const depositStats = await db.select({
+        status: depositRequests.status,
+        totalAmount: sql<number>`COALESCE(SUM(${depositRequests.amount}), 0)`,
+        count: sql<number>`COUNT(*)`,
+      })
+        .from(depositRequests)
+        .groupBy(depositRequests.status);
+
+      // Get withdrawal stats
+      const withdrawalStats = await db.select({
+        status: withdrawalRequests.status,
+        totalAmount: sql<number>`COALESCE(SUM(${withdrawalRequests.amount}), 0)`,
+        count: sql<number>`COUNT(*)`,
+      })
+        .from(withdrawalRequests)
+        .groupBy(withdrawalRequests.status);
+
+      // Parse stats into a friendly format
+      const depositTotals = {
+        pending: { amount: 0, count: 0 },
+        confirmed: { amount: 0, count: 0 },
+        rejected: { amount: 0, count: 0 },
+      };
+      depositStats.forEach(s => {
+        if (s.status in depositTotals) {
+          depositTotals[s.status as keyof typeof depositTotals] = {
+            amount: Number(s.totalAmount) || 0,
+            count: Number(s.count) || 0,
+          };
+        }
+      });
+
+      const withdrawalTotals = {
+        pending: { amount: 0, count: 0 },
+        completed: { amount: 0, count: 0 },
+        rejected: { amount: 0, count: 0 },
+      };
+      withdrawalStats.forEach(s => {
+        if (s.status in withdrawalTotals) {
+          withdrawalTotals[s.status as keyof typeof withdrawalTotals] = {
+            amount: Number(s.totalAmount) || 0,
+            count: Number(s.count) || 0,
+          };
+        }
+      });
+
+      res.json({
+        deposits: depositTotals,
+        withdrawals: withdrawalTotals,
+      });
+    } catch (error) {
+      console.error("Error getting admin stats:", error);
+      res.status(500).json({ error: "Failed to get admin stats" });
     }
   });
 
