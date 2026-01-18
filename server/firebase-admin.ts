@@ -1,4 +1,5 @@
 // Firebase Admin SDK for server-side authentication verification
+// Last updated: 2026-01-18 - Force redeploy after env var fix
 import { initializeApp, cert, getApps, App } from "firebase-admin/app";
 import { getAuth, Auth } from "firebase-admin/auth";
 import fs from "fs";
