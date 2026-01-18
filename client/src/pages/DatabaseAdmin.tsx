@@ -66,9 +66,12 @@ import {
   LogOut,
   FileText,
   Smartphone,
+  Target,
+  Zap,
   Sliders,
   Plus,
   ArrowUpToLine,
+  ChevronRight,
 } from "lucide-react";
 
 const ADMIN_PASSWORD = "MiningClub2024!";
@@ -145,7 +148,22 @@ const ARTICLE_CATEGORIES = [
   "News",
 ];
 
-type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates";
+type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates" | "solo-mining";
+
+interface SoloMiningPurchase {
+  id: string;
+  userId: string;
+  packageName: string;
+  amount: number;
+  hashrate: number;
+  hashrateUnit: string;
+  status: string;
+  totalEarned: number;
+  purchaseDate: string;
+  expiryDate: string | null;
+  userEmail: string | null;
+  userDisplayName: string | null;
+}
 
 interface DepositRequest {
   id: string;
@@ -278,6 +296,12 @@ export function DatabaseAdmin() {
   const [userInvestApr, setUserInvestApr] = useState("19");
   const [userSoloMultiplier, setUserSoloMultiplier] = useState("1");
   
+  // Solo mining states
+  const [awardBlockDialogOpen, setAwardBlockDialogOpen] = useState(false);
+  const [selectedSoloPurchase, setSelectedSoloPurchase] = useState<SoloMiningPurchase | null>(null);
+  const [blockRewardAmount, setBlockRewardAmount] = useState("3.125");
+  const [blockTxHash, setBlockTxHash] = useState("");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -389,6 +413,17 @@ export function DatabaseAdmin() {
     },
   });
 
+  // Solo mining purchases query
+  const { data: soloMiningPurchases = [] } = useQuery<SoloMiningPurchase[]>({
+    queryKey: ["/api/admin/solo-mining-purchases"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const activeSoloPurchases = soloMiningPurchases.filter(p => p.status === "active");
+  const totalSoloInvestment = activeSoloPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalSoloHashpower = activeSoloPurchases.reduce((sum, p) => sum + (p.hashrate || 0), 0);
+
   // Mutations
   const confirmDeposit = useMutation({
     mutationFn: async (depositId: string) =>
@@ -416,6 +451,37 @@ export function DatabaseAdmin() {
       setRejectDialogOpen(false);
       setSelectedDeposit(null);
       setRejectionReason("");
+    },
+  });
+
+  // Award block to solo miner mutation
+  const awardBlockMutation = useMutation({
+    mutationFn: async ({ purchaseId, blockReward, txHash }: { purchaseId: string; blockReward: number; txHash?: string }) => {
+      const res = await fetch(`/api/admin/solo-mining/${purchaseId}/award-block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockReward, txHash }),
+      });
+      if (!res.ok) throw new Error("Failed to award block");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/solo-mining-purchases"] });
+      toast({ 
+        title: "🎉 Block Awarded!", 
+        description: data.message,
+      });
+      setAwardBlockDialogOpen(false);
+      setSelectedSoloPurchase(null);
+      setBlockRewardAmount("3.125");
+      setBlockTxHash("");
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Failed to Award Block", 
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -658,6 +724,7 @@ export function DatabaseAdmin() {
     { id: "users" as NavItem, icon: Users, label: "Users" },
     { id: "deposits" as NavItem, icon: ArrowDownToLine, label: "Deposits", badge: pendingDeposits.length },
     { id: "withdrawals" as NavItem, icon: ArrowUpToLine, label: "Withdrawals" },
+    { id: "solo-mining" as NavItem, icon: Target, label: "Solo Mining", badge: activeSoloPurchases.length },
     { id: "notifications" as NavItem, icon: Bell, label: "Notifications" },
   ];
 
@@ -976,6 +1043,33 @@ export function DatabaseAdmin() {
                       <p className="text-2xl font-bold">{allDeposits.slice(0, 20).filter(d => d.status === "confirmed").length}</p>
                     </div>
                   </div>
+
+                  {/* Solo Mining Quick Summary */}
+                  {activeSoloPurchases.length > 0 && (
+                    <div 
+                      className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 cursor-pointer hover:border-yellow-500/50 transition-colors"
+                      onClick={() => setActiveNav("solo-mining")}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                            <Target className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-yellow-500">Solo Mining Contracts</p>
+                            <p className="text-sm text-muted-foreground">
+                              {activeSoloPurchases.length} active • {totalSoloHashpower.toFixed(2)} PH/s total
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold">${totalSoloInvestment.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">Total Investment</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                     <div className="bg-card rounded-xl border border-border p-4 md:col-span-3">
@@ -1335,6 +1429,102 @@ export function DatabaseAdmin() {
                     <div className="bg-card rounded-xl border border-border p-8 text-center">
                       <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
                       <p className="text-muted-foreground">No withdrawal requests at this time</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Solo Mining Tab */}
+              {activeNav === "solo-mining" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Solo Mining Management</h2>
+                    <p className="text-muted-foreground">Manage solo mining contracts and award block rewards</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Active Contracts</p>
+                      <p className="text-2xl font-bold text-primary">{activeSoloPurchases.length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Hashpower</p>
+                      <p className="text-2xl font-bold">{totalSoloHashpower} PH/s</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Investment</p>
+                      <p className="text-2xl font-bold">${totalSoloInvestment.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Block Reward</p>
+                      <p className="text-2xl font-bold text-amber-500">3.125 BTC</p>
+                    </div>
+                  </div>
+
+                  {soloMiningPurchases.length > 0 ? (
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[150px]">User</TableHead>
+                              <TableHead>Package</TableHead>
+                              <TableHead>Hashpower</TableHead>
+                              <TableHead>Investment</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Earned</TableHead>
+                              <TableHead>Expires</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {soloMiningPurchases.map((purchase) => (
+                              <TableRow key={purchase.id}>
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium text-xs">{purchase.userDisplayName || "—"}</p>
+                                    <p className="text-xs text-muted-foreground">{purchase.userEmail || purchase.userId.slice(0, 8)}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-xs">{purchase.packageName}</TableCell>
+                                <TableCell className="font-medium">{purchase.hashrate} {purchase.hashrateUnit}</TableCell>
+                                <TableCell>${purchase.amount.toLocaleString()}</TableCell>
+                                <TableCell>
+                                  <Badge className={purchase.status === "active" ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                                    {purchase.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-amber-500 font-medium">
+                                  {purchase.totalEarned > 0 ? `₿${purchase.totalEarned.toFixed(4)}` : "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {purchase.expiryDate ? new Date(purchase.expiryDate).toLocaleDateString() : "—"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {purchase.status === "active" && (
+                                    <Button
+                                      size="sm"
+                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                                      onClick={() => {
+                                        setSelectedSoloPurchase(purchase);
+                                        setAwardBlockDialogOpen(true);
+                                      }}
+                                    >
+                                      <Zap className="w-3 h-3 mr-1" />
+                                      Award Block
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                      <Target className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-muted-foreground">No solo mining contracts yet</p>
                     </div>
                   )}
                 </div>
@@ -2516,6 +2706,131 @@ export function DatabaseAdmin() {
             >
               <Save className="w-4 h-4 mr-2" />
               Save Estimates
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Award Block Dialog */}
+      <Dialog open={awardBlockDialogOpen} onOpenChange={(open) => {
+        setAwardBlockDialogOpen(open);
+        if (!open) {
+          setSelectedSoloPurchase(null);
+          setBlockRewardAmount("3.125");
+          setBlockTxHash("");
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-500" />
+              Award Block Reward
+            </DialogTitle>
+            <DialogDescription>
+              Award a Bitcoin block reward to this solo miner. This will add BTC to their wallet and send them a notification.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedSoloPurchase && (
+            <div className="space-y-4 py-4">
+              {/* User Info */}
+              <div className="bg-muted/50 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{selectedSoloPurchase.userName || "Unknown User"}</p>
+                    <p className="text-xs text-muted-foreground">{selectedSoloPurchase.userEmail}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Package:</span>{" "}
+                    <span className="font-medium">{selectedSoloPurchase.packageName}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Hashpower:</span>{" "}
+                    <span className="font-medium">{selectedSoloPurchase.hashpower} PH/s</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total Earned:</span>{" "}
+                    <span className="font-medium text-green-500">
+                      {Number(selectedSoloPurchase.totalEarned || 0).toFixed(8)} BTC
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>{" "}
+                    <span className={`font-medium ${selectedSoloPurchase.status === "active" ? "text-green-500" : "text-gray-500"}`}>
+                      {selectedSoloPurchase.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Block Reward Amount */}
+              <div>
+                <Label className="text-sm font-medium">Block Reward (BTC)</Label>
+                <Input 
+                  type="number"
+                  step="0.00000001"
+                  value={blockRewardAmount} 
+                  onChange={(e) => setBlockRewardAmount(e.target.value)}
+                  placeholder="3.125"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Current BTC block reward is 3.125 BTC (after 2024 halving)
+                </p>
+              </div>
+
+              {/* Optional TX Hash */}
+              <div>
+                <Label className="text-sm font-medium">Transaction Hash (Optional)</Label>
+                <Input 
+                  value={blockTxHash} 
+                  onChange={(e) => setBlockTxHash(e.target.value)}
+                  placeholder="0x..."
+                  className="mt-1 font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional: Include a blockchain transaction hash for reference
+                </p>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <p className="text-sm text-green-400 font-medium">
+                  🎉 Will award {blockRewardAmount || "0"} BTC to user's wallet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  User will receive a "BLOCK FOUND!" notification
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setAwardBlockDialogOpen(false);
+              setSelectedSoloPurchase(null);
+              setBlockRewardAmount("3.125");
+              setBlockTxHash("");
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedSoloPurchase) return;
+                awardBlockMutation.mutate({
+                  purchaseId: selectedSoloPurchase.id,
+                  blockReward: blockRewardAmount,
+                  txHash: blockTxHash || undefined,
+                });
+              }}
+              disabled={awardBlockMutation.isPending || !blockRewardAmount || Number(blockRewardAmount) <= 0}
+              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              {awardBlockMutation.isPending ? "Awarding..." : "Award Block"}
             </Button>
           </DialogFooter>
         </DialogContent>

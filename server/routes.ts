@@ -811,6 +811,110 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Get all solo mining purchases
+  app.get("/api/admin/solo-mining-purchases", async (req, res) => {
+    try {
+      const { miningPurchases, users } = await import("@shared/schema");
+      
+      // Get all solo mining purchases (packageName contains "Solo Mining")
+      const purchases = await db.select({
+        id: miningPurchases.id,
+        userId: miningPurchases.userId,
+        packageName: miningPurchases.packageName,
+        amount: miningPurchases.amount,
+        hashrate: miningPurchases.hashrate,
+        hashrateUnit: miningPurchases.hashrateUnit,
+        status: miningPurchases.status,
+        totalEarned: miningPurchases.totalEarned,
+        purchaseDate: miningPurchases.purchaseDate,
+        expiryDate: miningPurchases.expiryDate,
+        userEmail: users.email,
+        userDisplayName: users.displayName,
+      })
+        .from(miningPurchases)
+        .leftJoin(users, eq(miningPurchases.userId, users.id))
+        .where(sql`${miningPurchases.packageName} LIKE '%Solo Mining%'`)
+        .orderBy(desc(miningPurchases.purchaseDate));
+      
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching solo mining purchases:", error);
+      res.status(500).json({ error: "Failed to fetch solo mining purchases" });
+    }
+  });
+
+  // Admin: Award block to solo miner
+  app.post("/api/admin/solo-mining/:purchaseId/award-block", async (req, res) => {
+    try {
+      const { purchaseId } = req.params;
+      const { blockReward = 3.125, txHash } = req.body as { blockReward?: number; txHash?: string };
+      
+      const { miningPurchases, wallets } = await import("@shared/schema");
+      
+      // Get the purchase
+      const [purchase] = await db.select().from(miningPurchases).where(eq(miningPurchases.id, purchaseId));
+      if (!purchase) return res.status(404).json({ error: "Purchase not found" });
+      
+      // Find or create BTC wallet for user
+      let [btcWallet] = await db.select()
+        .from(wallets)
+        .where(and(eq(wallets.userId, purchase.userId), sql`UPPER(${wallets.symbol}) = 'BTC'`));
+      
+      if (!btcWallet) {
+        [btcWallet] = await db.insert(wallets).values({
+          userId: purchase.userId,
+          symbol: "BTC",
+          name: "Bitcoin",
+          balance: 0,
+        }).returning();
+      }
+      
+      // Add block reward to BTC wallet
+      await db.update(wallets)
+        .set({ balance: (btcWallet.balance || 0) + blockReward })
+        .where(eq(wallets.id, btcWallet.id));
+      
+      // Update totalEarned on the purchase
+      await db.update(miningPurchases)
+        .set({ totalEarned: (purchase.totalEarned || 0) + blockReward })
+        .where(eq(miningPurchases.id, purchaseId));
+      
+      // Create celebratory notification
+      await db.insert(notifications).values({
+        userId: purchase.userId,
+        type: "deposit",
+        category: "user",
+        title: "🎉 BLOCK FOUND! You Won Bitcoin!",
+        message: `Congratulations! Your solo mining operation found a block! ${blockReward} BTC has been deposited to your wallet.${txHash ? ` TX: ${txHash}` : ""}`,
+        priority: "high",
+        data: { 
+          type: "block_reward",
+          amount: blockReward,
+          currency: "BTC",
+          purchaseId,
+          txHash: txHash || null,
+        },
+      });
+      
+      // Log admin action
+      await db.insert(adminActions).values({
+        adminId: "system",
+        targetUserId: purchase.userId,
+        actionType: "award_block",
+        details: { purchaseId, blockReward, txHash: txHash || null },
+      }).catch(() => {});
+      
+      res.json({ 
+        success: true, 
+        message: `Awarded ${blockReward} BTC to user`,
+        newBalance: (btcWallet.balance || 0) + blockReward,
+      });
+    } catch (error) {
+      console.error("Error awarding block:", error);
+      res.status(500).json({ error: "Failed to award block" });
+    }
+  });
+
   // Admin: Credit or debit user balance
   app.post("/api/admin/adjust-balance", async (req, res) => {
     try {
