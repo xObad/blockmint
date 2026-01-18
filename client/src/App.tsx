@@ -115,7 +115,7 @@ function MobileApp() {
       try {
         const idToken = await firebaseUser.getIdToken();
         console.log("Syncing user with backend:", firebaseUser.email);
-        let res = await fetch("/api/auth/sync", {
+        const res = await fetch("/api/auth/sync", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${idToken}`,
@@ -123,27 +123,11 @@ function MobileApp() {
           },
         });
         
-        // If main sync fails, try fallback endpoint
-        if (!res.ok) {
-          const mainError = await res.json();
-          console.warn("Main auth sync failed, trying fallback:", mainError);
-          res = await fetch("/api/auth/sync-fallback", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-              photoUrl: firebaseUser.photoURL,
-            }),
-          });
-        }
-        
         if (!res.ok) {
           const error = await res.json();
-          console.error("Auth sync failed (both methods):", error);
+          console.error("Auth sync failed:", error);
+          // Show the actual error to help debugging
+          alert(`Auth sync failed: ${error.error || 'Unknown error'}. Please contact support.`);
           throw new Error("Failed to sync user");
         }
         const data = await res.json();

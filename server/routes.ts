@@ -1923,6 +1923,25 @@ export async function registerRoutes(
     }
   });
 
+  // Diagnostic endpoint to check Firebase Admin SDK status
+  app.get("/api/auth/status", async (_req, res) => {
+    try {
+      const { getAdminAuth } = await import("./firebase-admin");
+      const adminAuth = getAdminAuth();
+      res.json({
+        firebaseAdminInitialized: !!adminAuth,
+        projectId: process.env.VITE_FIREBASE_PROJECT_ID || "not set",
+        serviceAccountConfigured: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+        databaseConnected: !!db,
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        firebaseAdminInitialized: false 
+      });
+    }
+  });
+
   // Sync Firebase user into database so admin can manage
   app.post("/api/auth/sync", async (req, res) => {
     try {
@@ -1969,33 +1988,6 @@ export async function registerRoutes(
       res.json({ user: result.user });
     } catch (error) {
       console.error("Error syncing auth user:", error);
-      res.status(500).json({ error: `Failed to sync user: ${error instanceof Error ? error.message : 'Unknown error'}` });
-    }
-  });
-
-  // Fallback sync - creates user without Firebase Admin verification
-  // Only use this if Firebase Admin SDK is not configured properly
-  app.post("/api/auth/sync-fallback", async (req, res) => {
-    try {
-      const { uid, email, displayName, photoUrl } = req.body;
-      
-      if (!uid || !email) {
-        return res.status(400).json({ error: "Missing uid or email" });
-      }
-
-      console.log("Fallback auth sync: Creating/updating user", { uid, email });
-      
-      const result = await authService.getOrCreateUser(uid, email, displayName, photoUrl);
-
-      if (!result.success || !result.user) {
-        console.error("Fallback auth sync failed:", result.error);
-        return res.status(500).json({ error: result.error || "Failed to sync user" });
-      }
-
-      console.log("Fallback auth sync: User created/updated", { userId: result.user.id, email: result.user.email });
-      res.json({ user: result.user });
-    } catch (error) {
-      console.error("Error in fallback auth sync:", error);
       res.status(500).json({ error: `Failed to sync user: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
