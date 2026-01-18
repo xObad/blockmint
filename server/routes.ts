@@ -1935,17 +1935,30 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Missing auth token" });
       }
 
-      const payload = await authService.verifyToken(idToken);
+      let payload;
+      try {
+        payload = await authService.verifyToken(idToken);
+      } catch (verifyError) {
+        console.error("Auth sync: Token verification error:", verifyError);
+        return res.status(401).json({ error: "Token verification failed. Firebase Admin may not be configured properly." });
+      }
+      
       if (!payload?.uid || !payload.email) {
         console.warn("Auth sync: Invalid token payload", { uid: payload?.uid, email: payload?.email });
-        return res.status(400).json({ error: "Invalid auth token" });
+        return res.status(400).json({ error: "Invalid auth token - missing uid or email" });
       }
 
       const displayName = (payload as any).name;
       const photoUrl = (payload as any).picture;
       console.log("Auth sync: Creating/updating user", { uid: payload.uid, email: payload.email });
       
-      const result = await authService.getOrCreateUser(payload.uid, payload.email, displayName, photoUrl);
+      let result;
+      try {
+        result = await authService.getOrCreateUser(payload.uid, payload.email, displayName, photoUrl);
+      } catch (dbError) {
+        console.error("Auth sync: Database error during user creation:", dbError);
+        return res.status(500).json({ error: `Database error: ${dbError instanceof Error ? dbError.message : 'Unknown'}` });
+      }
 
       if (!result.success || !result.user) {
         console.error("Auth sync failed:", result.error);
@@ -1956,7 +1969,34 @@ export async function registerRoutes(
       res.json({ user: result.user });
     } catch (error) {
       console.error("Error syncing auth user:", error);
-      res.status(500).json({ error: "Failed to sync user" });
+      res.status(500).json({ error: `Failed to sync user: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    }
+  });
+
+  // Fallback sync - creates user without Firebase Admin verification
+  // Only use this if Firebase Admin SDK is not configured properly
+  app.post("/api/auth/sync-fallback", async (req, res) => {
+    try {
+      const { uid, email, displayName, photoUrl } = req.body;
+      
+      if (!uid || !email) {
+        return res.status(400).json({ error: "Missing uid or email" });
+      }
+
+      console.log("Fallback auth sync: Creating/updating user", { uid, email });
+      
+      const result = await authService.getOrCreateUser(uid, email, displayName, photoUrl);
+
+      if (!result.success || !result.user) {
+        console.error("Fallback auth sync failed:", result.error);
+        return res.status(500).json({ error: result.error || "Failed to sync user" });
+      }
+
+      console.log("Fallback auth sync: User created/updated", { userId: result.user.id, email: result.user.email });
+      res.json({ user: result.user });
+    } catch (error) {
+      console.error("Error in fallback auth sync:", error);
+      res.status(500).json({ error: `Failed to sync user: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
   });
 
