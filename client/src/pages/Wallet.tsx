@@ -244,10 +244,16 @@ export function Wallet({
         throw new Error("Authentication error. Please log out and log in again.");
       }
 
+      // Get Firebase ID token for authorization
+      const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+
       console.log("Submitting deposit request:", { userId: currentUserId, ...data });
       const res = await fetch("/api/deposits/request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(idToken && { "Authorization": `Bearer ${idToken}` })
+        },
         body: JSON.stringify({
           userId: currentUserId,
           amount: data.amount,

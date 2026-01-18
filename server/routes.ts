@@ -1976,11 +1976,34 @@ export async function registerRoutes(
       }
 
       // Resolve userId - could be Firebase UID or database ID
-      const resolvedUserId = await resolveDbUserId(userId);
+      let resolvedUserId = await resolveDbUserId(userId);
+      
+      // If user not found in database, try to create them from Authorization header
+      if (!resolvedUserId) {
+        console.log("User not found in DB, attempting to create from auth token...");
+        const authHeader = req.headers.authorization || "";
+        const idToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+        
+        if (idToken) {
+          try {
+            const payload = await authService.verifyToken(idToken);
+            if (payload?.uid && payload.email) {
+              console.log("Creating user from token:", { uid: payload.uid, email: payload.email });
+              const result = await authService.getOrCreateUser(payload.uid, payload.email, (payload as any).name, (payload as any).picture);
+              if (result.success && result.user) {
+                resolvedUserId = result.user.id;
+                console.log("User created/found:", resolvedUserId);
+              }
+            }
+          } catch (tokenError) {
+            console.error("Failed to create user from token:", tokenError);
+          }
+        }
+      }
       
       if (!resolvedUserId) {
-        console.error("User not found:", userId);
-        return res.status(404).json({ error: "User not found. Please log in again." });
+        console.error("User not found and could not be created:", userId);
+        return res.status(404).json({ error: "User not found. Please log out and log in again to sync your account." });
       }
 
       // Create deposit request with resolved database user ID
