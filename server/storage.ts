@@ -177,6 +177,10 @@ export class MemStorage implements IStorage {
       twoFactorEnabled: insertUser.twoFactorEnabled ?? false,
       twoFactorSecret: insertUser.twoFactorSecret ?? null,
       lastLoginAt: insertUser.lastLoginAt || null,
+      referralCode: insertUser.referralCode ?? null,
+      referredBy: insertUser.referredBy ?? null,
+      referralWalletType: insertUser.referralWalletType ?? null,
+      referralWalletAddress: insertUser.referralWalletAddress ?? null,
     };
     this.users.set(id, user);
     return user;

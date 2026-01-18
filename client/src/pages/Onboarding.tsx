@@ -29,16 +29,16 @@ const onboardingPages = [
     id: 2,
     title: "Secure & Transparent",
     subtitle: "Bank-Grade Security",
-    description: "Your investments are protected with enterprise-grade security. Track every transaction on the blockchain.",
+    description: "Your funds are protected with enterprise-grade security. Track every transaction on the blockchain.",
     image: serverMining,
     icon: Shield,
     gradient: "from-emerald-500 via-teal-400 to-emerald-600"
   },
   {
     id: 3,
-    title: "Solo Mining Jackpot",
-    subtitle: "Win Full Block Rewards",
-    description: "Join our solo mining pools for a chance to win the entire 3 BTC block reward. High risk, massive rewards.",
+    title: "Solo Block Discovery",
+    subtitle: "Full Block Rewards",
+    description: "Join our solo mining pools for full 3.125 BTC block rewards. Mine independently for maximum returns.",
     image: btcMine,
     icon: Gem,
     gradient: "from-amber-500 via-orange-400 to-amber-600"

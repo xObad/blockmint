@@ -14,7 +14,7 @@ interface BottomNavProps {
 const tabs = [
   { id: "home" as const, icon: Home, label: "Home" },
   { id: "wallet" as const, icon: Wallet, label: "Wallet" },
-  { id: "invest" as const, icon: TrendingUp, label: "Invest" },
+  { id: "invest" as const, icon: TrendingUp, label: "Yield" },
   { id: "mining" as const, icon: Pickaxe, label: "Mining" },
   { id: "solo" as const, icon: Gem, label: "Solo" },
 ];

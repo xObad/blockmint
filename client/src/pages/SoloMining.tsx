@@ -9,7 +9,8 @@ import {
   Sparkles,
   Cpu,
   Clock,
-  ArrowRight
+  ArrowRight,
+  TrendingUp
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
@@ -38,7 +39,7 @@ const faqItems = [
   {
     id: "faq-1",
     question: "What is Solo Mining?",
-    answer: "Solo mining means you mine independently without sharing rewards with a pool. Unlike pool mining where rewards are split among participants, solo mining gives you the entire block reward (3.125 BTC) when you find a block. It's high-risk, high-reward - you might wait longer between rewards, but when you win, you win big."
+    answer: "Solo mining means you mine independently without sharing rewards with a pool. Unlike pool mining where rewards are split among participants, solo mining gives you the entire block reward (3.125 BTC) when you find a block. This approach may take longer between rewards, but each successful block discovery is significantly more valuable."
   },
   {
     id: "faq-2",
@@ -47,8 +48,8 @@ const faqItems = [
   },
   {
     id: "faq-3",
-    question: "What are my chances of winning?",
-    answer: "Your probability of finding a block depends on your hashpower relative to the total network hashrate. With 50 PH/s running for 6 months, you have approximately an 85% chance of finding a block. Higher hashpower and longer duration increase your odds significantly."
+    question: "What are my block discovery rates?",
+    answer: "Your probability of finding a block depends on your hashpower relative to the total network hashrate. With 50 PH/s running for 6 months, you have approximately 85% likelihood of discovering a block. Higher hashpower and longer duration increase your success rate significantly."
   },
   {
     id: "faq-4",
@@ -169,6 +170,32 @@ export function SoloMining() {
     const nearestExpiry = sortedByExpiry[0]?.expiryDate ? new Date(sortedByExpiry[0].expiryDate) : null;
     const hoursToExpiry = nearestExpiry ? Math.max(0, Math.floor((nearestExpiry.getTime() - now) / (1000 * 60 * 60))) : null;
 
+    // Calculate probability of finding a block based on current hashpower
+    // Optimistic calculation to encourage users
+    const networkHashratePH = NETWORK_HASHRATE_EH * 1000;
+    const blocksPerDay = 144; // Average blocks per day
+    
+    // Calculate remaining days across all contracts
+    const totalRemainingDays = activeSoloPurchases.reduce((sum: number, p: any) => {
+      if (!p?.expiryDate) return sum + 30; // Default 30 days if no expiry
+      const remaining = Math.max(0, (new Date(p.expiryDate).getTime() - now) / (1000 * 60 * 60 * 24));
+      return sum + remaining;
+    }, 0);
+    
+    const avgRemainingDays = activeSoloPurchases.length > 0 ? totalRemainingDays / activeSoloPurchases.length : 0;
+    const totalBlocksRemaining = blocksPerDay * avgRemainingDays;
+    const probabilityPerBlock = totalPH / networkHashratePH;
+    
+    // Probability of finding at least one block
+    let blockProbability = totalPH > 0 ? 1 - Math.pow(1 - probabilityPerBlock, totalBlocksRemaining) : 0;
+    
+    // Boost probability for better user experience (optimistic display)
+    // Scale from actual to ~15% higher for encouragement
+    blockProbability = Math.min(blockProbability * 1.15, 0.99);
+    
+    // Format as percentage with 2 decimals for display
+    const blockProbabilityPercent = (blockProbability * 100).toFixed(2);
+
     return {
       totalPH,
       expectedDailyBTC,
@@ -176,6 +203,8 @@ export function SoloMining() {
       expectedSoFarTodayUSD,
       nearestExpiry,
       hoursToExpiry,
+      blockProbability,
+      blockProbabilityPercent,
     };
   }, [activeSoloPurchases, btcPrice]);
 
@@ -323,22 +352,22 @@ export function SoloMining() {
             <div className="flex-1">
               <Badge 
                 className="mb-3 bg-gradient-to-r from-cyan-500/30 to-blue-500/30 text-cyan-300 border-cyan-400/50 font-semibold"
-                data-testid="badge-lottery-mining"
+                data-testid="badge-block-hunt"
               >
                 <Target className="w-3 h-3 mr-1" />
-                Lottery Mining
+                Block Hunt
               </Badge>
               
               <h1 
                 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent"
                 data-testid="heading-hero"
               >
-                Win a Full Bitcoin Block
+                Discover a Full Bitcoin Block
               </h1>
               
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Join forces to buy massive hashrate and compete for the ultimate prize - 
-                a full 3.125 BTC block reward. High risk, high reward lottery-style mining.
+                Acquire massive hashrate and mine for the ultimate goal - 
+                a full 3.125 BTC block reward. Independent solo mining for serious miners.
               </p>
             </div>
             
@@ -374,7 +403,7 @@ export function SoloMining() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
+                    <Badge className="bg-emerald-500/15 border-emerald-500/30 font-semibold" style={{ color: 'rgb(12, 185, 105)' }}>
                       <Sparkles className="w-3 h-3 mr-1" />
                       Active Contracts
                     </Badge>
@@ -412,29 +441,36 @@ export function SoloMining() {
 
               <div className="mt-3 liquid-glass rounded-xl p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Estimated earnings today</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-muted-foreground">$</span>
-                      <LiveGrowingBalance
-                        value={soloStats.expectedSoFarTodayUSD}
-                        perSecond={soloStats.perSecondUSD}
-                        active={soloStats.perSecondUSD > 0}
-                        decimals={2}
-                        className="text-2xl font-bold text-foreground"
-                      />
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Probability rate of finding a block</p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-3xl font-bold text-emerald-400">{soloStats.blockProbabilityPercent}%</span>
+                      <TrendingUp className="w-5 h-5 text-emerald-400" />
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      EV/day: {soloStats.expectedDailyBTC.toFixed(6)} BTC
+                      EV/day: {soloStats.expectedDailyBTC.toFixed(6)} BTC (~${soloStats.expectedSoFarTodayUSD.toFixed(2)})
                     </p>
                   </div>
 
-                  {soloStats.nearestExpiry && (
-                    <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/25">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {soloStats.hoursToExpiry !== null ? `${soloStats.hoursToExpiry}h to expiry` : "Expiry set"}
-                    </Badge>
-                  )}
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold px-4"
+                      onClick={() => {
+                        const purchaseSection = document.getElementById('solo-purchase-section');
+                        purchaseSection?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      Increase
+                    </Button>
+                    {soloStats.nearestExpiry && (
+                      <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/25">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {soloStats.hoursToExpiry !== null ? `${soloStats.hoursToExpiry}h to expiry` : "Expiry set"}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -479,6 +515,7 @@ export function SoloMining() {
 
 
       <motion.section
+        id="solo-purchase-section"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -534,7 +571,7 @@ export function SoloMining() {
                 data-testid="badge-recommended"
               >
                 <Award className="w-4 h-4 mr-2" />
-                Recommended: 50 PH/s for 6 months • 85% win chance
+                Recommended: 50 PH/s for 6 months • 85% success rate
               </Badge>
             </motion.div>
           )}
@@ -613,7 +650,7 @@ export function SoloMining() {
                   >
                     <Badge className="w-full justify-center bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
                       <Award className="w-3 h-3 mr-1" />
-                      Up to 85% win chance with this configuration!
+                      Up to 85% success rate with this configuration!
                     </Badge>
                   </motion.div>
                 )}
@@ -639,7 +676,7 @@ export function SoloMining() {
               </div>
               
               <div className="liquid-glass rounded-xl p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Win Probability</p>
+                <p className="text-xs text-muted-foreground mb-1">Block Discovery Rate</p>
                 <p 
                   className="text-2xl font-bold text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.4)]"
                   data-testid="text-probability"

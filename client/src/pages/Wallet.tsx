@@ -131,7 +131,6 @@ interface WalletProps {
   transactions: Transaction[];
   totalBalance?: number;
   change24h?: number;
-  onOpenExchange?: () => void;
   onOpenDeposit?: () => void;
   onOpenWithdraw?: () => void;
   onNavigateToHome?: () => void;
@@ -145,7 +144,6 @@ export function Wallet({
   transactions, 
   totalBalance, 
   change24h = 0,
-  onOpenExchange,
   onOpenDeposit,
   onOpenWithdraw,
   onNavigateToHome,
@@ -171,7 +169,6 @@ export function Wallet({
   
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [exchangeOpen, setExchangeOpen] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoType>("USDT");
   const [selectedNetwork, setSelectedNetwork] = useState<string>("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -181,10 +178,6 @@ export function Wallet({
   const [depositAmount, setDepositAmount] = useState("");
   const [depositSubmitted, setDepositSubmitted] = useState(false);
   const [showDepositQR, setShowDepositQR] = useState(false);
-  
-  const [exchangeFrom, setExchangeFrom] = useState<CryptoType>("BTC");
-  const [exchangeTo, setExchangeTo] = useState<CryptoType>("USDT");
-  const [exchangeAmount, setExchangeAmount] = useState("");
 
   const queryClient = useQueryClient();
 
@@ -330,16 +323,16 @@ export function Wallet({
   };
 
   const pricedBalances = useMemo(() => {
-    // Ensure all required currencies are shown even with 0 balance
-    const requiredAssets = ["USDT", "BTC", "ETH", "LTC"];
+    // Ensure all required currencies are shown even with 0 balance - ORDER: USDT, BTC, LTC, ETH
+    const requiredAssets = ["USDT", "BTC", "LTC", "ETH"];
     
-    // Create map of existing balances
-    const balanceMap = new Map(balances.map(b => [b.symbol, b]));
+    // Create map of existing balances (case-insensitive key)
+    const balanceMap = new Map(balances.map(b => [b.symbol.toUpperCase(), b]));
     
-    // Merge with required assets
+    // Merge with required assets - maintains order from requiredAssets array
     const mergedBalances = requiredAssets.map(symbol => {
-      const existing = balanceMap.get(symbol);
-      if (existing) return existing;
+      const existing = balanceMap.get(symbol.toUpperCase());
+      if (existing) return { ...existing, symbol: symbol.toUpperCase() }; // Normalize symbol to uppercase
       
       return {
          id: `zero-${symbol}`, 
@@ -593,42 +586,6 @@ export function Wallet({
     }
   };
 
-  const calculateExchangeOutput = () => {
-    if (!exchangeAmount || parseFloat(exchangeAmount) <= 0) return "0.00";
-    const inputValue = parseFloat(exchangeAmount) * cryptoPrices[exchangeFrom];
-    const outputAmount = inputValue / cryptoPrices[exchangeTo];
-    return outputAmount.toFixed(6);
-  };
-
-  const handleExchange = () => {
-    const fromBalance = getCurrentBalance(exchangeFrom);
-    const amount = parseFloat(exchangeAmount);
-    
-    if (amount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid exchange amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (amount > fromBalance) {
-      toast({
-        title: "Insufficient Balance",
-        description: `You don't have enough ${exchangeFrom} to complete this exchange.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Exchange Submitted",
-      description: `Converting ${amount} ${exchangeFrom} to ${calculateExchangeOutput()} ${exchangeTo}. We handle all blockchain bridging for you.`,
-    });
-    setExchangeOpen(false);
-  };
-
   const CryptoIcon = ({ crypto, className }: { crypto: CryptoType; className?: string }) => {
     if (logoMap[crypto]) {
       return <img src={logoMap[crypto]} alt={crypto} className={cn("w-5 h-5 object-contain", className)} />;
@@ -824,10 +781,10 @@ export function Wallet({
                                 <>
                                   <div className="relative group">
                                     <img
-                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(depositAddress)}&margin=8`}
                                       alt="Deposit QR Code"
-                                      className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
-                                      onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
+                                      className="w-24 h-24 md:w-28 md:h-28 rounded-lg border-2 border-white/20 bg-white p-1 cursor-pointer hover:scale-105 transition-transform"
+                                      onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                       <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
@@ -836,7 +793,7 @@ export function Wallet({
                                     </div>
                                   </div>
                                   <p className="text-[10px] md:text-xs text-center text-muted-foreground">
-                                    Scan QR code with your wallet app
+                                    Scan QR to deposit. Tap to enlarge.
                                   </p>
                                 </>
                               )}
@@ -1108,16 +1065,6 @@ export function Wallet({
                 </PopoverContent>
               </Popover>
             </div>
-            <Link href="/exchange">
-              <Button
-                data-testid="button-wallet-exchange"
-                variant="secondary"
-                className="w-full liquid-glass border-0 bg-primary/20"
-              >
-                <ArrowLeftRight className="w-5 h-5 mr-2" />
-                Exchange
-              </Button>
-            </Link>
           </div>
         </div>
       </GlassCard>

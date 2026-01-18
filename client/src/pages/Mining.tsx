@@ -127,7 +127,7 @@ const miningPackages: MiningPackage[] = [
 
 const trustBadges = [
   { icon: Clock, label: "24/7 Mining", description: "Non-stop operation" },
-  { icon: Shield, label: "Guaranteed Returns", description: "Your profit secured" },
+  { icon: Shield, label: "Transparent Returns", description: "Clear profit tracking" },
   { icon: Zap, label: "Instant Withdrawals", description: "Get paid fast" },
   { icon: CheckCircle2, label: "Secure & Verified", description: "Enterprise security" },
 ];
@@ -425,7 +425,7 @@ function ActiveMiningPurchases({
 
                 <div className="flex items-center justify-between pt-2 border-t border-white/10">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Investment</p>
+                    <p className="text-[10px] text-muted-foreground">Cost</p>
                     <p className="text-xs font-medium text-foreground">
                       {getSymbol()}{convert(purchase.amount).toFixed(2)}
                     </p>
@@ -503,7 +503,7 @@ function PackageCard({ pkg, index, onPurchase, isPending }: { pkg: MiningPackage
               </span>
               <h3 className="font-semibold text-foreground text-sm">{pkg.name}</h3>
               <Badge className="text-[10px] bg-green-500/20 text-green-400 border-green-500/30 px-1.5 py-0">
-                ONE-TIME
+                5 YEARS
               </Badge>
             </div>
             
@@ -612,14 +612,14 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
         </div>
         <div>
           <h2 className="text-base font-semibold text-foreground">Custom Hashrate Calculator</h2>
-          <p className="text-xs text-muted-foreground">Build your own one-time mining package</p>
+          <p className="text-xs text-muted-foreground">Build your own 5-year mining package</p>
         </div>
       </div>
       
       <div className="space-y-4">
         <div className="mb-4 space-y-2">
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-            ONE-TIME PAYMENT
+            5 YEAR CONTRACT
           </Badge>
           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
             VALID FOR 7 YEARS
@@ -662,7 +662,7 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
           </div>
           
           <div className="border-t border-white/[0.08] pt-3">
-            <span className="text-xs text-muted-foreground">One-time Cost</span>
+            <span className="text-xs text-muted-foreground">Contract Cost</span>
             <p className="text-2xl font-bold text-foreground">
               {getSymbol()}{convert(estimatedCost).toFixed(2)}
             </p>
@@ -754,7 +754,7 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
         </Button>
         
         <p className="text-center text-[10px] text-muted-foreground">
-          One-time payment • All rewards paid in BTC
+          5 Year Contract • All rewards paid in BTC
         </p>
       </div>
     </GlassCard>
@@ -976,7 +976,10 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     createPurchase.mutate(purchasePayload);
   };
   
-  const activePurchases = (miningPurchases || []).filter((p: any) => p?.status === "active");
+  // Filter out solo mining purchases - they should only appear on Solo Mining page
+  const activePurchases = (miningPurchases || []).filter((p: any) => 
+    p?.status === "active" && !String(p?.packageName || "").includes("Solo Mining")
+  );
 
   const totalHashrateFromContracts = contracts.reduce((sum, c) => {
     if (c.hashrateUnit === "TH/s") return sum + c.hashrate;
@@ -990,7 +993,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
     const value = Number(p?.hashrate) || 0;
     if (unit === "TH/s") return sum + value;
     if (unit === "MH/s") return sum + value / 1000000;
-    if (unit === "PH/s") return sum + value * 1000;
+    // Skip PH/s units here since those are solo mining
     return sum + value;
   }, 0);
 
@@ -1206,7 +1209,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
                 </div>
                 <h2 className="text-base font-semibold text-foreground">Bitcoin Mining Devices</h2>
                 <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
-                  ONE-TIME
+                  5 YEARS
                 </Badge>
               </div>
               <div className="space-y-3">

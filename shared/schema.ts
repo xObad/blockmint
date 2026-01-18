@@ -14,6 +14,11 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorSecret: text("two_factor_secret"), // TOTP secret
+  // Referral system
+  referralCode: text("referral_code").unique(),
+  referredBy: varchar("referred_by"),
+  referralWalletType: text("referral_wallet_type"), // 'trc20' | 'binance_pay'
+  referralWalletAddress: text("referral_wallet_address"),
   createdAt: timestamp("created_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
 });
@@ -1082,3 +1087,97 @@ export const insertProductSchema = createInsertSchema(products).omit({
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+
+// ============ REFERRAL SYSTEM ============
+
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  referredUserId: varchar("referred_user_id"),
+  referredEmail: text("referred_email"),
+  referralCode: text("referral_code").notNull(),
+  status: text("status").notNull().default("pending"), // pending | qualified | rewarded | expired
+  qualifiedAt: timestamp("qualified_at"),
+  rewardAmount: real("reward_amount").notNull().default(5),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  createdAt: true,
+  qualifiedAt: true,
+});
+
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
+
+export const referralPayouts = pgTable("referral_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referralId: varchar("referral_id"),
+  referrerId: varchar("referrer_id").notNull(),
+  amount: real("amount").notNull(),
+  walletType: text("wallet_type").notNull(), // 'trc20' | 'binance_pay'
+  walletAddress: text("wallet_address").notNull(),
+  status: text("status").notNull().default("pending"), // pending | processing | completed | failed
+  adminNotes: text("admin_notes"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertReferralPayoutSchema = createInsertSchema(referralPayouts).omit({
+  id: true,
+  createdAt: true,
+  processedAt: true,
+});
+
+export type InsertReferralPayout = z.infer<typeof insertReferralPayoutSchema>;
+export type ReferralPayout = typeof referralPayouts.$inferSelect;
+
+// ============ FEEDBACK REWARDS ============
+
+export const feedbackRewards = pgTable("feedback_rewards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  platform: text("platform").notNull(), // 'ios' | 'android' | 'web'
+  promptedAt: timestamp("prompted_at").defaultNow(),
+  claimedAt: timestamp("claimed_at"),
+  rewardAmount: real("reward_amount").notNull().default(20),
+  hashrateTHs: real("hashrate_ths").notNull().default(0.8),
+  expiryDate: timestamp("expiry_date"),
+  status: text("status").notNull().default("pending"), // pending | claimed | expired
+});
+
+export const insertFeedbackRewardSchema = createInsertSchema(feedbackRewards).omit({
+  id: true,
+  promptedAt: true,
+  claimedAt: true,
+});
+
+export type InsertFeedbackReward = z.infer<typeof insertFeedbackRewardSchema>;
+export type FeedbackReward = typeof feedbackRewards.$inferSelect;
+
+// ============ USER PIN/SECURITY ============
+
+export const userSecurity = pgTable("user_security", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  pinHash: text("pin_hash"), // Hashed 6-digit PIN
+  biometricEnabled: boolean("biometric_enabled").notNull().default(false),
+  biometricCredentialId: text("biometric_credential_id"), // WebAuthn credential
+  pinLockEnabled: boolean("pin_lock_enabled").notNull().default(false),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertUserSecuritySchema = createInsertSchema(userSecurity).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  failedAttempts: true,
+  lockedUntil: true,
+});
+
+export type InsertUserSecurity = z.infer<typeof insertUserSecuritySchema>;
+export type UserSecurity = typeof userSecurity.$inferSelect;

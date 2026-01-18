@@ -12,7 +12,7 @@ interface TransactionItemProps {
 export function TransactionItem({ transaction, index }: TransactionItemProps) {
   const { format } = useCurrency();
   
-  const type = transaction.type;
+  const type = transaction.type as string;
   
   const getIcon = () => {
     switch (type) {
@@ -45,8 +45,12 @@ export function TransactionItem({ transaction, index }: TransactionItemProps) {
   };
 
   const getLabel = () => {
+    // For earned transactions, use description if available
+    if (type === 'earned' && transaction.description) {
+      return transaction.description;
+    }
     switch (type) {
-      case 'earned': return "Mining Reward";
+      case 'earned': return "Daily Yield";
       case 'withdrawn': 
       case 'withdrawal': return "Withdrawal";
       case 'received': return "Received";
@@ -129,7 +133,7 @@ export function TransactionItem({ transaction, index }: TransactionItemProps) {
           "font-medium",
           isPositive ? "text-emerald-400" : "text-foreground"
         )}>
-          {!isPositive && "-"}{isPositive && "+"}{amount.toFixed(6)} {symbol}
+          {!isPositive && "-"}{isPositive && "+"}{amount.toFixed(2)} {symbol}
         </p>
         
         {usdVal > 0 ? (

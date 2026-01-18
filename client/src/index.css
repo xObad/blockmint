@@ -1,3 +1,6 @@
+/* Import Sansation and Space Grotesk from Google Fonts - MUST be at the very top */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sansation:wght@300;400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,9 +13,6 @@
 .neon-glow-green {
   animation: neon-glow-green 1s ease-in-out;
 }
-
-/* Import Sansation and Enriqueta from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Sansation:wght@400;700&family=Enriqueta:wght@400;700&display=swap');
 
 /* LIGHT MODE */
 :root {
@@ -38,7 +38,7 @@
   --popover: 240 5% 90%;
   --popover-foreground: 240 6% 10%;
   --popover-border: 240 10% 55%;
-  --primary: 160 70% 45%;
+  --primary: 160 84% 25%;
   --primary-foreground: 160 20% 98%;
   --secondary: 240 6% 86%;
   --secondary-foreground: 240 6% 10%;
@@ -49,16 +49,16 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 20% 98%;
   --input: 240 10% 70%;
-  --ring: 160 70% 45%;
-  --chart-1: 160 70% 45%;
+  --ring: 160 84% 32%;
+  --chart-1: 160 84% 32%;
   --chart-2: 195 92% 45%;
   --chart-3: 142 76% 42%;
   --chart-4: 43 96% 56%;
   --chart-5: 24 95% 53%;
   --font-sans: 'Sansation', 'system-ui', sans-serif;
-  --font-display: 'Enriqueta', serif;
-  --font-heading: 'Enriqueta', serif;
-  --font-serif: Georgia, serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-serif: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius: .5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(240 5% 10% / 0.00);
@@ -527,8 +527,9 @@ body.admin-mode,
 }
 
 /* Padding utilities for safe areas */
+/* iOS Dynamic Island / Android notch support */
 .pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0.5rem), 0.5rem);
+  padding-top: max(env(safe-area-inset-top, 20px), 20px);
 }
 
 .pb-safe {
@@ -553,18 +554,23 @@ body.admin-mode,
   left: max(env(safe-area-inset-left, 0), 0);
 }
 
-/* Apply Outfit font to all headings and titles */
+/* Apply Space Grotesk font to all headings and titles */
 h1, h2, h3, h4, h5, h6,
 .font-heading,
 .font-display,
 [class*="text-"][class*="font-bold"],
 [class*="text-"][class*="font-semibold"] {
-  font-family: 'Outfit', sans-serif !important;
+  font-family: 'Space Grotesk', sans-serif !important;
 }
 
 /* Ensure body text uses Sansation */
 body {
   font-family: 'Sansation', system-ui, sans-serif;
+}
+
+/* Titles should use Space Grotesk */
+.title, .heading {
+  font-family: 'Space Grotesk', sans-serif !important;
 }
 
 .right-safe {

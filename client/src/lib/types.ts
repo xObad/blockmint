@@ -29,6 +29,7 @@ export interface Transaction {
   timestamp?: Date | string;
   createdAt?: string;
   status: 'completed' | 'pending' | 'failed' | 'confirmed' | 'rejected';
+  description?: string;
 }
 
 export interface CryptoNetwork {

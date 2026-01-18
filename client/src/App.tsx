@@ -23,7 +23,6 @@ import { AuthPage } from "@/pages/AuthPage";
 import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { TermsOfService } from "@/pages/TermsOfService";
-import Exchange from "@/pages/Exchange";
 import { Referral } from "@/pages/Referral";
 import { History } from "@/pages/History";
 import { VirtualCard } from "@/pages/VirtualCard";
@@ -31,6 +30,7 @@ import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
 import { ArticlePage } from "@/pages/ArticlePage";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
 import { TwoFactorLoginModal } from "@/components/TwoFactorLoginModal";
+import { AppLockProvider } from "@/components/AppLock";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
@@ -232,7 +232,7 @@ function MobileApp() {
         onNavigateToInvest={() => setActiveTab("invest")}
       />
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-[10px] pb-48">
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
@@ -447,29 +447,47 @@ function MobileApp() {
 }
 
 function App() {
+  // Get user ID from localStorage for AppLock
+  const [userId, setUserId] = useState<number | undefined>(undefined);
+  
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setUserId(parsed.id || parsed.dbId);
+      } catch (e) {
+        console.error("Failed to parse user from localStorage");
+      }
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <CurrencyProvider>
           <NotificationProvider>
             <TooltipProvider>
-              <Toaster />
-              <Switch>
-                <Route path="/privacy" component={PrivacyPolicy} />
-                <Route path="/terms" component={TermsOfService} />
-                <Route path="/exchange" component={Exchange} />
-                <Route path="/referral" component={Referral} />
-                <Route path="/db-admin" component={DatabaseAdmin} />
-                <Route path="/article/:id" component={ArticlePage} />
-                <Route path="/virtual-card">
-                  {() => <VirtualCard onBack={() => window.history.back()} />}
-                </Route>
-                <Route path="/history">
-                  {() => <History />}
-                </Route>
-                <Route path="/" component={MobileApp} />
-                <Route component={MobileApp} />
-              </Switch>
+              <AppLockProvider userId={userId}>
+                <Toaster />
+                <Switch>
+                  <Route path="/privacy" component={PrivacyPolicy} />
+                  <Route path="/terms" component={TermsOfService} />
+                  <Route path="/referral">
+                    {() => <Referral />}
+                  </Route>
+                  <Route path="/db-admin" component={DatabaseAdmin} />
+                  <Route path="/article/:id" component={ArticlePage} />
+                  <Route path="/virtual-card">
+                    {() => <VirtualCard onBack={() => window.history.back()} />}
+                  </Route>
+                  <Route path="/history">
+                    {() => <History />}
+                  </Route>
+                  <Route path="/" component={MobileApp} />
+                  <Route component={MobileApp} />
+                </Switch>
+              </AppLockProvider>
             </TooltipProvider>
           </NotificationProvider>
         </CurrencyProvider>

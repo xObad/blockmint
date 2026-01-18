@@ -16,10 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { TwoFactorSetupModal } from "@/components/TwoFactorSetupModal";
+import { useAppLock } from "@/components/AppLock";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useBTCPrice } from "@/hooks/useBTCPrice";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import type { UserSettings } from "@/lib/types";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -113,6 +116,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const { toast } = useToast();
   const { currency, setCurrency } = useCurrency();
   const queryClient = useQueryClient();
+  const appLock = useAppLock();
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
@@ -128,6 +132,43 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Fetch security settings from API
+  const { data: securitySettings } = useQuery<{ pinEnabled: boolean; biometricEnabled: boolean; lockOnBackground: boolean }>({
+    queryKey: ["/api/security/settings"],
+    enabled: !!user,
+  });
+
+  // Mutations for security settings
+  const disablePinMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", "/api/security/disable-pin");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/security/settings"] });
+      toast({
+        title: "PIN Disabled",
+        description: "PIN code authentication has been turned off.",
+      });
+    },
+  });
+
+  const toggleBiometricMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await apiRequest("POST", "/api/security/biometric", { enabled });
+      return response.json();
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/security/settings"] });
+      const biometricType = getBiometricType();
+      const biometricName = biometricType === 'face' ? 'Face ID' : biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric';
+      toast({
+        title: enabled ? `${biometricName} Enabled` : `${biometricName} Disabled`,
+        description: enabled ? `Your app is now protected with ${biometricName}.` : `${biometricName} authentication has been turned off.`,
+      });
+    },
+  });
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || "Guest User";
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || "GU";
@@ -206,6 +247,32 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
     },
     enabled: !!user?.uid,
   });
+
+  // Fetch user balances for BTC mined
+  const { data: userBalances } = useQuery<{ balances: { symbol: string; balance: number }[] }>({
+    queryKey: ["/api/balances", user?.uid],
+    queryFn: async () => {
+      if (!user?.uid) return { balances: [] };
+      const res = await fetch(`/api/balances/${user.uid}`);
+      return res.json();
+    },
+    enabled: !!user?.uid,
+  });
+
+  // Get BTC price for conversion
+  const { btcPrice } = useBTCPrice();
+
+  // Calculate days active since account creation
+  const daysActive = user?.metadata?.creationTime 
+    ? Math.floor((Date.now() - new Date(user.metadata.creationTime).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // Calculate total earnings in BTC equivalent (BTC balance + USDT/USD converted to BTC)
+  const btcBalance = userBalances?.balances?.find(b => b.symbol === "BTC")?.balance || 0;
+  const usdtBalance = userBalances?.balances?.find(b => b.symbol === "USDT")?.balance || 0;
+  const usdcBalance = userBalances?.balances?.find(b => b.symbol === "USDC")?.balance || 0;
+  const totalUsdValue = usdtBalance + usdcBalance;
+  const btcEquivalent = btcPrice > 0 ? (btcBalance + (totalUsdValue / btcPrice)) : btcBalance;
 
   // Link/Unlink Google
   const handleLinkGoogle = async () => {
@@ -322,6 +389,16 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   };
 
   const handleBiometricToggle = async (enabled: boolean) => {
+    // Check if PIN is enabled first (biometric requires PIN as fallback)
+    if (enabled && !securitySettings?.pinEnabled) {
+      toast({
+        title: "PIN Required",
+        description: "Please enable PIN lock first before enabling biometric authentication.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (enabled) {
       if (!isMobileDevice()) {
         toast({
@@ -352,15 +429,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           return;
         }
 
-        const biometricType = getBiometricType();
-        const biometricName = biometricType === 'face' ? 'Face ID' : biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric';
-
-        onSettingsChange({ biometricEnabled: true });
-        localStorage.setItem("biometricEnabled", "true");
-        toast({
-          title: `${biometricName} Enabled`,
-          description: `Your app is now protected with ${biometricName}.`,
-        });
+        toggleBiometricMutation.mutate(true);
       } catch (error) {
         toast({
           title: "Setup Failed",
@@ -369,14 +438,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         });
       }
     } else {
-      onSettingsChange({ biometricEnabled: false });
-      localStorage.removeItem("biometricEnabled");
-      const biometricType = getBiometricType();
-      const biometricName = biometricType === 'face' ? 'Face ID' : biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric';
-      toast({
-        title: `${biometricName} Disabled`,
-        description: `${biometricName} authentication has been turned off.`,
-      });
+      toggleBiometricMutation.mutate(false);
     }
   };
 
@@ -408,14 +470,11 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
 
   const handlePinToggle = (enabled: boolean) => {
     if (enabled) {
-      setShowPinDialog(true);
+      // Use the new AppLock PIN setup
+      appLock.showPinSetup();
     } else {
-      onSettingsChange({ pinLockEnabled: false, pinCode: undefined });
-      localStorage.removeItem("pinCode");
-      toast({
-        title: "PIN Lock Disabled",
-        description: "PIN code authentication has been turned off.",
-      });
+      // Disable PIN via API
+      disablePinMutation.mutate();
     }
   };
 
@@ -483,16 +542,12 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
 
         <div className="relative z-10 flex gap-6 mt-6 pt-4 border-t border-white/[0.06] flex-wrap">
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground" data-testid="text-days-active">0</p>
+            <p className="text-xl font-bold text-foreground" data-testid="text-days-active">{daysActive}</p>
             <p className="text-xs text-muted-foreground">Days Active</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold text-foreground" data-testid="text-btc-mined">0.00</p>
-            <p className="text-xs text-muted-foreground">BTC Mined</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-foreground" data-testid="text-global-rank">--</p>
-            <p className="text-xs text-muted-foreground">Global Rank</p>
+            <p className="text-xl font-bold text-foreground" data-testid="text-btc-mined">{btcEquivalent.toFixed(6)}</p>
+            <p className="text-xs text-muted-foreground">BTC Equivalent</p>
           </div>
         </div>
       </GlassCard>
@@ -683,6 +738,19 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">SECURITY</h2>
         <GlassCard delay={0.25} className="p-4">
           <SettingItem
+            icon={Lock}
+            label="PIN Lock"
+            description="Use A 6-Digit PIN Code"
+            testId="setting-pin-lock"
+            action={
+              <Switch
+                data-testid="switch-pin-lock"
+                checked={securitySettings?.pinEnabled ?? false}
+                onCheckedChange={handlePinToggle}
+              />
+            }
+          />
+          <SettingItem
             icon={Fingerprint}
             label="Biometric Lock"
             description="Use Fingerprint Or Face ID"
@@ -690,21 +758,9 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             action={
               <Switch
                 data-testid="switch-biometric"
-                checked={settings.biometricEnabled}
+                checked={securitySettings?.biometricEnabled ?? false}
                 onCheckedChange={handleBiometricToggle}
-              />
-            }
-          />
-          <SettingItem
-            icon={Lock}
-            label="PIN Lock"
-            description="Use A 4-Digit PIN Code"
-            testId="setting-pin-lock"
-            action={
-              <Switch
-                data-testid="switch-pin-lock"
-                checked={settings.pinLockEnabled}
-                onCheckedChange={handlePinToggle}
+                disabled={!securitySettings?.pinEnabled}
               />
             }
           />
@@ -742,7 +798,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <SettingItem
             icon={Info}
             label="Version"
-            description="BlockMint v1.0.0"
+            description="v1.0.0"
             testId="setting-version"
           />
           <SettingItem
@@ -782,7 +838,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       )}
 
       <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
-        BlockMint v1.0.0
+        v1.0.0
       </p>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>

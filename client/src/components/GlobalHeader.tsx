@@ -32,7 +32,7 @@ export function GlobalHeader({
   return (
     <>
       <header
-        className="bg-transparent pt-[17.5px]"
+        className="bg-transparent pt-safe"
       >
         <div className="flex items-center gap-4 px-4 h-16">
           {/* Left Side - Hamburger Menu & Settings */}
@@ -53,17 +53,6 @@ export function GlobalHeader({
             >
               <SettingsIcon className="w-[17px] h-[17px] text-muted-foreground" />
             </motion.button>
-          </div>
-
-          {/* Centered Logo */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <img
-              src="/attached_assets/blockmint-logo.svg"
-              alt="BlockMint"
-              className="h-[47.5px] w-auto object-contain drop-shadow-lg"
-              style={{ background: 'transparent' }}
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
           </div>
 
           {/* Right Side Icons */}
@@ -156,7 +145,7 @@ export function GlobalHeader({
                     whileTap={{ scale: 0.98 }}
                   >
                     <PieChart className="w-5 h-5 text-purple-500" />
-                    <span className="text-sm font-medium text-foreground">Invest</span>
+                    <span className="text-sm font-medium text-foreground">Yield</span>
                   </motion.button>
                   
                   <motion.button

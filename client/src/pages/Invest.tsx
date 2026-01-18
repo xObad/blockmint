@@ -21,7 +21,8 @@ import {
   Calendar,
   CalendarRange,
   HelpCircle,
-  PiggyBank
+  PiggyBank,
+  AlertTriangle
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
@@ -31,6 +32,14 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Accordion,
   AccordionContent,
@@ -62,7 +71,7 @@ const periodDaysByDuration: Record<string, number> = {
 
 // Trust badges for marketing
 const trustBadges = [
-  { icon: Shield, label: "100% Secure", description: "Bank-grade security", color: "text-emerald-400" },
+  { icon: Shield, label: "Secure Platform", description: "Bank-grade security", color: "text-emerald-400" },
   { icon: Lock, label: "Insured Funds", description: "Protected deposits", color: "text-blue-400" },
   { icon: Zap, label: "Instant Access", description: "Withdraw anytime", color: "text-amber-400" },
   { icon: Award, label: "19% APR", description: "Industry leading", color: "text-purple-400" },
@@ -81,24 +90,24 @@ const defaultFaqItems = [
     answer: "Our competitive APR rates (up to 19%) are made possible through our optimized strategies and lower operational overhead. Unlike traditional platforms, we focus on generating consistent returns while maintaining strong security and transparency."
   },
   {
-    question: "Is my investment safe? Can I withdraw anytime?",
-    answer: "Absolutely! Your funds are 100% secure with bank-grade encryption and cold storage. Unlike traditional staking, we offer complete flexibility—you can withdraw your funds at any time with no penalties or lock-up periods. Your capital and earned interest are always accessible."
+    question: "Are my savings safe? Can I withdraw anytime?",
+    answer: "Your funds are protected with bank-grade encryption and cold storage solutions. Unlike traditional staking, we offer complete flexibility—you can withdraw your funds at any time with no penalties or lock-up periods. Your capital and earned interest are always accessible."
   },
   {
     question: "How are returns calculated and paid out?",
     answer: "Returns are calculated based on your selected plan duration. Daily plans earn 17.9% APR with payouts every 24 hours. Weekly plans earn 18.0% APR, monthly plans earn 18.25% APR, quarterly plans earn 18.70% APR, and yearly plans earn our maximum 19.25% APR. Interest is compounded and credited automatically to your wallet."
   },
   {
-    question: "What cryptocurrencies can I invest?",
-    answer: "We currently support Tether (USDT) for our investment platform. This provides a stable, predictable investment experience with no volatility risk, allowing you to focus on consistent returns with our competitive APR rates."
+    question: "What cryptocurrencies can I deposit?",
+    answer: "We currently support Tether (USDT) for our yield platform. This provides a stable, predictable earnings experience with no volatility risk, allowing you to focus on consistent returns with our competitive APR rates."
   },
   {
     question: "How does this differ from traditional staking?",
-    answer: "Traditional staking often requires long lock-up periods and variable returns dependent on network conditions. Our yield platform offers fixed guaranteed APR rates with no lock-up requirements. You get the benefits of passive income with complete control over your assets—the best of both worlds."
+    answer: "Traditional staking often requires long lock-up periods and variable returns dependent on network conditions. Our yield platform offers competitive fixed APR rates with no lock-up requirements. You get the benefits of flexible income with complete control over your assets—the best of both worlds."
   },
   {
-    question: "What is the minimum investment amount?",
-    answer: "The minimum investment for USDT is $100. There is no maximum limit—invest as much as you'd like to earn. All mining contracts are valid for 7 years from the purchase date."
+    question: "What is the minimum deposit amount?",
+    answer: "The minimum deposit for USDT is $100. There is no maximum limit—deposit as much as you'd like to earn. All mining contracts are valid for 7 years from the purchase date."
   },
 ];
 
@@ -123,7 +132,7 @@ function TrustMarketingSection() {
         <div className="relative z-10">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-lg font-bold text-emerald-400">100% Secure & Protected</span>
+            <span className="text-lg font-bold text-emerald-400">Secure & Protected</span>
           </div>
           <p className="text-sm text-muted-foreground text-center">
             Your assets are protected by industry-leading security protocols
@@ -269,13 +278,13 @@ function APRCalculator() {
       queryClient.invalidateQueries({ queryKey: ["/api/balances", dbUserId] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/earn-subscriptions", dbUserId] });
       toast({
-        title: "Investment Created!",
-        description: `Successfully invested ${getSymbol()}${convert(investmentAmount).toFixed(2)} in USDT`,
+        title: "Savings Created!",
+        description: `Successfully deposited ${getSymbol()}${convert(investmentAmount).toFixed(2)} in USDT`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Investment Failed",
+        title: "Deposit Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -286,7 +295,7 @@ function APRCalculator() {
     if (!currentUser) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to start investing.",
+        description: "Please sign in to start earning.",
         variant: "destructive",
       });
       return;
@@ -306,7 +315,7 @@ function APRCalculator() {
     if (!wallet || wallet.balance < investmentAmount) {
       toast({
         title: "Insufficient Balance",
-        description: `You need ${getSymbol()}${convert(investmentAmount).toFixed(2)} in your USDT wallet to invest.`,
+        description: `You need ${getSymbol()}${convert(investmentAmount).toFixed(2)} in your USDT wallet to start earning.`,
         variant: "destructive",
       });
       return;
@@ -370,7 +379,7 @@ function APRCalculator() {
                 <span className={`text-xl font-bold ${selectedCrypto.textColor}`}>{selectedCrypto.icon}</span>
               </div>
               <div>
-                <p className="font-semibold text-foreground">USDT Investment</p>
+                <p className="font-semibold text-foreground">USDT Savings</p>
                 <p className="text-xs text-muted-foreground">Available balance updates in real-time</p>
               </div>
             </div>
@@ -384,7 +393,7 @@ function APRCalculator() {
 
           {/* Duration Selection */}
           <div>
-            <Label className="text-sm text-muted-foreground mb-3 block">Investment Duration</Label>
+            <Label className="text-sm text-muted-foreground mb-3 block">Savings Duration</Label>
             <div className="grid grid-cols-5 gap-2">
               {Object.entries(aprRates).map(([key, value]) => {
                 const DurationIcon = value.icon;
@@ -430,14 +439,14 @@ function APRCalculator() {
             </div>
             {wallets && wallets.find((w: any) => w.symbol === selectedCrypto.symbol) && 
               wallets.find((w: any) => w.symbol === selectedCrypto.symbol).balance < 50 && (
-              <p className="text-xs text-amber-400 mt-2">⚠️ Minimum investment is {getSymbol()}50</p>
+              <p className="text-xs text-amber-400 mt-2">⚠️ Minimum deposit is {getSymbol()}50</p>
             )}
           </div>
 
-          {/* Investment Amount Slider */}
+          {/* Deposit Amount Slider */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <Label className="text-sm text-muted-foreground">Investment Amount</Label>
+              <Label className="text-sm text-muted-foreground">Deposit Amount</Label>
               <span className={`text-2xl font-bold ${selectedCrypto.textColor}`} data-testid="text-investment-amount">
                 {getSymbol()}{convert(investmentAmount).toLocaleString()}
               </span>
@@ -489,12 +498,12 @@ function APRCalculator() {
             </div>
           </div>
 
-          {/* Investment Protection Disclaimer */}
+          {/* Principal Protection Disclaimer */}
           <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
             <div className="flex items-start gap-2">
               <Shield className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-blue-400 leading-relaxed">
-                <strong>Investment Protection:</strong> Your initial investment is fully returned after the period ends. 
+                <strong>Principal Protection:</strong> Your initial deposit is fully returned after the period ends. 
                 Unlike cloud mining, this works like bank deposits or stock yields - you keep your principal and earn returns on top.
               </p>
             </div>
@@ -523,6 +532,14 @@ function APRCalculator() {
 }
 
 function CryptoYieldCard({ crypto, index }: { crypto: typeof cryptoAssets[0]; index: number }) {
+  // Local APR rates for display
+  const displayRates = [
+    { label: "Daily", rate: "19.25" },
+    { label: "Weekly", rate: "19.25" },
+    { label: "Monthly", rate: "19.25" },
+    { label: "Yearly", rate: "19.25" },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -555,10 +572,10 @@ function CryptoYieldCard({ crypto, index }: { crypto: typeof cryptoAssets[0]; in
           </div>
 
           <div className="grid grid-cols-4 gap-3 mb-4">
-            {Object.entries(aprRates).slice(0, 4).map(([key, value]) => (
-              <div key={key} className="text-center p-2">
-                <span className="text-[10px] text-muted-foreground block">{value.label}</span>
-                <span className={`text-sm font-bold ${crypto.textColor}`}>{value.rate}%</span>
+            {displayRates.map((item) => (
+              <div key={item.label} className="text-center p-2">
+                <span className="text-[10px] text-muted-foreground block">{item.label}</span>
+                <span className={`text-sm font-bold ${crypto.textColor}`}>{item.rate}%</span>
               </div>
             ))}
           </div>
@@ -588,6 +605,8 @@ function ActiveInvestments() {
   const currentUser = getCurrentUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
+  const [selectedWithdrawSub, setSelectedWithdrawSub] = useState<any>(null);
 
   const { data: estimateConfig } = useQuery<{ investAprAnnualPercent: number }>({
     queryKey: ["/api/config/estimates"],
@@ -700,7 +719,7 @@ function ActiveInvestments() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-semibold">
+                <Badge className="bg-emerald-500/15 border-emerald-500/30 font-semibold" style={{ color: 'rgb(12, 185, 105)' }}>
                   <TrendingUp className="w-3 h-3 mr-1" />
                   Active Investment
                 </Badge>
@@ -715,7 +734,7 @@ function ActiveInvestments() {
               animate={{ boxShadow: ["0 0 0px rgba(16,185,129,0.0)", "0 0 26px rgba(16,185,129,0.25)", "0 0 0px rgba(16,185,129,0.0)"] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             >
-              <Sparkles className="w-5 h-5 text-emerald-300" />
+              <Sparkles className="w-5 h-5" style={{ color: 'rgb(12, 185, 105)' }} />
             </motion.div>
           </div>
 
@@ -805,7 +824,10 @@ function ActiveInvestments() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => withdrawMutation.mutate(sub.id)}
+                  onClick={() => {
+                    setSelectedWithdrawSub(sub);
+                    setWithdrawConfirmOpen(true);
+                  }}
                   disabled={withdrawMutation.isPending}
                   className="text-xs"
                 >
@@ -816,6 +838,87 @@ function ActiveInvestments() {
           </motion.div>
         );
       })}
+
+      {/* Withdrawal Confirmation Dialog */}
+      <Dialog open={withdrawConfirmOpen} onOpenChange={setWithdrawConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              Confirm Early Withdrawal
+            </DialogTitle>
+            <DialogDescription>
+              Please review the withdrawal terms before proceeding
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedWithdrawSub && (
+            <div className="space-y-4 py-4">
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-amber-400">Important Notice</p>
+                    <p className="text-xs text-muted-foreground">
+                      Withdrawing before your savings period ends means you will{" "}
+                      <span className="text-amber-400 font-medium">not receive the full expected returns</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Original Investment:</span>
+                  <span className="font-medium">{getSymbol()}{convert(selectedWithdrawSub.amount).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Earned So Far:</span>
+                  <span className="font-medium text-emerald-400">+{getSymbol()}{convert(selectedWithdrawSub.totalEarned || 0).toFixed(2)}</span>
+                </div>
+                {(selectedWithdrawSub.totalEarned || 0) > 0 && (
+                  <div className="flex justify-between text-sm border-t border-border/30 pt-3">
+                    <span className="text-muted-foreground">Profit Deduction:</span>
+                    <span className="font-medium text-red-400">-{getSymbol()}{convert(selectedWithdrawSub.totalEarned || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm border-t border-border/30 pt-3">
+                  <span className="text-muted-foreground font-medium">You Will Receive:</span>
+                  <span className="font-bold text-foreground">
+                    {getSymbol()}{convert(selectedWithdrawSub.amount).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs text-blue-400">
+                  <strong>Note:</strong> Your original principal will be returned to your wallet. Any earned profits 
+                  will be deducted since the investment period has not completed.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setWithdrawConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedWithdrawSub) {
+                  withdrawMutation.mutate(selectedWithdrawSub.id);
+                  setWithdrawConfirmOpen(false);
+                  setSelectedWithdrawSub(null);
+                }
+              }}
+              disabled={withdrawMutation.isPending}
+            >
+              Confirm Withdrawal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
@@ -901,7 +1004,7 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
         </motion.div>
         
         <p className="text-muted-foreground mb-4">
-          Fixed returns • Withdraw anytime • Guaranteed profits
+          Fixed APR rates • Withdraw anytime • Transparent earnings
         </p>
         
         <div className="flex items-center justify-center gap-3">
@@ -944,7 +1047,7 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Fully Insured</p>
-              <p className="text-xs text-muted-foreground">Assets protected 100%</p>
+              <p className="text-xs text-muted-foreground">Assets fully protected</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -971,7 +1074,7 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Fixed APR</p>
-              <p className="text-xs text-muted-foreground">Guaranteed returns</p>
+              <p className="text-xs text-muted-foreground">Predictable returns</p>
             </div>
           </div>
         </div>
@@ -984,7 +1087,7 @@ export function Invest({ onNavigateToHome, onNavigateToWallet, onNavigateToInves
       <GlassCard className="p-6 text-center" variant="strong">
         <h3 className="text-lg font-bold text-foreground mb-2">Ready to Start Earning?</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Join thousands of users earning passive income with our industry-leading APR rates.
+          Join thousands of users growing their assets with our industry-leading APR rates.
         </p>
         <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
           <Wallet className="w-5 h-5 mr-2" />

@@ -86,9 +86,9 @@ export default {
       },
       fontFamily: {
         sans: ['Sansation', 'system-ui', 'sans-serif'],
-        heading: ['Enriqueta', 'serif'],
-        display: ['Enriqueta', 'serif'],
-        serif: ["var(--font-serif)"],
+        heading: ['Space Grotesk', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+        serif: ['Space Grotesk', 'sans-serif'],
         mono: ["var(--font-mono)"],
       },
       keyframes: {

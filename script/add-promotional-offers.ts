@@ -48,7 +48,7 @@ async function addPromotionalOffers() {
       {
         title: "Start Mining Bitcoin Today!",
         subtitle: "Get up to 50% more hashpower",
-        description: "Join thousands of miners earning passive income with our state-of-the-art mining infrastructure",
+        description: "Join thousands of miners using our state-of-the-art mining infrastructure",
         imageUrl: "/attached_assets/Bitcoin_Mine_1766014388617.png",
         backgroundType: 1, // Electric Blue
         ctaText: "Start Mining",
@@ -59,7 +59,7 @@ async function addPromotionalOffers() {
       {
         title: "Premium Mining Plans",
         subtitle: "Upgrade your mining power",
-        description: "Exclusive high-performance miners with guaranteed ROI in 90 days",
+        description: "Exclusive high-performance miners with competitive returns and 5-year contracts",
         imageUrl: "/attached_assets/Gpu_Mining_1766014388614.webp",
         backgroundType: 2, // Sunset Orange
         ctaText: "View Plans",
@@ -91,8 +91,8 @@ async function addPromotionalOffers() {
       },
       {
         title: "Top Miners Leaderboard",
-        subtitle: "Compete and win rewards",
-        description: "Top 10 miners win exclusive prizes and bonuses monthly",
+        subtitle: "Track your rankings",
+        description: "Top 10 miners receive exclusive recognition and bonus hashpower monthly",
         imageUrl: "/attached_assets/Mixed_main_1766014388605.png",
         backgroundType: 5, // Royal Purple
         ctaText: "View Rankings",

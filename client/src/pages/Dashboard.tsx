@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { auth } from "@/lib/firebase";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 import gpuMining from "@assets/Gpu_Mining_1766014388614.webp";
@@ -189,21 +190,27 @@ function RecentActivity({ userId }: { userId: string | null }) {
             className="flex items-center justify-between gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0"
           >
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.type === 'deposit' ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
-                {item.type === 'deposit' ? (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                item.type === 'deposit' || item.type === 'earned' ? 'bg-emerald-500/20' : 'bg-amber-500/20'
+              }`}>
+                {item.type === 'deposit' || item.type === 'earned' ? (
                   <ArrowDownToLine className="w-5 h-5 text-emerald-400" />
                 ) : (
                   <ArrowUpFromLine className="w-5 h-5 text-amber-400" />
                 )}
               </div>
               <div>
-                <p className="font-medium text-sm text-foreground capitalize">{item.type}</p>
+                <p className="font-medium text-sm text-foreground capitalize">
+                  {item.type === 'earned' ? (item.description || 'Daily Yield') : item.type}
+                </p>
                 <p className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className={`font-medium text-sm ${item.type === 'deposit' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {item.type === 'deposit' ? '+' : '-'}{item.amount} {item.currency}
+              <p className={`font-medium text-sm ${
+                item.type === 'deposit' || item.type === 'earned' ? 'text-emerald-400' : 'text-amber-400'
+              }`}>
+                {item.type === 'deposit' || item.type === 'earned' ? '+' : '-'}{parseFloat(item.amount).toFixed(2)} {item.currency}
               </p>
               <p className={`text-xs px-2 py-0.5 rounded-full inline-block ${
                 item.status === 'confirmed' || item.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
@@ -247,18 +254,18 @@ export function Dashboard({
   const { toast } = useToast();
   const { prices: cryptoPrices } = useCryptoPrices();
   
-  // Ensure required currencies are shown even with 0 balance
+  // Ensure required currencies are shown even with 0 balance - ORDER: USDT, BTC, LTC, ETH
   const allCurrencies = [
     { symbol: "USDT", name: "Tether" },
     { symbol: "BTC", name: "Bitcoin" },
-    { symbol: "ETH", name: "Ethereum" },
     { symbol: "LTC", name: "Litecoin" },
+    { symbol: "ETH", name: "Ethereum" },
   ];
 
-  // Merge actual balances with all currencies (show 0 if not found)
+  // Merge actual balances with all currencies (show 0 if not found) - maintains order
   const balancesWithZeros = allCurrencies.map((curr) => {
-    const existing = balances.find(b => b.symbol === curr.symbol);
-    if (existing) return existing;
+    const existing = balances.find(b => b.symbol.toUpperCase() === curr.symbol.toUpperCase());
+    if (existing) return { ...existing, symbol: curr.symbol }; // Normalize symbol to uppercase
     
     return {
       id: `zero-${curr.symbol}`,
@@ -294,9 +301,9 @@ export function Dashboard({
   const trendingCoins = allCurrencies
     .filter((c) => ["BTC", "ETH", "USDT", "LTC"].includes(c.symbol))
     .map((curr) => {
-      const existing = balances.find((b) => b.symbol === curr.symbol);
+      const existing = balances.find((b) => b.symbol.toUpperCase() === curr.symbol.toUpperCase());
       return (
-        existing || {
+        existing ? { ...existing, symbol: curr.symbol } : {
           id: `trending-${curr.symbol}`,
           symbol: curr.symbol,
           name: curr.name,
@@ -610,7 +617,7 @@ export function Dashboard({
 
   const miningPower = formatHashrate(totalHashrateTH);
   const activeContractsCount = activeMiningPurchases.length;
-  const selectedBalance = balances.find((b) => b.symbol === selectedCrypto)?.balance ?? 0;
+  const selectedBalance = balances.find((b) => b.symbol.toUpperCase() === selectedCrypto.toUpperCase())?.balance ?? 0;
 
   const handleSelectCrypto = (value: string) => {
     const crypto = value as CryptoType;
@@ -724,12 +731,12 @@ export function Dashboard({
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-sm text-muted-foreground">Portfolio Value</span>
           </div>
 
-          <div className="mb-1">
+          <div className="mb-6">
             <div className="flex items-center gap-2">
               <span className="text-lg text-muted-foreground">{getSymbol()}</span>
               <LiveGrowingBalance
@@ -760,18 +767,18 @@ export function Dashboard({
           {activeMiningPurchases.length > 0 && miningPerSecondUSD > 0 && (
             <div className="mb-8 flex items-center justify-between gap-3 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
               <div>
-                <p className="text-xs text-emerald-300 font-medium">Estimated Earnings Today</p>
-                <p className="text-sm text-emerald-200">
+                <p className="text-xs font-medium mb-2" style={{ color: 'rgb(12, 185, 105)' }}>Estimated Earnings Today</p>
+                <span className="text-sm" style={{ color: 'rgb(12, 185, 105)' }}>
                   {getSymbol()}
                   <LiveGrowingBalance
                     value={convert(miningEstimatedTodayUSD)}
                     perSecond={convert(miningPerSecondUSD)}
                     active={true}
                     decimals={2}
-                    className="text-sm text-emerald-200"
+                    className="text-sm"
                     showBadge={false}
                   />
-                </p>
+                </span>
               </div>
             </div>
           )}
@@ -878,10 +885,10 @@ export function Dashboard({
                         <>
                           <div className="relative group">
                             <img
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`}
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(depositAddress)}&margin=8`}
                               alt="Deposit QR Code"
-                              className="w-32 h-32 md:w-40 md:h-40 rounded-lg border-2 border-white/20 bg-white p-1 md:p-2 cursor-pointer hover:scale-105 transition-transform"
-                              onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
+                              className="w-24 h-24 md:w-28 md:h-28 rounded-lg border-2 border-white/20 bg-white p-1 cursor-pointer hover:scale-105 transition-transform"
+                              onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(depositAddress)}&margin=10`, '_blank')}
                             />
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                               <div className="bg-black/60 text-white text-[10px] md:text-xs px-2 py-1 rounded-full">
@@ -889,8 +896,8 @@ export function Dashboard({
                               </div>
                             </div>
                           </div>
-                          <p className="text-[10px] md:text-xs text-center text-muted-foreground max-w-[280px]">
-                            Scan QR code to deposit. Click to view larger. Ensure network matches exactly to avoid loss of funds.
+                          <p className="text-[10px] md:text-xs text-center text-muted-foreground max-w-[260px]">
+                            Scan QR to deposit. Click to enlarge. Verify network to avoid loss.
                           </p>
                         </>
                       )}
@@ -1028,7 +1035,7 @@ export function Dashboard({
                         </SelectTrigger>
                         <SelectContent className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl">
                           {(cryptoNetworks[selectedCrypto] ?? []).map((n) => (
-                            <SelectItem key={n} value={n.id}>{n.name}</SelectItem>
+                            <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -1178,7 +1185,7 @@ export function Dashboard({
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <img src="https://cdn3d.iconscout.com/3d/premium/thumb/user-referral-3d-icon-png-download-9801460.png" alt="Referral" className="w-16 h-16" />
               <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
-                Invite A Friend, Both Receive <span className="text-blue-400 font-bold">$5 In BTC</span>
+                Invite a Friend, Both Receive <span className="text-blue-400 font-bold">$5 in USDT</span>
               </p>
             </div>
           </motion.div>
@@ -1216,7 +1223,7 @@ export function Dashboard({
               <>
                 <img src="https://cdn3d.iconscout.com/3d/premium/thumb/5-star-3d-icon-png-download-10200199.png" alt="5 Stars" className="w-16 h-16" />
                 <p className="text-sm font-semibold text-foreground text-center px-3 leading-snug">
-                  Rate Our App, Get <span className="text-amber-400 font-bold">$20 In Hashpower</span>
+                  Share Your Feedback <span className="text-amber-400 font-bold">& Unlock Rewards</span>
                 </p>
               </>
             )}
@@ -1524,7 +1531,7 @@ export function Dashboard({
             className="p-4 hover-elevate cursor-pointer" 
             glow="btc"
             onClick={onNavigateToSolo}
-            data-testid="card-solo-mining-jackpot"
+            data-testid="card-solo-mining"
           >
             <div className="flex items-center gap-4">
               <motion.img 
@@ -1535,8 +1542,8 @@ export function Dashboard({
                 transition={{ type: "spring", stiffness: 300 }}
               />
               <div className="flex-1">
-                <p className="font-semibold text-foreground font-display">Solo Mining Jackpot</p>
-                <p className="text-sm text-muted-foreground">Win Full 3 BTC Block Rewards</p>
+                <p className="font-semibold text-foreground font-display">Solo Block Hunt</p>
+                <p className="text-sm text-muted-foreground">Full 3.125 BTC Block Rewards</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
                 <span className="text-amber-400 font-bold text-sm">3</span>
@@ -1546,6 +1553,9 @@ export function Dashboard({
         </div>
       </motion.div>
       </motion.div>
+
+      {/* Feedback Prompt - shows for eligible users */}
+      <FeedbackPrompt />
     </>
   );
 }

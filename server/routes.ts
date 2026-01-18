@@ -131,18 +131,6 @@ export async function registerRoutes(
             const token = authHeader.split(" ")[1];
             const payload = await authService.verifyToken(token);
             if (payload) {
-               // Resolve to internal DB ID
-               // Note: walletService methods expect Internal DB ID usually.
-               // But my walletService logic uses `userId` which in `authService.getOrCreateUser` maps 
-               // firebaseUid to usres table.
-               // For simplicity, I'll try to resolve firebase UID -> User ID.
-               
-               // But wait, the walletService uses `userId` column in `wallets` table.
-               // Is that column a UUID or the Firebase UID?
-               // schema: userId: varchar("user_id").notNull().references(() => users.id),
-               // users.id is UUID. users.firebaseUid is text.
-               
-               // I need to look up the user ID from the firebase UID.
                const user = await db.query.users.findFirst({
                  where: eq(users.firebaseUid, payload.uid)
                });
@@ -176,51 +164,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get wallet balances:", error);
       res.status(500).json({ error: "Failed to get wallet balances" });
-    }
-  });
-
-  app.post("/api/wallet/exchange", async (req, res) => {
-    try {
-      let userId = res.locals.user?.id;
-      
-      if (!userId) {
-         const authHeader = req.headers.authorization;
-         if (authHeader?.startsWith("Bearer ")) {
-            const token = authHeader.split(" ")[1];
-            const payload = await authService.verifyToken(token);
-            if (payload) {
-               const user = await db.query.users.findFirst({
-                 where: eq(users.firebaseUid, payload.uid)
-               });
-               userId = user?.id;
-            }
-         }
-      }
-      
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-      const { fromSymbol, toSymbol, amount, toAmount } = req.body;
-
-      if (!fromSymbol || !toSymbol || !amount || !toAmount) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      const result = await walletService.exchange(
-        userId,
-        fromSymbol,
-        toSymbol,
-        Number(amount),
-        Number(toAmount)
-      );
-
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Exchange error:", error);
-      res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -575,7 +518,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get user's recent activity (deposits and withdrawals combined)
+  // Get user's recent activity (deposits, withdrawals, earnings, and daily rewards)
   app.get("/api/wallet/activity/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
@@ -594,12 +537,47 @@ export async function registerRoutes(
         .orderBy(desc(withdrawalRequests.requestedAt))
         .limit(10);
 
+      // Get recent earnings from ledger (mining rewards, yield returns)
+      const earnings = await db.select()
+        .from(ledgerEntries)
+        .where(eq(ledgerEntries.userId, userId))
+        .orderBy(desc(ledgerEntries.createdAt))
+        .limit(20);
+
+      // Get active mining purchases to generate virtual daily rewards
+      const activePurchases = await db.select()
+        .from(miningPurchases)
+        .where(and(
+          eq(miningPurchases.userId, userId),
+          eq(miningPurchases.status, "active")
+        ));
+
+      // Generate virtual daily reward entries for each active purchase
+      // These show what users are earning daily even if ledger entries haven't been created yet
+      const virtualDailyRewards = activePurchases.map((purchase, index) => {
+        const returnPercent = purchase.returnPercent || 0;
+        const paybackDays = (purchase.paybackMonths || 60) * 30; // Convert months to days, 5 years default
+        const dailyReturnUSD = (purchase.amount * returnPercent / 100) / paybackDays;
+        
+        return {
+          id: `daily-reward-${purchase.id}-${index}`,
+          type: 'earned' as const,
+          amount: parseFloat(dailyReturnUSD.toFixed(2)),
+          symbol: 'USDT',
+          currency: 'USDT',
+          status: 'completed',
+          createdAt: new Date(), // Today
+          description: `Daily Yield - ${purchase.packageName || 'Mining'}`,
+        };
+      });
+
       // Combine and format
       const activity = [
         ...deposits.map(d => ({
           id: d.id,
           type: 'deposit' as const,
           amount: d.amount,
+          symbol: d.currency,
           currency: d.currency,
           status: d.status,
           createdAt: d.createdAt,
@@ -609,13 +587,29 @@ export async function registerRoutes(
           id: w.id,
           type: 'withdrawal' as const,
           amount: w.amount,
+          symbol: w.symbol,
           currency: w.symbol,
           status: w.status,
           createdAt: w.requestedAt,
           network: w.network,
-        }))
-      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10);
+        })),
+        // Include positive ledger entries as "earned" type (mining rewards, yield)
+        ...earnings
+          .filter(e => e.amount > 0 && e.type !== 'purchase') // Only positive amounts (earnings), not purchases
+          .map(e => ({
+            id: e.id,
+            type: 'earned' as const,
+            amount: e.amount,
+            symbol: e.symbol,
+            currency: e.symbol,
+            status: 'completed',
+            createdAt: e.createdAt || new Date(),
+            description: e.note || 'Daily Reward',
+          })),
+        // Add virtual daily rewards from active mining purchases
+        ...virtualDailyRewards
+      ].sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime())
+        .slice(0, 15);
 
       res.json(activity);
     } catch (error) {
@@ -2410,7 +2404,7 @@ export async function registerRoutes(
         type: "balance",
         category: "user",
         title: type === "add" ? "💰 Balance Added!" : "⚠️ Balance Adjusted",
-        message: `${type === "add" ? "✅ Admin added" : "⚠️ Admin deducted"} ${amount} ${symbol} ${type === "add" ? "to" : "from"} your account${reason ? ": " + reason : ". Thank you!"}.`,
+        message: `${type === "add" ? "✅ BlockMint added" : "⚠️ BlockMint deducted"} ${amount} ${symbol} ${type === "add" ? "to" : "from"} your account${reason ? ": " + reason : ". Thank you!"}.`,
         priority: "normal",
         data: { symbol, amount, type, reason },
       });
@@ -2919,6 +2913,592 @@ export async function registerRoutes(
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  // ============ REFERRAL SYSTEM ============
+
+  // Generate or get user's referral code
+  app.get("/api/referral/code/:userId", async (req, res) => {
+    try {
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (user?.referralCode) {
+        return res.json({ code: user.referralCode });
+      }
+      
+      // Generate new code
+      const code = `REF-${userId.slice(0, 4).toUpperCase()}${Date.now().toString(36).toUpperCase()}`;
+      
+      await db.update(users)
+        .set({ referralCode: code })
+        .where(eq(users.id, userId));
+      
+      res.json({ code });
+    } catch (error) {
+      console.error("Failed to get referral code:", error);
+      res.status(500).json({ error: "Failed to get referral code" });
+    }
+  });
+
+  // Get referral stats for user
+  app.get("/api/referral/stats/:userId", async (req, res) => {
+    try {
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { referrals, referralPayouts } = await import("@shared/schema");
+      
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      const allReferrals = await db.select()
+        .from(referrals)
+        .where(eq(referrals.referrerId, userId));
+      
+      const pendingPayouts = await db.select()
+        .from(referralPayouts)
+        .where(and(
+          eq(referralPayouts.referrerId, userId),
+          eq(referralPayouts.status, "pending")
+        ));
+      
+      const completedPayouts = await db.select()
+        .from(referralPayouts)
+        .where(and(
+          eq(referralPayouts.referrerId, userId),
+          eq(referralPayouts.status, "completed")
+        ));
+      
+      res.json({
+        referralCode: user?.referralCode,
+        walletType: user?.referralWalletType,
+        walletAddress: user?.referralWalletAddress,
+        totalReferrals: allReferrals.length,
+        pendingReferrals: allReferrals.filter(r => r.status === "pending").length,
+        qualifiedReferrals: allReferrals.filter(r => r.status === "qualified" || r.status === "rewarded").length,
+        pendingEarnings: pendingPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
+        totalEarnings: completedPayouts.reduce((sum, p) => sum + (p.amount || 0), 0),
+        referrals: allReferrals,
+      });
+    } catch (error) {
+      console.error("Failed to get referral stats:", error);
+      res.status(500).json({ error: "Failed to get referral stats" });
+    }
+  });
+
+  // Save user's payout wallet
+  app.post("/api/referral/wallet", async (req, res) => {
+    try {
+      const { userId: rawUserId, walletType, walletAddress } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      // Validate wallet format
+      if (walletType === "trc20" && !walletAddress.startsWith("T")) {
+        return res.status(400).json({ error: "Invalid TRC20 address. Must start with T" });
+      }
+      
+      if (walletType === "binance_pay" && !/^\d{8,9}$/.test(walletAddress)) {
+        return res.status(400).json({ error: "Invalid Binance Pay ID. Must be 8-9 digits" });
+      }
+      
+      await db.update(users)
+        .set({ 
+          referralWalletType: walletType,
+          referralWalletAddress: walletAddress 
+        })
+        .where(eq(users.id, userId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to save wallet:", error);
+      res.status(500).json({ error: "Failed to save wallet" });
+    }
+  });
+
+  // Apply referral code during signup
+  app.post("/api/referral/apply", async (req, res) => {
+    try {
+      const { userId: rawUserId, userEmail, referralCode } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { referrals } = await import("@shared/schema");
+      
+      // Find referrer by code
+      const [referrer] = await db.select()
+        .from(users)
+        .where(eq(users.referralCode, referralCode));
+      
+      if (!referrer) {
+        return res.status(404).json({ error: "Invalid referral code" });
+      }
+      
+      if (referrer.id === userId) {
+        return res.status(400).json({ error: "Cannot use your own referral code" });
+      }
+      
+      // Create referral record
+      await db.insert(referrals).values({
+        referrerId: referrer.id,
+        referredUserId: userId,
+        referredEmail: userEmail,
+        referralCode: referralCode,
+        status: "pending",
+      });
+      
+      // Mark user as referred
+      await db.update(users)
+        .set({ referredBy: referrer.id })
+        .where(eq(users.id, userId));
+      
+      res.json({ success: true, referrerName: referrer.displayName || "Friend" });
+    } catch (error) {
+      console.error("Failed to apply referral:", error);
+      res.status(500).json({ error: "Failed to apply referral code" });
+    }
+  });
+
+  // Check and qualify referral when user makes purchase >= $100
+  app.post("/api/referral/check-qualification", async (req, res) => {
+    try {
+      const { userId: rawUserId, purchaseAmount } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { referrals, referralPayouts } = await import("@shared/schema");
+      
+      if (purchaseAmount < 100) {
+        return res.json({ qualified: false });
+      }
+      
+      // Find if this user was referred
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!user?.referredBy) {
+        return res.json({ qualified: false, reason: "User not referred" });
+      }
+      
+      // Find the referral record
+      const [referral] = await db.select()
+        .from(referrals)
+        .where(and(
+          eq(referrals.referredUserId, userId),
+          eq(referrals.status, "pending")
+        ));
+      
+      if (!referral) {
+        return res.json({ qualified: false, reason: "No pending referral" });
+      }
+      
+      // Get referrer's wallet info
+      const [referrer] = await db.select().from(users).where(eq(users.id, referral.referrerId));
+      
+      // Update referral to qualified
+      await db.update(referrals)
+        .set({ 
+          status: "qualified",
+          qualifiedAt: new Date()
+        })
+        .where(eq(referrals.id, referral.id));
+      
+      // If referrer has wallet set up, create payout request
+      if (referrer?.referralWalletType && referrer?.referralWalletAddress) {
+        await db.insert(referralPayouts).values({
+          referralId: referral.id,
+          referrerId: referral.referrerId,
+          amount: 5,
+          walletType: referrer.referralWalletType,
+          walletAddress: referrer.referralWalletAddress,
+          status: "pending",
+        });
+      }
+      
+      // Notify referrer
+      await db.insert(notifications).values({
+        userId: referral.referrerId,
+        title: "Referral Reward Earned!",
+        message: `Your friend made a qualifying purchase! You've earned $5. ${referrer?.referralWalletAddress ? "Your reward will be sent soon." : "Add your wallet address to claim."}`,
+        type: "reward",
+      });
+      
+      res.json({ qualified: true });
+    } catch (error) {
+      console.error("Failed to check qualification:", error);
+      res.status(500).json({ error: "Failed to check qualification" });
+    }
+  });
+
+  // Admin: Get all pending referral payouts
+  app.get("/api/admin/referral-payouts", async (req, res) => {
+    try {
+      const { referralPayouts, referrals } = await import("@shared/schema");
+      
+      const payouts = await db.select({
+        payout: referralPayouts,
+        referral: referrals,
+      })
+      .from(referralPayouts)
+      .leftJoin(referrals, eq(referralPayouts.referralId, referrals.id))
+      .where(eq(referralPayouts.status, "pending"));
+      
+      // Enrich with user info
+      const enrichedPayouts = await Promise.all(payouts.map(async (p) => {
+        const [referrer] = await db.select().from(users).where(eq(users.id, p.payout.referrerId));
+        return {
+          ...p.payout,
+          referrerEmail: referrer?.email,
+          referrerName: referrer?.displayName,
+          referredEmail: p.referral?.referredEmail,
+          qualifiedAt: p.referral?.qualifiedAt,
+        };
+      }));
+      
+      res.json(enrichedPayouts);
+    } catch (error) {
+      console.error("Failed to get payouts:", error);
+      res.status(500).json({ error: "Failed to get payouts" });
+    }
+  });
+
+  // Admin: Mark payout as completed
+  app.post("/api/admin/referral-payouts/:id/complete", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+      const { referralPayouts, referrals } = await import("@shared/schema");
+      
+      const [payout] = await db.select().from(referralPayouts).where(eq(referralPayouts.id, id));
+      
+      await db.update(referralPayouts)
+        .set({ 
+          status: "completed",
+          adminNotes,
+          processedAt: new Date()
+        })
+        .where(eq(referralPayouts.id, id));
+      
+      // Update referral status
+      if (payout?.referralId) {
+        await db.update(referrals)
+          .set({ status: "rewarded" })
+          .where(eq(referrals.id, payout.referralId));
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to complete payout:", error);
+      res.status(500).json({ error: "Failed to complete payout" });
+    }
+  });
+
+  // ============ FEEDBACK REWARD SYSTEM ============
+
+  // Check if user is eligible for feedback reward
+  app.get("/api/feedback/eligibility/:userId", async (req, res) => {
+    try {
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { feedbackRewards } = await import("@shared/schema");
+      
+      // Check if already claimed
+      const [existing] = await db.select()
+        .from(feedbackRewards)
+        .where(eq(feedbackRewards.userId, userId));
+      
+      if (existing) {
+        return res.json({ 
+          eligible: false, 
+          reason: existing.status === "claimed" ? "Already claimed" : "Pending",
+          reward: existing
+        });
+      }
+      
+      // Check if user has been active for 7+ days
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!user?.createdAt) {
+        return res.json({ eligible: false, reason: "User not found" });
+      }
+      
+      const daysSinceSignup = Math.floor(
+        (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      if (daysSinceSignup < 7) {
+        return res.json({ 
+          eligible: false, 
+          reason: "Need 7 days active",
+          daysRemaining: 7 - daysSinceSignup
+        });
+      }
+      
+      res.json({ eligible: true });
+    } catch (error) {
+      console.error("Failed to check eligibility:", error);
+      res.status(500).json({ error: "Failed to check eligibility" });
+    }
+  });
+
+  // Claim feedback reward
+  app.post("/api/feedback/claim", async (req, res) => {
+    try {
+      const { userId: rawUserId, platform } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { feedbackRewards } = await import("@shared/schema");
+      
+      // Check not already claimed
+      const [existing] = await db.select()
+        .from(feedbackRewards)
+        .where(eq(feedbackRewards.userId, userId));
+      
+      if (existing) {
+        return res.status(400).json({ error: "Already claimed" });
+      }
+      
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // 1 year
+      
+      // Create feedback reward record
+      await db.insert(feedbackRewards).values({
+        userId,
+        platform,
+        claimedAt: new Date(),
+        rewardAmount: 20,
+        hashrateTHs: 0.8,
+        expiryDate,
+        status: "claimed",
+      });
+      
+      // Create mining purchase for the hashrate reward (non-withdrawable)
+      await db.insert(miningPurchases).values({
+        userId,
+        packageName: "Feedback Reward",
+        crypto: "BTC",
+        amount: 20, // $20 value
+        hashrate: 0.8,
+        hashrateUnit: "TH/s",
+        dailyReturnBTC: 0.00000123,
+        returnPercent: 150,
+        paybackMonths: 12,
+        expiryDate,
+        status: "active",
+      });
+      
+      // Send notification
+      await db.insert(notifications).values({
+        userId,
+        title: "Thank You For Your Feedback!",
+        message: "You've earned $20 in mining credits and 0.8 TH/s hashrate for 1 year!",
+        type: "reward",
+      });
+      
+      res.json({ 
+        success: true,
+        reward: {
+          amount: 20,
+          hashrate: 0.8,
+          expiryDate,
+        }
+      });
+    } catch (error) {
+      console.error("Failed to claim reward:", error);
+      res.status(500).json({ error: "Failed to claim reward" });
+    }
+  });
+
+  // ============ USER SECURITY (PIN/BIOMETRICS) ============
+
+  // Get user security settings
+  app.get("/api/security/settings/:userId", async (req, res) => {
+    try {
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { userSecurity } = await import("@shared/schema");
+      
+      const [settings] = await db.select()
+        .from(userSecurity)
+        .where(eq(userSecurity.userId, userId));
+      
+      if (!settings) {
+        return res.json({
+          pinLockEnabled: false,
+          biometricEnabled: false,
+          hasPinSet: false,
+        });
+      }
+      
+      res.json({
+        pinLockEnabled: settings.pinLockEnabled,
+        biometricEnabled: settings.biometricEnabled,
+        hasPinSet: !!settings.pinHash,
+        lockedUntil: settings.lockedUntil,
+      });
+    } catch (error) {
+      console.error("Failed to get security settings:", error);
+      res.status(500).json({ error: "Failed to get security settings" });
+    }
+  });
+
+  // Set/Update PIN
+  app.post("/api/security/pin", async (req, res) => {
+    try {
+      const { userId: rawUserId, pin } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+        return res.status(400).json({ error: "PIN must be 6 digits" });
+      }
+      
+      const { userSecurity } = await import("@shared/schema");
+      
+      // Simple hash (in production, use bcrypt)
+      const crypto = await import("crypto");
+      const pinHash = crypto.createHash("sha256").update(pin).digest("hex");
+      
+      // Upsert security record
+      const [existing] = await db.select()
+        .from(userSecurity)
+        .where(eq(userSecurity.userId, userId));
+      
+      if (existing) {
+        await db.update(userSecurity)
+          .set({ pinHash, pinLockEnabled: true, updatedAt: new Date() })
+          .where(eq(userSecurity.userId, userId));
+      } else {
+        await db.insert(userSecurity).values({
+          userId,
+          pinHash,
+          pinLockEnabled: true,
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to set PIN:", error);
+      res.status(500).json({ error: "Failed to set PIN" });
+    }
+  });
+
+  // Verify PIN
+  app.post("/api/security/verify-pin", async (req, res) => {
+    try {
+      const { userId: rawUserId, pin } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { userSecurity } = await import("@shared/schema");
+      
+      const [settings] = await db.select()
+        .from(userSecurity)
+        .where(eq(userSecurity.userId, userId));
+      
+      if (!settings?.pinHash) {
+        return res.status(400).json({ error: "No PIN set" });
+      }
+      
+      // Check if locked
+      if (settings.lockedUntil && new Date(settings.lockedUntil) > new Date()) {
+        return res.status(423).json({ 
+          error: "Account locked", 
+          lockedUntil: settings.lockedUntil 
+        });
+      }
+      
+      const crypto = await import("crypto");
+      const pinHash = crypto.createHash("sha256").update(pin).digest("hex");
+      
+      if (pinHash !== settings.pinHash) {
+        const newAttempts = (settings.failedAttempts || 0) + 1;
+        let lockedUntil = null;
+        
+        if (newAttempts >= 5) {
+          lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 min lock
+        }
+        
+        await db.update(userSecurity)
+          .set({ failedAttempts: newAttempts, lockedUntil })
+          .where(eq(userSecurity.userId, userId));
+        
+        return res.status(401).json({ 
+          error: "Incorrect PIN",
+          attemptsRemaining: Math.max(0, 5 - newAttempts)
+        });
+      }
+      
+      // Reset failed attempts on success
+      await db.update(userSecurity)
+        .set({ failedAttempts: 0, lockedUntil: null })
+        .where(eq(userSecurity.userId, userId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to verify PIN:", error);
+      res.status(500).json({ error: "Failed to verify PIN" });
+    }
+  });
+
+  // Toggle biometric
+  app.post("/api/security/biometric", async (req, res) => {
+    try {
+      const { userId: rawUserId, enabled, credentialId } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { userSecurity } = await import("@shared/schema");
+      
+      const [existing] = await db.select()
+        .from(userSecurity)
+        .where(eq(userSecurity.userId, userId));
+      
+      if (existing) {
+        await db.update(userSecurity)
+          .set({ 
+            biometricEnabled: enabled,
+            biometricCredentialId: credentialId || null,
+            updatedAt: new Date()
+          })
+          .where(eq(userSecurity.userId, userId));
+      } else {
+        await db.insert(userSecurity).values({
+          userId,
+          biometricEnabled: enabled,
+          biometricCredentialId: credentialId,
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to toggle biometric:", error);
+      res.status(500).json({ error: "Failed to toggle biometric" });
+    }
+  });
+
+  // Disable PIN lock
+  app.post("/api/security/disable-pin", async (req, res) => {
+    try {
+      const { userId: rawUserId } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+      
+      const { userSecurity } = await import("@shared/schema");
+      
+      await db.update(userSecurity)
+        .set({ pinLockEnabled: false, updatedAt: new Date() })
+        .where(eq(userSecurity.userId, userId));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to disable PIN:", error);
+      res.status(500).json({ error: "Failed to disable PIN" });
     }
   });
 

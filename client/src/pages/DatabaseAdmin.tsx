@@ -145,7 +145,7 @@ const ARTICLE_CATEGORIES = [
   "News",
 ];
 
-type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates";
+type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates";
 
 interface DepositRequest {
   id: string;
@@ -270,6 +270,14 @@ export function DatabaseAdmin() {
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [deleteArticleId, setDeleteArticleId] = useState<string | null>(null);
   
+  // User-specific estimates states
+  const [userEstimatesSearch, setUserEstimatesSearch] = useState("");
+  const [selectedUserEstimate, setSelectedUserEstimate] = useState<string | null>(null);
+  const [userEstimateDialogOpen, setUserEstimateDialogOpen] = useState(false);
+  const [userMiningMultiplier, setUserMiningMultiplier] = useState("1");
+  const [userInvestApr, setUserInvestApr] = useState("19");
+  const [userSoloMultiplier, setUserSoloMultiplier] = useState("1");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -314,7 +322,7 @@ export function DatabaseAdmin() {
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    enabled: isAuthenticated && activeNav === "users",
+    enabled: isAuthenticated && (activeNav === "users" || activeNav === "user-estimates"),
     refetchInterval: 10000,
   });
 
@@ -482,8 +490,9 @@ export function DatabaseAdmin() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }).then(r => r.json()),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balances", variables.userId] });
       toast({ title: "Balance adjusted successfully" });
     },
   });
@@ -655,7 +664,8 @@ export function DatabaseAdmin() {
   const settingsItems = [
     { id: "articles" as NavItem, icon: FileText, label: "Articles" },
     { id: "update-app" as NavItem, icon: Smartphone, label: "Update App" },
-    { id: "estimates" as NavItem, icon: TrendingUp, label: "Estimates" },
+    { id: "estimates" as NavItem, icon: TrendingUp, label: "Global Estimates" },
+    { id: "user-estimates" as NavItem, icon: Users, label: "User Estimates" },
     { id: "config" as NavItem, icon: Sliders, label: "Config" },
   ];
 
@@ -1569,18 +1579,18 @@ export function DatabaseAdmin() {
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl font-bold mb-2">Earnings Estimates</h2>
-                    <p className="text-muted-foreground">Controls the "Estimated earnings today" cards in Mining / Invest / Solo pages</p>
+                    <p className="text-muted-foreground">Controls the "Estimated earnings today" cards in Mining / Yield / Solo pages</p>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* Invest */}
+                    {/* Yield */}
                     <div className="bg-card rounded-xl border border-border p-5 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs text-muted-foreground">Invest</p>
+                          <p className="text-xs text-muted-foreground">Yield</p>
                           <p className="text-lg font-bold">Annual APR (%)</p>
                         </div>
-                        <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30">Editable</Badge>
+                        <Badge className="bg-emerald-500/15 border-emerald-500/30" style={{ color: 'rgb(12, 185, 105)' }}>Editable</Badge>
                       </div>
 
                       <div>
@@ -1597,7 +1607,7 @@ export function DatabaseAdmin() {
                             key: "public_invest_apr_annual_percent",
                             value: String(Number(estimateInvestAprAnnual || 19)),
                             category: "estimates",
-                            description: "Public: Invest annual APR percent (used for Estimated earnings today)",
+                            description: "Public: Yield annual APR percent (used for Estimated earnings today)",
                           })
                         }
                       >
@@ -1677,6 +1687,125 @@ export function DatabaseAdmin() {
                     <p className="text-sm font-medium">Notes</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       These settings are used for UI estimates only ("live" counters). They do not change stored wallet balances.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* User-Specific Estimates Tab */}
+              {activeNav === "user-estimates" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">User-Specific Earnings Estimates</h2>
+                    <p className="text-muted-foreground">Control "Estimated earnings today" for each user individually (Mining, Yield, Solo)</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Active Users</p>
+                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Users with Custom Estimates</p>
+                      <p className="text-2xl font-bold">{config.filter(c => c.key.startsWith("user_estimate_")).length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Using Global Defaults</p>
+                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length - new Set(config.filter(c => c.key.startsWith("user_estimate_")).map(c => c.key.split("_")[2])).size}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <Label className="text-xs text-muted-foreground">Search Users</Label>
+                    <Input
+                      value={userEstimatesSearch}
+                      onChange={(e) => setUserEstimatesSearch(e.target.value)}
+                      placeholder="Search by email or display name..."
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Mining Multiplier</TableHead>
+                            <TableHead>Yield APR (%)</TableHead>
+                            <TableHead>Solo Multiplier</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {users
+                            .filter(u => {
+                              const q = userEstimatesSearch.trim().toLowerCase();
+                              if (!q) return true;
+                              return (
+                                u.email.toLowerCase().includes(q) ||
+                                (u.displayName || "").toLowerCase().includes(q)
+                              );
+                            })
+                            .map((user) => {
+                              const userMining = config.find(c => c.key === `user_estimate_${user.id}_mining`)?.value || "—";
+                              const userInvest = config.find(c => c.key === `user_estimate_${user.id}_invest`)?.value || "—";
+                              const userSolo = config.find(c => c.key === `user_estimate_${user.id}_solo`)?.value || "—";
+                              
+                              return (
+                                <TableRow key={user.id}>
+                                  <TableCell>
+                                    <div>
+                                      <div className="font-medium">{user.email}</div>
+                                      {user.displayName && (
+                                        <div className="text-sm text-muted-foreground">{user.displayName}</div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={userMining === "—" ? "secondary" : "default"}>
+                                      {userMining === "—" ? "Global" : `${userMining}x`}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={userInvest === "—" ? "secondary" : "default"}>
+                                      {userInvest === "—" ? "Global" : `${userInvest}%`}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={userSolo === "—" ? "secondary" : "default"}>
+                                      {userSolo === "—" ? "Global" : `${userSolo}x`}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedUserEstimate(user.id);
+                                        setUserMiningMultiplier(userMining === "—" ? "1" : userMining);
+                                        setUserInvestApr(userInvest === "—" ? "19" : userInvest);
+                                        setUserSoloMultiplier(userSolo === "—" ? "1" : userSolo);
+                                        setUserEstimateDialogOpen(true);
+                                      }}
+                                    >
+                                      <Edit2 className="w-4 h-4 mr-2" />
+                                      Edit
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <p className="text-sm font-medium">How it works</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Users with custom estimates will see their personalized "Estimated earnings today" values.
+                      Users without custom estimates use the global settings from the "Global Estimates" tab.
                     </p>
                   </div>
                 </div>
@@ -2288,6 +2417,105 @@ export function DatabaseAdmin() {
               }
             >
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Estimate Dialog */}
+      <Dialog open={userEstimateDialogOpen} onOpenChange={setUserEstimateDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit User Estimates</DialogTitle>
+            <DialogDescription>
+              Set custom "Estimated earnings today" values for this user
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-sm font-medium">Mining Multiplier</Label>
+              <Input 
+                value={userMiningMultiplier} 
+                onChange={(e) => setUserMiningMultiplier(e.target.value)}
+                placeholder="1.0"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                1.0 = normal • 2.0 = double earnings display • 0.5 = half
+              </p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Yield APR (%)</Label>
+              <Input 
+                value={userInvestApr} 
+                onChange={(e) => setUserInvestApr(e.target.value)}
+                placeholder="19"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Controls the APR shown in Yield earnings. Default: 19%
+              </p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Solo Mining Multiplier</Label>
+              <Input 
+                value={userSoloMultiplier} 
+                onChange={(e) => setUserSoloMultiplier(e.target.value)}
+                placeholder="1.0"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                1.0 = normal • 2.0 = double solo earnings display
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setUserEstimateDialogOpen(false);
+              setSelectedUserEstimate(null);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedUserEstimate) return;
+                
+                try {
+                  // Save all three configs
+                  await Promise.all([
+                    addConfig.mutateAsync({
+                      key: `user_estimate_${selectedUserEstimate}_mining`,
+                      value: String(Number(userMiningMultiplier) || 1),
+                      category: "user_estimates",
+                      description: `User-specific mining multiplier`,
+                    }),
+                    addConfig.mutateAsync({
+                      key: `user_estimate_${selectedUserEstimate}_invest`,
+                      value: String(Number(userInvestApr) || 19),
+                      category: "user_estimates",
+                      description: `User-specific yield APR`,
+                    }),
+                    addConfig.mutateAsync({
+                      key: `user_estimate_${selectedUserEstimate}_solo`,
+                      value: String(Number(userSoloMultiplier) || 1),
+                      category: "user_estimates",
+                      description: `User-specific solo multiplier`,
+                    }),
+                  ]);
+                  
+                  // Explicitly invalidate config queries to refresh the UI
+                  await queryClient.invalidateQueries({ queryKey: ["/api/admin/config"] });
+                  
+                  toast({ title: "User estimates saved" });
+                  setUserEstimateDialogOpen(false);
+                  setSelectedUserEstimate(null);
+                } catch (error) {
+                  toast({ title: "Error saving estimates", description: "Please try again", variant: "destructive" });
+                }
+              }}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Estimates
             </Button>
           </DialogFooter>
         </DialogContent>
