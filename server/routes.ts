@@ -2012,7 +2012,13 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Error creating deposit request:", error);
-      res.status(500).json({ error: "Failed to create deposit request. Please try again." });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Deposit request error details:", { 
+        errorMessage, 
+        errorName: error instanceof Error ? error.name : typeof error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      res.status(500).json({ error: `Failed to create deposit request: ${errorMessage}` });
     }
   });
 
