@@ -60,7 +60,6 @@ const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
   ],
   BTC: [
     { id: "btc-native", name: "Bitcoin (Native)", fee: 0.0001, estimatedTime: "30-60 min" },
-    { id: "btc-lightning", name: "Lightning Network", fee: 0.000001, estimatedTime: "Instant" },
   ],
   LTC: [
     { id: "ltc-native", name: "Litecoin (Native)", fee: 0.001, estimatedTime: "5-10 min" },
@@ -97,7 +96,6 @@ const networkToConfigKey: Record<string, string> = {
   "usdc-bsc": "wallet_usdc_bsc",
   "usdc-ton": "wallet_usdc_ton",
   "btc-native": "wallet_btc_native",
-  "btc-lightning": "wallet_btc_lightning",
   "ltc-native": "wallet_ltc_native",
   "eth-erc20": "wallet_eth_erc20",
   "eth-arbitrum": "wallet_eth_arbitrum",
