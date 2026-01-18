@@ -348,7 +348,10 @@ function ActiveMiningPurchases({
   
   if (!purchases || purchases.length === 0) return null;
 
-  const activePurchases = purchases.filter((p) => p.status === "active");
+  // Filter out solo mining purchases - they should only appear on Solo Mining page
+  const activePurchases = purchases.filter((p) => 
+    p.status === "active" && !String(p?.packageName || "").includes("Solo Mining")
+  );
   
   if (activePurchases.length === 0) return null;
 
@@ -373,25 +376,9 @@ function ActiveMiningPurchases({
 
         <div className="space-y-3">
           {activePurchases.map((purchase) => {
-            const isSolo = String(purchase.packageName || "").includes("Solo Mining");
-            
-            let dailyUSD = purchase.dailyReturnBTC * btcPrice;
-            let totalEarnedUSD = purchase.totalEarned * btcPrice;
-            let displayedDailyBTC = purchase.dailyReturnBTC;
-
-            if (isSolo) {
-               // Solo Mining logic: 0.5% of investment daily
-               const investment = Number(purchase.amount) || 0;
-               dailyUSD = investment * 0.005;
-               
-               // Calculate total earned based on duration
-               const now = Date.now();
-               const start = purchase.purchaseDate ? new Date(purchase.purchaseDate).getTime() : now;
-               const daysActive = Math.max(0, (now - start) / (1000 * 60 * 60 * 24));
-               totalEarnedUSD = dailyUSD * daysActive;
-               
-               displayedDailyBTC = btcPrice > 0 ? dailyUSD / btcPrice : 0;
-            }
+            const dailyUSD = purchase.dailyReturnBTC * btcPrice;
+            const totalEarnedUSD = purchase.totalEarned * btcPrice;
+            const displayedDailyBTC = purchase.dailyReturnBTC;
 
             return (
               <motion.div

@@ -73,7 +73,6 @@ const cryptoNetworks: Record<CryptoType, NetworkOption[]> = {
   ],
   BTC: [
     { id: "btc-native", name: "Bitcoin (Native)" },
-    { id: "btc-lightning", name: "Lightning Network" },
   ],
   LTC: [{ id: "ltc-native", name: "Litecoin (Native)" }],
   ETH: [
@@ -104,7 +103,6 @@ const networkToConfigKey: Record<string, string> = {
   "usdc-bsc": "wallet_usdc_bsc",
   "usdc-ton": "wallet_usdc_ton",
   "btc-native": "wallet_btc_native",
-  "btc-lightning": "wallet_btc_lightning",
   "ltc-native": "wallet_ltc_native",
   "eth-erc20": "wallet_eth_erc20",
   "eth-arbitrum": "wallet_eth_arbitrum",
