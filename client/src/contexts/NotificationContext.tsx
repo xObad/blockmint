@@ -118,8 +118,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       return res.json();
     },
     enabled: !!userId,
-    refetchInterval: 60000, // Refresh every 60 seconds
-    refetchIntervalInBackground: false,
+    refetchInterval: 15000, // Refresh every 15 seconds for real-time notifications
+    refetchIntervalInBackground: true, // Keep refreshing in background for mobile
     refetchOnWindowFocus: false,
     staleTime: 30000,
   });

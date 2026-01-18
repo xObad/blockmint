@@ -438,7 +438,7 @@ export function Dashboard({
       return res.json();
     },
     enabled: !!userId,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
   });
 
   // Calculate total pending value

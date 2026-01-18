@@ -108,8 +108,8 @@ export function useMiningData() {
       };
     },
     enabled: !!userId,
-    refetchInterval: 60000, // Refresh every 1 minute (faster than 2 minutes for balance updates)
-    refetchIntervalInBackground: false,
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time balance updates
+    refetchIntervalInBackground: true, // Keep refreshing in background for mobile
     placeholderData: keepPreviousData,
     staleTime: 30000,
   });
@@ -124,10 +124,10 @@ export function useMiningData() {
       return res.json();
     },
     enabled: !!userId,
-    refetchInterval: 60000, // Refresh every 1 minute
-    refetchIntervalInBackground: false,
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+    refetchIntervalInBackground: true, // Keep refreshing in background for mobile
     placeholderData: keepPreviousData,
-    staleTime: 30000,
+    staleTime: 15000,
   });
 
   const poolsQuery = useQuery<MiningPool[]>({
