@@ -82,7 +82,7 @@ async function addPromotionalOffers() {
         title: "Welcome Bonus",
         subtitle: "Get 100 free GH/s",
         description: "Sign up now and receive free mining power for your first 7 days",
-        imageUrl: "/attached_assets/Bitcoin_Mining_Cart_1766014388619.webp",
+        imageUrl: "/attached_assets/asic-miner-hardware-3d-icon-png-download-11211351.webp",
         backgroundType: 4, // Forest Green
         ctaText: "Claim Bonus",
         ctaLink: "/dashboard",

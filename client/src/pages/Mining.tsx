@@ -41,7 +41,7 @@ import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
 import btcMineImg from "@assets/Bitcoin_Mine_1766014388617.webp";
 import ltcMineImg from "@assets/Gemini_Generated_Image_1ri2av1ri2av1ri2_(1)_1766014388604.webp";
-import btcMiningCart from "@assets/Bitcoin_Mining_Cart_1766014388619.webp";
+import btcMiningCart from "@assets/asic-miner-hardware-3d-icon-png-download-11211351.webp";
 import ltcMiningCart from "@assets/Gemini_Generated_Image_46ieyx46ieyx46ie_(1)_1766014388603.webp";
 
 interface MiningProps {
