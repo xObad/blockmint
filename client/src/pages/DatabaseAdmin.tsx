@@ -148,7 +148,7 @@ const ARTICLE_CATEGORIES = [
   "News",
 ];
 
-type NavItem = "users" | "deposits" | "withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates" | "solo-mining";
+type NavItem = "users" | "deposits" | "withdrawals" | "auto-withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates" | "solo-mining";
 
 interface SoloMiningPurchase {
   id: string;
@@ -340,6 +340,12 @@ export function DatabaseAdmin() {
 
   const { data: pendingWithdrawals = [], isLoading: isLoadingWithdrawals } = useQuery<any[]>({
     queryKey: ["/api/admin/withdrawals/pending"],
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: autoWithdrawConfigs = [], isLoading: isLoadingAutoWithdraw } = useQuery<any[]>({
+    queryKey: ["/api/admin/auto-withdrawals"],
     enabled: isAuthenticated,
     refetchInterval: 30000,
   });
@@ -724,6 +730,7 @@ export function DatabaseAdmin() {
     { id: "users" as NavItem, icon: Users, label: "Users" },
     { id: "deposits" as NavItem, icon: ArrowDownToLine, label: "Deposits", badge: pendingDeposits.length },
     { id: "withdrawals" as NavItem, icon: ArrowUpToLine, label: "Withdrawals" },
+    { id: "auto-withdrawals" as NavItem, icon: Wallet, label: "Auto-Withdrawals", badge: autoWithdrawConfigs.filter((c: any) => c.enabled).length },
     { id: "solo-mining" as NavItem, icon: Target, label: "Solo Mining", badge: activeSoloPurchases.length },
     { id: "notifications" as NavItem, icon: Bell, label: "Notifications" },
   ];
@@ -1429,6 +1436,133 @@ export function DatabaseAdmin() {
                     <div className="bg-card rounded-xl border border-border p-8 text-center">
                       <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
                       <p className="text-muted-foreground">No withdrawal requests at this time</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Auto-Withdrawals Tab */}
+              {activeNav === "auto-withdrawals" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">Auto-Withdrawal Configurations</h2>
+                      <p className="text-muted-foreground">View and manage user auto-withdrawal settings</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-withdrawals"] })}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Total Configs</p>
+                      <p className="text-2xl font-bold">{autoWithdrawConfigs.length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Active</p>
+                      <p className="text-2xl font-bold text-green-400">{autoWithdrawConfigs.filter((c: any) => c.enabled).length}</p>
+                    </div>
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <p className="text-xs text-muted-foreground">Disabled</p>
+                      <p className="text-2xl font-bold text-muted-foreground">{autoWithdrawConfigs.filter((c: any) => !c.enabled).length}</p>
+                    </div>
+                  </div>
+
+                  {isLoadingAutoWithdraw ? (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+                      <p className="text-muted-foreground">Loading auto-withdrawal configs...</p>
+                    </div>
+                  ) : autoWithdrawConfigs && autoWithdrawConfigs.length > 0 ? (
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Currency</TableHead>
+                            <TableHead>Network</TableHead>
+                            <TableHead>Wallet Address</TableHead>
+                            <TableHead>Period</TableHead>
+                            <TableHead>Min Amount</TableHead>
+                            <TableHead>Last Withdrawal</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {autoWithdrawConfigs.map((config: any) => (
+                            <TableRow key={config.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium text-sm">{config.userDisplayName || "—"}</p>
+                                  <p className="text-xs text-muted-foreground">{config.userEmail || config.userId.slice(0, 8)}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={config.enabled ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                                  {config.enabled ? "Active" : "Disabled"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{config.currency}</TableCell>
+                              <TableCell className="text-xs">{config.network}</TableCell>
+                              <TableCell className="text-xs font-mono">
+                                {config.walletAddress ? `${config.walletAddress.substring(0, 8)}...${config.walletAddress.slice(-6)}` : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {config.period === "weekly" ? "Weekly" : "Monthly"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-mono">${config.minAmount}</TableCell>
+                              <TableCell className="text-xs">
+                                {config.lastWithdrawAt 
+                                  ? new Date(config.lastWithdrawAt).toLocaleDateString()
+                                  : "Never"
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant={config.enabled ? "destructive" : "default"}
+                                    onClick={async () => {
+                                      try {
+                                        await fetch(`/api/admin/auto-withdrawals/${config.id}/toggle`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ enabled: !config.enabled })
+                                        });
+                                        queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-withdrawals"] });
+                                        toast({
+                                          title: config.enabled ? "Disabled" : "Enabled",
+                                          description: `Auto-withdrawal ${config.enabled ? "disabled" : "enabled"} for user.`,
+                                        });
+                                      } catch (error) {
+                                        toast({ title: "Error", description: "Failed to toggle", variant: "destructive" });
+                                      }
+                                    }}
+                                  >
+                                    {config.enabled ? "Disable" : "Enable"}
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                      <Wallet className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-muted-foreground">No auto-withdrawal configurations yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Users can set up auto-withdrawal in their Settings</p>
                     </div>
                   )}
                 </div>

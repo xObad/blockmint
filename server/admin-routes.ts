@@ -757,6 +757,63 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
+  // ============ AUTO-WITHDRAWALS ============
+
+  // Get all auto-withdrawal configurations
+  app.get("/api/admin/auto-withdrawals", devAdmin, async (_req, res) => {
+    try {
+      const configs = await db.select({
+        id: schema.autoWithdrawSettings.id,
+        userId: schema.autoWithdrawSettings.userId,
+        enabled: schema.autoWithdrawSettings.enabled,
+        currency: schema.autoWithdrawSettings.currency,
+        network: schema.autoWithdrawSettings.network,
+        walletAddress: schema.autoWithdrawSettings.walletAddress,
+        period: schema.autoWithdrawSettings.period,
+        minAmount: schema.autoWithdrawSettings.minAmount,
+        lastWithdrawAt: schema.autoWithdrawSettings.lastWithdrawAt,
+        createdAt: schema.autoWithdrawSettings.createdAt,
+        updatedAt: schema.autoWithdrawSettings.updatedAt,
+        userEmail: schema.users.email,
+        userDisplayName: schema.users.displayName,
+      })
+        .from(schema.autoWithdrawSettings)
+        .leftJoin(schema.users, eq(schema.autoWithdrawSettings.userId, schema.users.id))
+        .orderBy(desc(schema.autoWithdrawSettings.updatedAt));
+      res.json(configs);
+    } catch (error) {
+      console.error("Error fetching auto-withdrawals:", error);
+      res.status(500).json({ error: "Failed to fetch auto-withdrawal configurations" });
+    }
+  });
+
+  // Toggle auto-withdrawal for a user
+  app.patch("/api/admin/auto-withdrawals/:id/toggle", devAdmin, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      const updated = await db.update(schema.autoWithdrawSettings)
+        .set({ enabled, updatedAt: new Date() })
+        .where(eq(schema.autoWithdrawSettings.id, req.params.id))
+        .returning();
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error toggling auto-withdrawal:", error);
+      res.status(500).json({ error: "Failed to toggle auto-withdrawal" });
+    }
+  });
+
+  // Delete auto-withdrawal config
+  app.delete("/api/admin/auto-withdrawals/:id", devAdmin, async (req, res) => {
+    try {
+      await db.delete(schema.autoWithdrawSettings)
+        .where(eq(schema.autoWithdrawSettings.id, req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting auto-withdrawal:", error);
+      res.status(500).json({ error: "Failed to delete auto-withdrawal configuration" });
+    }
+  });
+
   // ============ ADMIN NOTIFICATIONS ============
 
   // Get admin notifications
