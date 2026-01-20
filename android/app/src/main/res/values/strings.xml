@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BlockMint</string>
+    <string name="title_activity_main">BlockMint</string>
+    <string name="package_name">co.hardisk.blockmint</string>
+    <string name="custom_url_scheme">co.hardisk.blockmint</string>
+</resources>

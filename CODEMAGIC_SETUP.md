@@ -2,6 +2,23 @@
 
 This guide will help you set up Codemagic to build native iOS (.ipa) and Android (.aab/.apk) apps from your web app.
 
+---
+
+## ⚠️ IMPORTANT: Configuration Files Explained
+
+Your repository has **TWO different build configuration files** that serve different purposes:
+
+| File | Purpose | When Used |
+|------|---------|-----------|
+| `cloudbuild.yaml` | **Web app deployment** to Google Cloud Run (or DigitalOcean) | Deploying the web server/backend |
+| `codemagic.yaml` | **Mobile app builds** (iOS .ipa / Android .aab) | Building native apps for App Store & Play Store |
+
+**They do NOT conflict** - they are for completely different deployment targets:
+- **cloudbuild.yaml** = Your web app/API server deployment
+- **codemagic.yaml** = Your mobile app compilation
+
+---
+
 ## Prerequisites
 
 Before starting, you need:
@@ -17,7 +34,12 @@ Before starting, you need:
 1. Go to https://codemagic.io and sign up with GitHub
 2. Click "Add application" 
 3. Select your `mining-club` repository
-4. Choose "codemagic.yaml" as the configuration method
+4. **For "Select project type"** - Choose one of these options:
+   - ✅ **"Other"** (Recommended) - This tells Codemagic to use your `codemagic.yaml` file directly
+   - ✅ **"Capacitor"** - If available, this is also correct since we use Capacitor
+   - ❌ **NOT "React Native"** - This is NOT a React Native app
+   - ❌ **NOT "Flutter"** - This is NOT a Flutter app
+5. Choose **"codemagic.yaml"** as the configuration method (not workflow editor)
 
 ---
 
@@ -53,10 +75,36 @@ Before starting, you need:
 6. Bundle ID: `co.hardisk.blockmint` (Explicit)
 7. Enable capabilities:
    - ✅ Push Notifications
-   - ✅ Sign in with Apple (if using)
+   - ✅ Sign in with Apple
 8. Click **Register**
 
-### 2.4 Create App in App Store Connect
+### 2.4 Configure Sign in with Apple
+
+To enable Sign in with Apple (required by App Store if you use other social logins):
+
+1. Go to https://developer.apple.com/account
+2. **Certificates, Identifiers & Profiles** → **Keys**
+3. Click **+** to create a new key
+4. Name: `BlockMint Sign In with Apple`
+5. Check ✅ **Sign in with Apple**
+6. Click **Configure** next to Sign in with Apple
+7. Select `BlockMint (co.hardisk.blockmint)` as Primary App ID
+8. Click **Save** → **Continue** → **Register**
+9. Download the `.p8` key file (save securely!)
+10. Note the **Key ID**
+
+**Firebase Setup:**
+1. Go to Firebase Console → Authentication → Sign-in method
+2. Click **Apple** → Enable
+3. Enter:
+   - **Services ID**: Your App ID (co.hardisk.blockmint)
+   - **Apple Team ID**: From developer.apple.com account
+   - **Key ID**: From step 9 above
+   - **Private Key**: Contents of the .p8 file
+4. Add authorized domains if needed
+5. Save
+
+### 2.5 Create App in App Store Connect
 
 1. Go to https://appstoreconnect.apple.com
 2. Click **My Apps** → **+** → **New App**
@@ -193,7 +241,28 @@ Before submitting to App Store, ensure you have:
 
 ---
 
+## Understanding Project Types in Codemagic
+
+When Codemagic asks you to select a project type, here's what each option means:
+
+### ✅ Choose "Other" or "Capacitor"
+Your BlockMint app is a **Capacitor** project (web app wrapped as native). Select:
+- **"Other"** - Uses your `codemagic.yaml` configuration file directly
+- **"Capacitor"** - Pre-configured templates for Capacitor projects
+
+### ❌ Do NOT Choose These
+- **"React Native"** - For apps built with React Native framework (different from React web)
+- **"Flutter"** - For apps built with Google's Flutter SDK
+- **"Native iOS"** - For apps written purely in Swift/Objective-C
+- **"Native Android"** - For apps written purely in Kotlin/Java
+
+### Why "Other" is Recommended
+Choosing "Other" tells Codemagic to look for your `codemagic.yaml` file and use that configuration. This gives you full control over the build process, which is already configured in your repository.
+
+---
+
 ## Contact
 
 For Codemagic support: https://docs.codemagic.io
 For Hardisk support: info@hardisk.co
+

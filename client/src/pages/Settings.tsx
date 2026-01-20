@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { 
   User, Shield, Bell, Key, Fingerprint, Clock, 
-  DollarSign, Globe, ChevronRight, Award, Info,
+  DollarSign, Globe, ChevronRight, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
   Link2, Unlink, Smartphone, Wallet, CalendarClock, ArrowDownToLine,
   Trash2, AlertTriangle
@@ -24,6 +24,8 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { requestNotificationPermission } from "@/lib/firebase";
+import { checkBiometricAvailability, authenticateWithBiometrics } from "@/lib/nativeServices";
 import type { UserSettings } from "@/lib/types";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -254,8 +256,28 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : "Dec 2024";
 
-  // Linked accounts detection
-  const linkedProviders = user?.providerData.map(p => p.providerId) || [];
+  // Linked accounts detection - reload user to ensure fresh providerData
+  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const refreshProviders = async () => {
+      if (user) {
+        try {
+          // Reload user to get fresh providerData
+          await user.reload();
+          const providers = user.providerData.map(p => p.providerId);
+          setLinkedProviders(providers);
+        } catch (error) {
+          console.error("Error refreshing user providers:", error);
+          setLinkedProviders(user.providerData.map(p => p.providerId));
+        }
+      } else {
+        setLinkedProviders([]);
+      }
+    };
+    refreshProviders();
+  }, [user]);
+
   const isGoogleLinked = linkedProviders.includes('google.com');
   const isAppleLinked = linkedProviders.includes('apple.com');
   const isPasswordLinked = linkedProviders.includes('password');
@@ -477,30 +499,26 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
     }
 
     if (enabled) {
-      if (!isMobileDevice()) {
+      // Check biometric availability using native services
+      const availability = await checkBiometricAvailability();
+      
+      if (!availability.isAvailable) {
         toast({
-          title: "Mobile App Only",
-          description: "Biometric authentication is only available on the mobile app. Please use the iOS or Android app to enable Face ID or fingerprint unlock.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!('credentials' in navigator) || !('PublicKeyCredential' in window)) {
-        toast({
-          title: "Not Supported",
-          description: "Biometric authentication is not supported on this device.",
+          title: "Biometrics Not Available",
+          description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
           variant: "destructive",
         });
         return;
       }
 
       try {
-        const available = await (window as any).PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable?.();
-        if (!available) {
+        // Verify identity before enabling
+        const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
+        
+        if (!result.success) {
           toast({
-            title: "Not Available",
-            description: "Biometric authentication is not available on this device. Please ensure your device has Face ID or fingerprint set up in system settings.",
+            title: "Authentication Failed",
+            description: result.error || "Could not verify your identity. Please try again.",
             variant: "destructive",
           });
           return;
@@ -660,12 +678,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-semibold text-foreground" data-testid="text-user-name">{displayName}</h2>
-              {user && (
-                <Badge variant="secondary" className="bg-primary/20 text-primary border-0">
-                  <Award className="w-3 h-3 mr-1" />
-                  Pro
-                </Badge>
-              )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5" data-testid="text-user-email">{email}</p>
             <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-mining-since">Mining Since {memberSince}</p>
@@ -806,9 +818,46 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                 <Switch
                   data-testid="switch-notifications"
                   checked={settings.notificationsEnabled}
-                  onCheckedChange={(checked) => 
-                    onSettingsChange({ notificationsEnabled: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    if (checked) {
+                      // Request system notification permission when enabling
+                      try {
+                        const token = await requestNotificationPermission();
+                        if (token) {
+                          // Save FCM token to server if we got one
+                          if (user?.uid) {
+                            const authToken = await user.getIdToken();
+                            await fetch(`/api/users/${user.uid}/fcm-token`, {
+                              method: "POST",
+                              headers: { 
+                                Authorization: `Bearer ${authToken}`,
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({ fcmToken: token }),
+                            });
+                          }
+                          onSettingsChange({ notificationsEnabled: true });
+                          toast({ title: "Notifications Enabled", description: "You'll receive push notifications for mining updates." });
+                        } else {
+                          toast({ 
+                            title: "Permission Denied", 
+                            description: "Please allow notifications in your browser/device settings.",
+                            variant: "destructive" 
+                          });
+                        }
+                      } catch (error) {
+                        console.error("Error enabling notifications:", error);
+                        toast({ 
+                          title: "Error", 
+                          description: "Could not enable notifications. Please try again.",
+                          variant: "destructive" 
+                        });
+                      }
+                    } else {
+                      onSettingsChange({ notificationsEnabled: false });
+                      toast({ title: "Notifications Disabled" });
+                    }
+                  }}
                 />
               </div>
             }

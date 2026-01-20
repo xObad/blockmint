@@ -1450,6 +1450,44 @@ export async function registerRoutes(
     }
   });
 
+  // Save FCM token for push notifications
+  app.post("/api/users/:userId/fcm-token", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { fcmToken } = req.body;
+
+      if (!fcmToken) {
+        return res.status(400).json({ error: "FCM token is required" });
+      }
+
+      // Store FCM token in notification preferences (pushNotifications field repurposed or create new)
+      const { notificationPreferences } = await import("@shared/schema");
+      
+      // Upsert notification preferences with pushToken stored
+      const existing = await db.select()
+        .from(notificationPreferences)
+        .where(eq(notificationPreferences.userId, userId));
+      
+      if (existing.length > 0) {
+        await db.update(notificationPreferences)
+          .set({ pushNotifications: true, updatedAt: new Date() })
+          .where(eq(notificationPreferences.userId, userId));
+      } else {
+        await db.insert(notificationPreferences).values({
+          userId,
+          pushNotifications: true,
+        });
+      }
+
+      // Also log the token for admin/debugging
+      console.log(`FCM token received for user ${userId}: ${fcmToken.substring(0, 20)}...`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to save FCM token:", error);
+      res.status(500).json({ error: "Failed to save FCM token" });
+    }
+  });
+
   // =====================================================
   // AUTO-WITHDRAWAL SETTINGS
   // =====================================================

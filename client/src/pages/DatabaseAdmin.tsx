@@ -136,6 +136,11 @@ const CONFIG_KEYS = {
     { key: "maintenance_message", description: "Maintenance Mode Message" },
     { key: "max_active_contracts", description: "Max Active Contracts per User" },
   ],
+  compliance: [
+    { key: "compliance_mode", description: "Safe Mode for App Store Review (true/false)" },
+    { key: "web_storefront_mode", description: "Web Storefront Mode (true/false)" },
+    { key: "native_dashboard_mode", description: "Native Dashboard Mode (true/false)" },
+  ],
 };
 
 const ARTICLE_CATEGORIES = [
@@ -2202,6 +2207,7 @@ export function DatabaseAdmin() {
                             <SelectItem value="discount">Discounts & Sales</SelectItem>
                             <SelectItem value="forceUpdate">Force Update</SelectItem>
                             <SelectItem value="settings">App Settings</SelectItem>
+                            <SelectItem value="compliance">Compliance Mode</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -2912,7 +2918,7 @@ export function DatabaseAdmin() {
                     <Target className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium">{selectedSoloPurchase.userName || "Unknown User"}</p>
+                    <p className="font-medium">{selectedSoloPurchase.userDisplayName || "Unknown User"}</p>
                     <p className="text-xs text-muted-foreground">{selectedSoloPurchase.userEmail}</p>
                   </div>
                 </div>
@@ -2923,7 +2929,7 @@ export function DatabaseAdmin() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Hashpower:</span>{" "}
-                    <span className="font-medium">{selectedSoloPurchase.hashpower} PH/s</span>
+                    <span className="font-medium">{selectedSoloPurchase.hashrate} {selectedSoloPurchase.hashrateUnit}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Total Earned:</span>{" "}
@@ -2995,7 +3001,7 @@ export function DatabaseAdmin() {
                 if (!selectedSoloPurchase) return;
                 awardBlockMutation.mutate({
                   purchaseId: selectedSoloPurchase.id,
-                  blockReward: blockRewardAmount,
+                  blockReward: parseFloat(blockRewardAmount),
                   txHash: blockTxHash || undefined,
                 });
               }}

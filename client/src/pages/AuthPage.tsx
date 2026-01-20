@@ -35,6 +35,7 @@ function isIOSDevice(): boolean {
 export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -179,6 +180,15 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       toast({
         title: "Weak Password",
         description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (mode === "register" && password !== confirmPassword) {
+      toast({
+        title: "Passwords Don't Match",
+        description: "Please make sure both passwords are the same.",
         variant: "destructive",
       });
       return;
@@ -424,6 +434,17 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                   data-testid="input-password"
                   disabled={isLoading}
                 />
+                {mode === "register" && (
+                  <Input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                    data-testid="input-confirm-password"
+                    disabled={isLoading}
+                  />
+                )}
               </div>
 
               {mode === "signin" && (

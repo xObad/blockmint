@@ -4,6 +4,11 @@ import { AnimatePresence } from "framer-motion";
 import { PinEntry } from "./PinEntry";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { 
+  checkBiometricAvailability, 
+  authenticateWithBiometrics,
+  isNativePlatform 
+} from "@/lib/nativeServices";
 
 interface SecuritySettings {
   pinEnabled: boolean;
@@ -173,21 +178,39 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
   }, [isSettingUpPin, setupPinMutation, verifyPinMutation]);
 
   const handleBiometricRequest = useCallback(async (): Promise<boolean> => {
-    // In a real app, you'd use native biometric APIs here
-    // For now, we'll simulate with Web Crypto API or show a prompt
+    // Use native biometrics on mobile, WebAuthn on web
     try {
-      // Simulate biometric success for demo
-      // In production: use Capacitor BiometricAuth plugin or similar
-      if (settings?.biometricEnabled) {
-        // Try Web Credential API (if available)
-        if ('credentials' in navigator && 'PublicKeyCredential' in window) {
-          // Web Authentication API would go here
-          // For demo, we'll just show it as successful
-          return true;
+      if (!settings?.biometricEnabled) {
+        return false;
+      }
+      
+      // Check if native platform with biometrics
+      if (isNativePlatform()) {
+        const availability = await checkBiometricAvailability();
+        
+        if (!availability.isAvailable) {
+          console.log('Biometrics not available:', availability.errorMessage);
+          return false;
         }
-        // Fallback: simulate success
+        
+        const result = await authenticateWithBiometrics('Unlock BlockMint');
+        
+        if (result.success) {
+          return true;
+        } else {
+          console.log('Biometric auth failed:', result.error);
+          return false;
+        }
+      }
+      
+      // Web fallback: use Web Credential API if available
+      if ('credentials' in navigator && 'PublicKeyCredential' in window) {
+        // In production, implement WebAuthn here
+        // For development/demo, we'll simulate
+        console.log('Web biometrics: Would use WebAuthn in production');
         return true;
       }
+      
       return false;
     } catch (e) {
       console.error("Biometric auth failed:", e);
