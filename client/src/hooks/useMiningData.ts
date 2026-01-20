@@ -69,14 +69,18 @@ export function useMiningData() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const pricesRes = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,ethereum,tether,usd-coin,binancecoin,zcash,ton&vs_currencies=usd",
-          { signal: controller.signal }
-        ).catch(() => null); // Catch network errors gracefully
+        let pricesRes: Response | null = null;
+        try {
+          pricesRes = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,litecoin,ethereum,tether,usd-coin,binancecoin,zcash,ton&vs_currencies=usd",
+            { signal: controller.signal }
+          );
+        } catch (err) {
+          // Network error or abort
+          pricesRes = null;
+        }
         clearTimeout(timeoutId);
-
-        if (pricesRes?.ok) {
+        if (pricesRes && pricesRes.ok) {
           const prices = await pricesRes.json();
           priceMap = {
             BTC: prices.bitcoin?.usd || 0,
@@ -88,6 +92,9 @@ export function useMiningData() {
             ZCASH: prices.zcash?.usd || 0,
             TON: prices.ton?.usd || 0,
           };
+        } else {
+          // Use default prices if fetch fails
+          console.warn("Failed to fetch crypto prices: using defaults");
         }
       } catch (err) {
         // Silently fail - use default prices

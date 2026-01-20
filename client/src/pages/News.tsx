@@ -76,7 +76,32 @@ const newsArticles = [
 ];
 
 export function News() {
+
   const [, setLocation] = useLocation();
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [notification, setNotification] = useState<any>(null);
+
+  useEffect(() => {
+    // Testing Push Notifications (see NATIVE_FEATURES_SETUP.md)
+    async function testPush() {
+      const { registerPushNotifications, addPushNotificationListener } = await import("@/lib/nativeServices");
+      const token = await registerPushNotifications();
+      setPushToken(token);
+      // Send token to your server (example)
+      if (token) {
+        await fetch("/api/user/push-token", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+      }
+      // Listen for notifications
+      addPushNotificationListener((notif) => {
+        setNotification(notif);
+        console.log("Received:", notif);
+      });
+    }
+    testPush();
+  }, []);
 
   const handleArticleClick = (articleId: string) => {
     setLocation(`/safe-news/${articleId}`);
@@ -95,6 +120,14 @@ export function News() {
       >
         <h1 className="text-2xl font-bold text-foreground">News</h1>
         <p className="text-sm text-muted-foreground">Industry updates and insights</p>
+        {/* Push Notification Test UI */}
+        <div className="mt-4 p-3 rounded-lg bg-card/60 border border-primary/20">
+          <div className="text-xs text-muted-foreground mb-1">Push Notification Test</div>
+          <div className="text-xs break-all">Push Token: {pushToken || "(none)"}</div>
+          {notification && (
+            <div className="mt-2 text-xs text-primary">Received: {JSON.stringify(notification)}</div>
+          )}
+        </div>
       </motion.div>
 
       {/* Featured Article */}

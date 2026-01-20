@@ -47,5 +47,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>BlockMint uses Face ID to securely unlock your account</string>
 </dict>
 </plist>
