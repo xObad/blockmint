@@ -457,8 +457,8 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
   }
 
 
-}
 
+function AppRouter() {
 function AppRouter() {
   const { isComplianceMode, isWebStorefront, isLoading } = useCompliance();
   
