@@ -249,7 +249,11 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
     );
   }
 
-  // Main app UI (restored)
+
+// Main app UI as a component for router
+function MobileApp() {
+  // ...all main app UI state and logic above should be accessible here, so this is a wrapper
+  // The main app UI block moved here for router usage
   return (
     <div className="min-h-screen bg-background overflow-x-hidden safe-area-inset">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
@@ -452,6 +456,7 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
       </AnimatePresence>
     </div>
   );
+}
 }
 
 function AppRouter() {
