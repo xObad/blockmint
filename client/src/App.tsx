@@ -1,210 +1,3 @@
-// Main app UI as a component for router
-function MobileApp() {
-  // ...all main app UI state and logic above should be accessible here, so this is a wrapper
-  // The main app UI block moved here for router usage
-  return (
-    <div className="min-h-screen bg-background overflow-x-hidden safe-area-inset">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
-        <ForceUpdateModal />
-      </div>
-      <GlobalHeader
-        onOpenSettings={() => setShowSettings(true)}
-        onNavigateToHome={() => setActiveTab("home")}
-        onNavigateToWallet={() => setActiveTab("wallet")}
-        onNavigateToInvest={() => setActiveTab("invest")}
-      />
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
-        <AnimatePresence mode="wait">
-          {activeTab === "home" && (
-            isLoading ? (
-              <DashboardSkeleton key="dashboard-skeleton" />
-            ) : (
-              <Dashboard
-                key="dashboard"
-                balances={balances}
-                totalBalance={totalBalance}
-                change24h={change24h}
-                transactions={transactions}
-                miningStats={miningStats}
-                activeContracts={0}
-                portfolioHistory={portfolioHistory}
-                onOpenSettings={() => setShowSettings(true)}
-                onOpenProfile={() => firebaseUser ? setShowSettings(true) : setAppView("auth")}
-                onNavigateToInvest={() => setActiveTab("invest")}
-                onNavigateToSolo={() => setActiveTab("solo")}
-                onNavigateToMining={() => setActiveTab("mining")}
-                onNavigateToWallet={() => setActiveTab("wallet")}
-                onNavigateToHome={() => setActiveTab("home")}
-                onWithdraw={() => setActiveTab("wallet")}
-                isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
-                onRefreshBalances={refetchBalances}
-                isFetching={isFetching}
-              />
-            )
-          )}
-          {activeTab === "wallet" && (
-            isLoading ? (
-              <WalletSkeleton key="wallet-skeleton" />
-            ) : (
-              <Wallet
-                key="wallet"
-                balances={balances}
-                transactions={transactions}
-                totalBalance={totalBalance}
-                change24h={change24h}
-                onNavigateToHome={() => setActiveTab("home")}
-                onNavigateToWallet={() => setActiveTab("wallet")}
-                onNavigateToInvest={() => setActiveTab("invest")}
-                onOpenSettings={() => setShowSettings(true)}
-              />
-            )
-          )}
-          {activeTab === "invest" && (
-            <Invest 
-              key="invest" 
-              onNavigateToHome={() => setActiveTab("home")}
-              onNavigateToWallet={() => setActiveTab("wallet")}
-              onNavigateToInvest={() => setActiveTab("invest")}
-              onOpenSettings={() => setShowSettings(true)}
-            />
-          )}
-          {activeTab === "solo" && (
-            <SoloMining key="solo" />
-          )}
-          {activeTab === "mining" && (
-            <Mining
-              key="mining"
-              chartData={chartData}
-              contracts={contracts}
-              poolStatus={poolStatus}
-              onNavigateToInvest={() => setActiveTab("invest")}
-            />
-          )}
-        </AnimatePresence>
-        <motion.footer
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-12 text-center space-y-4 pb-safe"
-        >
-          <div className="flex justify-center mb-6 relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
-            <img 
-              src="/attached_assets/BlockMint-for-All.png" 
-              alt="BlockMint" 
-              className="h-28 w-auto object-contain relative z-10"
-              style={{
-                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.25)) contrast(1.1) saturate(1.2)',
-                imageRendering: '-webkit-optimize-contrast',
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-center gap-4">
-            <a
-              href="https://x.com/BlockMintingApp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
-              data-testid="link-social-x"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = 'twitter://user?screen_name=BlockMintingApp';
-                setTimeout(() => {
-                  window.location.href = 'https://x.com/BlockMintingApp';
-                }, 500);
-              }}
-            >
-              <SiX className="w-5 h-5 text-foreground" />
-            </a>
-            <a
-              href="https://www.instagram.com/blockmint.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
-              data-testid="link-social-instagram"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = 'instagram://user?username=blockmint.app';
-                setTimeout(() => {
-                  window.location.href = 'https://www.instagram.com/blockmint.app/';
-                }, 500);
-              }}
-            >
-              <SiInstagram className="w-5 h-5 text-foreground" />
-            </a>
-          </div>
-          <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-xs text-muted-foreground">BlockMint App By Hardisk UAE Mining Farms</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
-              ©
-            </span>
-          </div>
-          <div className="flex items-center justify-center gap-4">
-            <Link href="/terms" data-testid="link-terms-of-service">
-              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-                Terms of Service
-              </span>
-            </Link>
-            <Link href="/privacy" data-testid="link-privacy-policy">
-              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-                Privacy Policy
-              </span>
-            </Link>
-          </div>
-        </motion.footer>
-      </main>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div
-            className="fixed inset-0 z-50 flex flex-col bg-background safe-area-inset"
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
-              <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
-            </div>
-            <div className="relative z-10 flex items-center justify-between px-4 pt-safe pb-4">
-              <h1 className="text-xl font-bold text-foreground font-display">BlockMint</h1>
-              <motion.button
-                data-testid="button-close-settings"
-                onClick={() => setShowSettings(false)}
-                className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
-                whileTap={{ scale: 0.95 }}
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </motion.button>
-            </div>
-            <div className="relative z-10 flex-1 overflow-auto px-4 pb-8">
-              <Settings
-                settings={settings}
-                onSettingsChange={updateSettings}
-                user={firebaseUser}
-                onLogout={async () => {
-                  await logOut();
-                  localStorage.clear();
-                  setShowSettings(false);
-                  setAppView("onboarding");
-                }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 import { useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -240,7 +33,7 @@ import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
 import { ArticlePage } from "@/pages/ArticlePage";
 import { News } from "@/pages/News";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
-import { TwoFactorPage } from "@/pages/TwoFactorPage";
+import { TwoFactorLoginModal } from "@/components/TwoFactorLoginModal";
 import { AppLockProvider } from "@/components/AppLock";
 import { SiX, SiInstagram } from "react-icons/si";
 import { useMiningData } from "@/hooks/useMiningData";
@@ -263,14 +56,15 @@ type AppView = "onboarding" | "auth" | "main";
 type AuthMode = "signin" | "register";
 type SafeTabType = "home" | "metrics" | "news" | "settings";
 
+function MobileApp() {
   const [activeTab, setActiveTab] = useState<TabType>("home");
   const [showSettings, setShowSettings] = useState(false);
   const [appView, setAppView] = useState<AppView>("onboarding");
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [show2FAModal, setShow2FAModal] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [pending2FA, setPending2FA] = useState(false);
-  const [twoFACompleted, setTwoFACompleted] = useState(false);
   
   const {
     miningStats,
@@ -374,13 +168,15 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
             if (twoFAData.enabled) {
               setRequires2FA(true);
               setPending2FA(true);
-              setTwoFACompleted(false);
+              setShow2FAModal(true);
+              // Don't move to main view yet - wait for 2FA verification
               return;
             }
           }
         } catch (error) {
           console.error("Failed to check 2FA status:", error);
         }
+
         // If no 2FA or already verified, go to main
         if (appView === "auth") {
           setAppView("main");
@@ -437,28 +233,239 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
     );
   }
 
-  // 2FA required: show dedicated page and block app until completed
-  if (firebaseUser && requires2FA && !twoFACompleted) {
-    return (
-      <TwoFactorPage
-        userId={firebaseUser.uid}
-        onSuccess={() => {
-          setTwoFACompleted(true);
-          setPending2FA(false);
-          setAppView("main");
-        }}
-        onLogout={async () => {
-          await logOut();
-          localStorage.clear();
-          setAppView("onboarding");
-        }}
+  return (
+    <div className="min-h-screen bg-background overflow-x-hidden safe-area-inset">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
+
+        {/* Force Update Modal */}
+        <ForceUpdateModal />
+      </div>
+
+      {/* Global Header - persists across all tabs */}
+      <GlobalHeader
+        onOpenSettings={() => setShowSettings(true)}
+        onNavigateToHome={() => setActiveTab("home")}
+        onNavigateToWallet={() => setActiveTab("wallet")}
+        onNavigateToInvest={() => setActiveTab("invest")}
       />
-    );
-  }
 
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
+        <AnimatePresence mode="wait">
+          {activeTab === "home" && (
+            isLoading ? (
+              <DashboardSkeleton key="dashboard-skeleton" />
+            ) : (
+              <Dashboard
+                key="dashboard"
+                balances={balances}
+                totalBalance={totalBalance}
+                change24h={change24h}
+                transactions={transactions}
+                miningStats={miningStats}
+                activeContracts={0}
+                portfolioHistory={portfolioHistory}
+                onOpenSettings={() => setShowSettings(true)}
+                onOpenProfile={() => firebaseUser ? setShowSettings(true) : setAppView("auth")}
+                onNavigateToInvest={() => setActiveTab("invest")}
+                onNavigateToSolo={() => setActiveTab("solo")}
+                onNavigateToMining={() => setActiveTab("mining")}
+                onNavigateToWallet={() => setActiveTab("wallet")}
+                onNavigateToHome={() => setActiveTab("home")}
+                onWithdraw={() => setActiveTab("wallet")}
+                isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
+                onRefreshBalances={refetchBalances}
+                isFetching={isFetching}
+              />
+            )
+          )}
+          {activeTab === "wallet" && (
+            isLoading ? (
+              <WalletSkeleton key="wallet-skeleton" />
+            ) : (
+              <Wallet
+                key="wallet"
+                balances={balances}
+                transactions={transactions}
+                totalBalance={totalBalance}
+                change24h={change24h}
+                onNavigateToHome={() => setActiveTab("home")}
+                onNavigateToWallet={() => setActiveTab("wallet")}
+                onNavigateToInvest={() => setActiveTab("invest")}
+                onOpenSettings={() => setShowSettings(true)}
+              />
+            )
+          )}
+          {activeTab === "invest" && (
+            <Invest 
+              key="invest" 
+              onNavigateToHome={() => setActiveTab("home")}
+              onNavigateToWallet={() => setActiveTab("wallet")}
+              onNavigateToInvest={() => setActiveTab("invest")}
+              onOpenSettings={() => setShowSettings(true)}
+            />
+          )}
+          {activeTab === "solo" && (
+            <SoloMining key="solo" />
+          )}
+          {activeTab === "mining" && (
+            <Mining
+              key="mining"
+              chartData={chartData}
+              contracts={contracts}
+              poolStatus={poolStatus}
+              onNavigateToInvest={() => setActiveTab("invest")}
+            />
+          )}
+        </AnimatePresence>
 
+        <motion.footer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-12 text-center space-y-4 pb-safe"
+        >
+          <div className="flex justify-center mb-6 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
+            <img 
+              src="/attached_assets/BlockMint-for-All.png" 
+              alt="BlockMint" 
+              className="h-28 w-auto object-contain relative z-10"
+              style={{
+                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.25)) contrast(1.1) saturate(1.2)',
+                imageRendering: '-webkit-optimize-contrast',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://x.com/BlockMintingApp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-x"
+              onClick={(e) => {
+                e.preventDefault();
+                // Try to open in Twitter app first, fallback to browser
+                window.location.href = 'twitter://user?screen_name=BlockMintingApp';
+                setTimeout(() => {
+                  window.location.href = 'https://x.com/BlockMintingApp';
+                }, 500);
+              }}
+            >
+              <SiX className="w-5 h-5 text-foreground" />
+            </a>
+            <a
+              href="https://www.instagram.com/blockmint.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-instagram"
+              onClick={(e) => {
+                e.preventDefault();
+                // Try to open in Instagram app first, fallback to browser
+                window.location.href = 'instagram://user?username=blockmint.app';
+                setTimeout(() => {
+                  window.location.href = 'https://www.instagram.com/blockmint.app/';
+                }, 500);
+              }}
+            >
+              <SiInstagram className="w-5 h-5 text-foreground" />
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-xs text-muted-foreground">BlockMint App By Hardisk UAE Mining Farms</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
+              ©
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/terms" data-testid="link-terms-of-service">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Terms of Service
+              </span>
+            </Link>
+            <Link href="/privacy" data-testid="link-privacy-policy">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Privacy Policy
+              </span>
+            </Link>
+          </div>
+        </motion.footer>
+      </main>
 
-function AppRouter() {
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="fixed inset-0 z-50 flex flex-col bg-background safe-area-inset"
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
+              <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
+            </div>
+            <div className="relative z-10 flex items-center justify-between px-4 pt-safe pb-4">
+              <h1 className="text-xl font-bold text-foreground font-display">BlockMint</h1>
+              <motion.button
+                data-testid="button-close-settings"
+                onClick={() => setShowSettings(false)}
+                className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
+                whileTap={{ scale: 0.95 }}
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </motion.button>
+            </div>
+            <div className="relative z-10 flex-1 overflow-auto px-4 pb-8">
+              <Settings
+                settings={settings}
+                onSettingsChange={updateSettings}
+                user={firebaseUser}
+                onLogout={async () => {
+                  await logOut();
+                  localStorage.clear(); // Clear all local storage including onboarding flag
+                  setShowSettings(false);
+                  setAppView("onboarding"); // Return to splash screens
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2FA Login Modal */}
+      {firebaseUser && (
+        <TwoFactorLoginModal
+          open={show2FAModal}
+          userId={firebaseUser.uid}
+          onSuccess={() => {
+            setShow2FAModal(false);
+            setPending2FA(false);
+            setAppView("main");
+          }}
+          onCancel={() => {
+            // User can't skip 2FA verification - force them to verify
+            if (!pending2FA) {
+              setShow2FAModal(false);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 function AppRouter() {
   const { isComplianceMode, isWebStorefront, isLoading } = useCompliance();
   
