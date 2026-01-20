@@ -249,7 +249,209 @@ type SafeTabType = "home" | "metrics" | "news" | "settings";
     );
   }
 
-  // ...existing code for main app UI...
+  // Main app UI (restored)
+  return (
+    <div className="min-h-screen bg-background overflow-x-hidden safe-area-inset">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[100px]" />
+        <ForceUpdateModal />
+      </div>
+      <GlobalHeader
+        onOpenSettings={() => setShowSettings(true)}
+        onNavigateToHome={() => setActiveTab("home")}
+        onNavigateToWallet={() => setActiveTab("wallet")}
+        onNavigateToInvest={() => setActiveTab("invest")}
+      />
+      <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
+        <AnimatePresence mode="wait">
+          {activeTab === "home" && (
+            isLoading ? (
+              <DashboardSkeleton key="dashboard-skeleton" />
+            ) : (
+              <Dashboard
+                key="dashboard"
+                balances={balances}
+                totalBalance={totalBalance}
+                change24h={change24h}
+                transactions={transactions}
+                miningStats={miningStats}
+                activeContracts={0}
+                portfolioHistory={portfolioHistory}
+                onOpenSettings={() => setShowSettings(true)}
+                onOpenProfile={() => firebaseUser ? setShowSettings(true) : setAppView("auth")}
+                onNavigateToInvest={() => setActiveTab("invest")}
+                onNavigateToSolo={() => setActiveTab("solo")}
+                onNavigateToMining={() => setActiveTab("mining")}
+                onNavigateToWallet={() => setActiveTab("wallet")}
+                onNavigateToHome={() => setActiveTab("home")}
+                onWithdraw={() => setActiveTab("wallet")}
+                isLoggedIn={localStorage.getItem("isLoggedIn") === "true"}
+                onRefreshBalances={refetchBalances}
+                isFetching={isFetching}
+              />
+            )
+          )}
+          {activeTab === "wallet" && (
+            isLoading ? (
+              <WalletSkeleton key="wallet-skeleton" />
+            ) : (
+              <Wallet
+                key="wallet"
+                balances={balances}
+                transactions={transactions}
+                totalBalance={totalBalance}
+                change24h={change24h}
+                onNavigateToHome={() => setActiveTab("home")}
+                onNavigateToWallet={() => setActiveTab("wallet")}
+                onNavigateToInvest={() => setActiveTab("invest")}
+                onOpenSettings={() => setShowSettings(true)}
+              />
+            )
+          )}
+          {activeTab === "invest" && (
+            <Invest 
+              key="invest" 
+              onNavigateToHome={() => setActiveTab("home")}
+              onNavigateToWallet={() => setActiveTab("wallet")}
+              onNavigateToInvest={() => setActiveTab("invest")}
+              onOpenSettings={() => setShowSettings(true)}
+            />
+          )}
+          {activeTab === "solo" && (
+            <SoloMining key="solo" />
+          )}
+          {activeTab === "mining" && (
+            <Mining
+              key="mining"
+              chartData={chartData}
+              contracts={contracts}
+              poolStatus={poolStatus}
+              onNavigateToInvest={() => setActiveTab("invest")}
+            />
+          )}
+        </AnimatePresence>
+        <motion.footer
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-12 text-center space-y-4 pb-safe"
+        >
+          <div className="flex justify-center mb-6 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-emerald-500/5 rounded-full blur-xl"></div>
+            <img 
+              src="/attached_assets/BlockMint-for-All.png" 
+              alt="BlockMint" 
+              className="h-28 w-auto object-contain relative z-10"
+              style={{
+                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.25)) contrast(1.1) saturate(1.2)',
+                imageRendering: '-webkit-optimize-contrast',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://x.com/BlockMintingApp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-x"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = 'twitter://user?screen_name=BlockMintingApp';
+                setTimeout(() => {
+                  window.location.href = 'https://x.com/BlockMintingApp';
+                }, 500);
+              }}
+            >
+              <SiX className="w-5 h-5 text-foreground" />
+            </a>
+            <a
+              href="https://www.instagram.com/blockmint.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-transform active:scale-95"
+              data-testid="link-social-instagram"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = 'instagram://user?username=blockmint.app';
+                setTimeout(() => {
+                  window.location.href = 'https://www.instagram.com/blockmint.app/';
+                }, 500);
+              }}
+            >
+              <SiInstagram className="w-5 h-5 text-foreground" />
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">Cryptocurrency Payments Accepted</p>
+          <div className="flex items-center justify-center gap-1">
+            <span className="text-xs text-muted-foreground">BlockMint App By Hardisk UAE Mining Farms</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
+              ©
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/terms" data-testid="link-terms-of-service">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Terms of Service
+              </span>
+            </Link>
+            <Link href="/privacy" data-testid="link-privacy-policy">
+              <span className="text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                Privacy Policy
+              </span>
+            </Link>
+          </div>
+        </motion.footer>
+      </main>
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="fixed inset-0 z-50 flex flex-col bg-background safe-area-inset"
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
+              <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
+            </div>
+            <div className="relative z-10 flex items-center justify-between px-4 pt-safe pb-4">
+              <h1 className="text-xl font-bold text-foreground font-display">BlockMint</h1>
+              <motion.button
+                data-testid="button-close-settings"
+                onClick={() => setShowSettings(false)}
+                className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
+                whileTap={{ scale: 0.95 }}
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </motion.button>
+            </div>
+            <div className="relative z-10 flex-1 overflow-auto px-4 pb-8">
+              <Settings
+                settings={settings}
+                onSettingsChange={updateSettings}
+                user={firebaseUser}
+                onLogout={async () => {
+                  await logOut();
+                  localStorage.clear();
+                  setShowSettings(false);
+                  setAppView("onboarding");
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 function AppRouter() {
