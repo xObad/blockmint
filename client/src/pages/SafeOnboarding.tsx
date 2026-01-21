@@ -79,7 +79,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
         {/* Header with Logo and Skip button */}
-        <div className="flex items-center justify-between pt-4 pb-2">
+        <div className="flex items-center justify-between pt-6 pb-1">
           <motion.div 
             className="h-20 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -153,12 +153,12 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
               </motion.div>
 
               {/* Text Content */}
-              <div className="text-center space-y-4">
+              <div className="text-center space-y-3">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-sm font-semibold`}
+                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-sm font-semibold`}
                 >
                   <Icon className="w-4 h-4" />
                   {slide.subtitle}
@@ -168,14 +168,14 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
                   {slide.title}
                 </h1>
                 
-                <p className="text-muted-foreground leading-relaxed max-w-sm">
+                <p className="text-muted-foreground leading-relaxed max-w-sm text-sm">
                   {slide.description}
                 </p>
               </div>
             </div>
 
-            {/* Dots Indicator */}
-            <div className="flex justify-center gap-2 mt-2 mb-2">
+            {/* Dots Indicator - 5px above button */}
+            <div className="flex justify-center gap-2 mb-3">
               {slides.map((_, index) => (
                 <motion.div
                   key={index}
@@ -194,7 +194,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="space-y-2 pb-2">
+        <div className="space-y-1 pb-1">
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
