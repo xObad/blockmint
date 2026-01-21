@@ -5,8 +5,13 @@ const config: CapacitorConfig = {
   appName: 'BlockMint',
   webDir: 'dist/public',
   server: {
+    // Production server URL - app loads from your hosted server
+    // This ensures API calls with relative paths (/api/...) work correctly
+    url: 'https://hardisk.co',
     androidScheme: 'https',
     iosScheme: 'https',
+    // Allow navigation to external URLs
+    allowNavigation: ['hardisk.co', '*.hardisk.co'],
   },
   ios: {
     contentInset: 'automatic',

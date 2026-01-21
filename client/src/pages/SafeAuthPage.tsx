@@ -174,7 +174,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-8 pb-6 overflow-y-auto">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           {onBack ? (
             <button

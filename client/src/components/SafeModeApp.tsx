@@ -128,10 +128,10 @@ export function SafeModeApp() {
     setAppView("auth");
   };
 
-  const handleSkipToMain = () => {
+  const handleSkipOnboarding = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
-    localStorage.setItem("isLoggedIn", "true");
-    setAppView("main");
+    // Skip onboarding but go to auth page (not main)
+    setAppView("auth");
   };
 
   // Onboarding view - Safe version (no signup option)

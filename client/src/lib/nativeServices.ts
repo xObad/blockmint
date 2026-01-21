@@ -388,7 +388,7 @@ export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
   try {
     const response = await plugin.authorize({
       clientId: 'co.hardisk.blockmint', // Your app's bundle ID
-      redirectURI: 'https://blockmint-mining.replit.app/__/auth/handler', // Firebase auth handler
+      redirectURI: 'https://hardisk.co/__/auth/handler', // Firebase auth handler
       scopes: 'email name',
       state: Math.random().toString(36).substring(7),
       nonce: Math.random().toString(36).substring(7)

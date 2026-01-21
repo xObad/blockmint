@@ -261,7 +261,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-8 pb-6 overflow-y-auto">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => onBack()}
@@ -329,7 +329,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
           >
             <div className="text-center mb-4">
               <motion.div 
-                className="w-full h-52 mx-auto mb-3 relative flex items-center justify-center"
+                className="w-full h-32 mx-auto mb-3 relative flex items-center justify-center"
                 initial={{ y: -200, scale: 0.5, opacity: 0 }}
                 animate={{ y: 0, scale: 1, opacity: 1 }}
                 transition={{ 
@@ -342,7 +342,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                 <img
                   src="/attached_assets/App-Logo.png"
                   alt="BlockMint"
-                  className="h-48 w-auto object-contain relative z-10"
+                  className="h-28 w-auto object-contain relative z-10"
                   style={{
                     filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
                     imageRendering: '-webkit-optimize-contrast',

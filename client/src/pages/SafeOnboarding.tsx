@@ -62,7 +62,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col">
       {/* Skip button */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-safe right-4 z-10 pt-4">
         <Button
           variant="ghost"
           size="sm"
@@ -121,7 +121,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
       </div>
 
       {/* Navigation */}
-      <div className="px-8 pb-12 space-y-4">
+      <div className="px-8 pb-safe space-y-4">
         <div className="flex gap-4">
           {currentSlide > 0 && (
             <Button

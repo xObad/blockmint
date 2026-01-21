@@ -181,8 +181,8 @@ const creds = await getCredentials('blockmint-app');
    - Identifiers → Services IDs → Create
    - Enable "Sign in with Apple"
    - Configure Domains and Return URLs:
-     - Domain: `blockmint-mining.replit.app`
-     - Return URL: `https://blockmint-mining.replit.app/__/auth/handler`
+     - Domain: `hardisk.co`
+     - Return URL: `https://hardisk.co/__/auth/handler`
 
 ### Step 2: Firebase Configuration
 

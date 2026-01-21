@@ -205,16 +205,16 @@ function MobileApp() {
     setAppView("auth");
   };
 
-  const handleSkipToMain = () => {
+  const handleSkipOnboarding = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
-    localStorage.setItem("isLoggedIn", "true");
-    setAppView("main");
+    // Skip onboarding screens but go to auth page (not main app)
+    setAppView("auth");
   };
 
   if (appView === "onboarding") {
     return (
       <div className="min-h-screen">
-        <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipToMain} />
+        <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipOnboarding} />
       </div>
     );
   }
@@ -435,8 +435,7 @@ function MobileApp() {
               <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
               <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
             </div>
-            <div className="relative z-10 flex items-center justify-between px-4 pt-safe pb-4">
-              <h1 className="text-xl font-bold text-foreground font-display">BlockMint</h1>
+            <div className="relative z-10 flex items-center justify-end px-4 pt-safe pb-2">
               <motion.button
                 data-testid="button-close-settings"
                 onClick={() => setShowSettings(false)}

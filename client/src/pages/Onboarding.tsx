@@ -73,10 +73,10 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-4 pb-8">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
         <div className="flex items-center justify-center mb-2 relative">
           <motion.div 
-            className="h-52 flex items-center justify-center relative"
+            className="h-32 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -84,7 +84,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-48 w-auto object-contain relative z-10"
+              className="h-28 w-auto object-contain relative z-10"
               style={{
                 filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(16, 185, 129, 0.4)) contrast(1.15) saturate(1.25)',
                 imageRendering: '-webkit-optimize-contrast',
