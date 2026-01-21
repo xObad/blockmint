@@ -63,15 +63,15 @@ export function ScrollAwareStatusBar({
           transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
           style={{
-            // Extra height for Dynamic Island (59px notch + extra buffer)
-            height: "calc(env(safe-area-inset-top, 59px) + 50px)",
-            // Very smooth gradient - no visible edge at bottom
+            // Extra height for Dynamic Island (59px notch + extra buffer - 3px)
+            height: "calc(env(safe-area-inset-top, 59px) + 47px)",
+            // Very smooth gradient - more transparent
             background: `linear-gradient(
               180deg, 
-              hsl(var(--background) / 0.5) 0%, 
-              hsl(var(--background) / 0.35) 30%,
-              hsl(var(--background) / 0.2) 55%,
-              hsl(var(--background) / 0.08) 75%,
+              hsl(var(--background) / 0.35) 0%, 
+              hsl(var(--background) / 0.25) 30%,
+              hsl(var(--background) / 0.15) 55%,
+              hsl(var(--background) / 0.06) 75%,
               hsl(var(--background) / 0.02) 90%,
               transparent 100%
             )`,
