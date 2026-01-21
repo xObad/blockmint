@@ -20,6 +20,7 @@ import {
 import { GlassCard } from "@/components/GlassCard";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
+import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 
 // Mock news articles (all cloud/tech focused, NO crypto)
 const newsArticles = [
@@ -94,8 +95,13 @@ export function News() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-foreground">News</h1>
-        <p className="text-sm text-muted-foreground">Industry updates and insights</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">News</h1>
+            <p className="text-sm text-muted-foreground">Industry updates and insights</p>
+          </div>
+          <InlineNotificationBell />
+        </div>
       </motion.div>
 
       {/* Featured Article */}

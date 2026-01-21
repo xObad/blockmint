@@ -14,6 +14,7 @@ import { useLocation } from "wouter";
 
 import { SafeBottomNav } from "@/components/SafeBottomNav";
 import { SafeHeader } from "@/components/SafeHeader";
+import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
 import { SafeHome } from "@/pages/SafeHome";
 import { SafeMetrics } from "@/pages/SafeMetrics";
 import { SafeSettings } from "@/pages/SafeSettings";
@@ -163,8 +164,11 @@ export function SafeModeApp() {
         <ForceUpdateModal />
       </div>
 
-      {/* Safe Mode Header - Minimal with just notification bell */}
-      <SafeHeader />
+      {/* Scroll-aware background for system status bar */}
+      <ScrollAwareStatusBar />
+      
+      {/* Spacer for system status bar - doubled for better spacing */}
+      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
 
       {/* Main Content */}
       <main className="relative z-10 max-w-md mx-auto px-4 pb-24">

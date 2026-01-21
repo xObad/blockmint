@@ -578,11 +578,11 @@ export function SoloMining() {
             </div>
             
             <Badge 
-              className="bg-primary/10 text-primary border-primary/30 font-semibold"
+              className="bg-primary/10 text-primary border-primary/30 font-semibold text-xs shrink-0 whitespace-nowrap"
               data-testid="badge-potential-value"
             >
               <Sparkles className="w-3 h-3 mr-1" />
-              ~${(btcPrice * BLOCK_REWARD).toLocaleString(undefined, { maximumFractionDigits: 0 })} Value
+              ~${(btcPrice * BLOCK_REWARD).toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </Badge>
           </div>
           
@@ -595,11 +595,11 @@ export function SoloMining() {
               className="mb-6"
             >
               <Badge 
-                className="w-full justify-center py-2 bg-primary/20 text-primary border-primary/40 font-semibold"
+                className="w-full justify-center py-2 bg-primary/20 text-primary border-primary/40 font-semibold text-xs"
                 data-testid="badge-recommended"
               >
-                <Award className="w-4 h-4 mr-2" />
-                Recommended: 50 PH/s for 6 months • 85% success rate
+                <Award className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <span className="truncate">50 PH/s • 6 months • 85% success</span>
               </Badge>
             </motion.div>
           )}

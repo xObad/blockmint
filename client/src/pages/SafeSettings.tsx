@@ -24,7 +24,8 @@ import {
   Info,
   Lock,
   X,
-  Fingerprint
+  Fingerprint,
+  KeyRound
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import { logOut } from "@/lib/firebase";
 import { useLocation } from "wouter";
+import { InlineNotificationBell } from "@/components/InlineNotificationBell";
+import { TwoFactorSetupModal } from "@/components/TwoFactorSetupModal";
 import { 
   checkBiometricAvailability, 
   authenticateWithBiometrics,
@@ -83,15 +86,113 @@ export function SafeSettings() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    // Load initial state from localStorage
+    const saved = localStorage.getItem("safe_notifications_enabled");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [biometricsEnabled, setBiometricsEnabled] = useState(() => {
+    const saved = localStorage.getItem("safe_biometrics_enabled");
+    return saved !== null ? JSON.parse(saved) : false;
+  });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
   // Biometric test state
   const [biometricType, setBiometricType] = useState<string>('none');
   const [biometricAvailable, setBiometricAvailable] = useState<boolean>(false);
   const [biometricAuthResult, setBiometricAuthResult] = useState<string>('');
   const [credentialResult, setCredentialResult] = useState<string>('');
+  
+  // 2FA status
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => {
+    const saved = localStorage.getItem("safe_2fa_enabled");
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+
+  // Get user info from localStorage
+  const getUserInfo = () => {
+    try {
+      const user = localStorage.getItem("user");
+      if (user) {
+        return JSON.parse(user);
+      }
+    } catch (e) {}
+    return { displayName: "User", email: "user@example.com" };
+  };
+
+  // Handle notification toggle with actual effect
+  const handleNotificationsToggle = async (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    localStorage.setItem("safe_notifications_enabled", JSON.stringify(enabled));
+    
+    if (enabled) {
+      // Request notification permission
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          toast({
+            title: "Notifications Enabled",
+            description: "You will receive push notifications.",
+          });
+        } else {
+          toast({
+            title: "Permission Denied",
+            description: "Please enable notifications in your browser settings.",
+            variant: "destructive",
+          });
+          setNotificationsEnabled(false);
+          localStorage.setItem("safe_notifications_enabled", "false");
+        }
+      }
+    } else {
+      toast({
+        title: "Notifications Disabled",
+        description: "You will no longer receive push notifications.",
+      });
+    }
+  };
+
+  // Handle biometrics toggle with actual effect
+  const handleBiometricsToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Check if biometrics are available
+      const availability = await checkBiometricAvailability();
+      
+      if (!availability.isAvailable) {
+        toast({
+          title: "Biometrics Not Available",
+          description: availability.errorMessage || "Your device doesn't support biometric authentication",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Verify before enabling
+      const result = await authenticateWithBiometrics("Enable biometric login");
+      if (result.success) {
+        setBiometricsEnabled(true);
+        localStorage.setItem("safe_biometrics_enabled", "true");
+        toast({ 
+          title: "Biometrics Enabled",
+          description: `${availability.biometryType === 'face' ? 'Face ID' : 'Touch ID'} has been enabled`
+        });
+      } else {
+        toast({
+          title: "Authentication Failed",
+          description: result.error || "Could not verify your identity",
+          variant: "destructive"
+        });
+      }
+    } else {
+      setBiometricsEnabled(false);
+      localStorage.setItem("safe_biometrics_enabled", "false");
+      toast({ 
+        title: "Biometrics Disabled",
+        description: "Biometric login has been disabled"
+      });
+    }
+  };
 
   async function testBiometrics() {
     const { checkBiometricAvailability, authenticateWithBiometrics, setCredentials, getCredentials } = await import('@/lib/nativeServices');
@@ -111,17 +212,6 @@ export function SafeSettings() {
       setCredentialResult('');
     }
   }
-
-  // Get user info from localStorage
-  const getUserInfo = () => {
-    try {
-      const user = localStorage.getItem("user");
-      if (user) {
-        return JSON.parse(user);
-      }
-    } catch (e) {}
-    return { displayName: "User", email: "user@example.com" };
-  };
 
   const userInfo = getUserInfo();
 
@@ -154,8 +244,13 @@ export function SafeSettings() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your preferences</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+            <p className="text-sm text-muted-foreground">Manage your preferences</p>
+          </div>
+          <InlineNotificationBell />
+        </div>
       </motion.div>
 
       {/* Account Section */}
@@ -177,6 +272,17 @@ export function SafeSettings() {
             label="Security"
             description="Password and authentication"
             onClick={() => setShowSecurityModal(true)}
+          />
+          <SettingItem
+            icon={KeyRound}
+            label="Two-Factor Auth"
+            description={twoFactorEnabled ? "Enabled" : "Not enabled"}
+            onClick={() => setShow2FAModal(true)}
+            rightElement={
+              <Badge variant={twoFactorEnabled ? "default" : "outline"} className={twoFactorEnabled ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : ""}>
+                {twoFactorEnabled ? "On" : "Off"}
+              </Badge>
+            }
           />
         </GlassCard>
       </motion.div>
@@ -207,7 +313,7 @@ export function SafeSettings() {
             rightElement={
               <Switch
                 checked={notificationsEnabled}
-                onCheckedChange={setNotificationsEnabled}
+                onCheckedChange={handleNotificationsToggle}
               />
             }
           />
@@ -218,7 +324,7 @@ export function SafeSettings() {
             rightElement={
               <Switch
                 checked={biometricsEnabled}
-                onCheckedChange={setBiometricsEnabled}
+                onCheckedChange={handleBiometricsToggle}
               />
             }
           />
@@ -479,6 +585,29 @@ export function SafeSettings() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Two-Factor Authentication Modal */}
+      <TwoFactorSetupModal
+        open={show2FAModal}
+        onOpenChange={(open) => {
+          setShow2FAModal(open);
+          // Update local 2FA state when modal closes
+          if (!open) {
+            // Check if 2FA is now enabled via localStorage or API
+            const user = getUserInfo();
+            if (user?.id) {
+              fetch(`/api/auth/2fa/status/${user.id}`)
+                .then(res => res.json())
+                .then(data => {
+                  setTwoFactorEnabled(data.enabled || false);
+                  localStorage.setItem("safe_2fa_enabled", JSON.stringify(data.enabled || false));
+                })
+                .catch(() => {});
+            }
+          }
+        }}
+        enabled={twoFactorEnabled}
+      />
     </motion.div>
   );
 }

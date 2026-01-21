@@ -29,6 +29,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 import {
   LineChart,
   Line,
@@ -147,13 +148,7 @@ export function SafeMetrics() {
             <h1 className="text-2xl font-bold text-foreground">Metrics</h1>
             <p className="text-sm text-muted-foreground">Server Performance Analytics</p>
           </div>
-          <Button 
-            onClick={() => setShowProvisioning(true)}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Request Node
-          </Button>
+          <InlineNotificationBell />
         </div>
       </motion.div>
 
@@ -177,6 +172,22 @@ export function SafeMetrics() {
             </div>
           </GlassCard>
         ))}
+      </motion.div>
+
+      {/* Request Node Button - Wide button below the metrics */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Button 
+          onClick={() => setShowProvisioning(true)}
+          className="w-full h-12 gap-2 bg-gradient-to-r from-primary/80 to-primary text-white font-semibold"
+          size="lg"
+        >
+          <Plus className="w-5 h-5" />
+          Request New Node Allocation
+        </Button>
       </motion.div>
 
       {/* Temperature Graph */}

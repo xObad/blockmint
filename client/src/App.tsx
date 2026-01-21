@@ -15,6 +15,7 @@ import { BottomNav, type TabType } from "@/components/BottomNav";
 import { SafeBottomNav } from "@/components/SafeBottomNav";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { SafeHeader } from "@/components/SafeHeader";
+import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Wallet } from "@/pages/Wallet";
 import { Invest } from "@/pages/Invest";
@@ -435,16 +436,10 @@ function MobileApp() {
               <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />
               <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
             </div>
-            <div className="relative z-10 flex items-center justify-end px-4 pt-safe pb-2">
-              <motion.button
-                data-testid="button-close-settings"
-                onClick={() => setShowSettings(false)}
-                className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
-                whileTap={{ scale: 0.95 }}
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </motion.button>
-            </div>
+            {/* Scroll-aware background for system status bar */}
+            <ScrollAwareStatusBar />
+            {/* Spacer for system status bar - doubled for better spacing */}
+            <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
             <div className="relative z-10 flex-1 overflow-auto px-4 pb-8">
               <Settings
                 settings={settings}

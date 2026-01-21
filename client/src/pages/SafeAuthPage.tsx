@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
 import { 
   signInWithGoogle, 
   signInWithApple, 
@@ -168,13 +169,20 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Scroll-aware background for system status bar */}
+      <ScrollAwareStatusBar />
+      
       <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/15 rounded-full blur-[120px]" />
         <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe overflow-y-auto">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 overflow-y-auto">
+        {/* Spacer for system status bar - doubled for better spacing */}
+        <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)] shrink-0" />
+        
+        {/* Header with back and theme toggle */}
         <div className="flex items-center justify-between mb-4">
           {onBack ? (
             <button
@@ -200,8 +208,8 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
         >
           <div className="text-center mb-4">
             <motion.div 
-              className="w-full h-52 mx-auto mb-3 relative flex items-center justify-center"
-              initial={{ y: -200, scale: 0.5, opacity: 0 }}
+              className="w-full h-32 mx-auto mb-3 relative flex items-center justify-center"
+              initial={{ y: -100, scale: 0.5, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               transition={{ 
                 type: "spring",
@@ -213,9 +221,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               <img
                 src="/attached_assets/App-Logo.png"
                 alt="BlockMint"
-                className="h-48 w-auto object-contain relative z-10"
+                className="h-28 w-auto object-contain relative z-10"
                 style={{
-                  filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
+                  filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
                   imageRendering: '-webkit-optimize-contrast',
                 }}
                 onError={(e) => { e.currentTarget.style.display = "none"; }}

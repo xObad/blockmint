@@ -26,6 +26,7 @@ import {
 import { GlassCard } from "@/components/GlassCard";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 import {
   LineChart,
   Line,
@@ -91,24 +92,27 @@ export function SafeHome() {
                 <p className="text-sm text-muted-foreground">Infrastructure Status</p>
               </div>
             </div>
-            <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-3 py-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse" />
-              All Systems Online
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-2 py-1 text-xs whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+                All Online
+              </Badge>
+              <InlineNotificationBell size="sm" />
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-3 rounded-xl bg-background/50">
-              <div className="text-2xl font-bold text-foreground">Online</div>
-              <div className="text-xs text-muted-foreground mt-1">Status</div>
+              <div className="text-lg font-bold text-foreground">Online</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Status</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-background/50">
-              <div className="text-2xl font-bold text-emerald-400">99.98%</div>
-              <div className="text-xs text-muted-foreground mt-1">Uptime</div>
+              <div className="text-lg font-bold text-emerald-400">99.98%</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Uptime</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-background/50">
-              <div className="text-2xl font-bold text-foreground">4/4</div>
-              <div className="text-xs text-muted-foreground mt-1">Active Nodes</div>
+              <div className="text-lg font-bold text-foreground">4/4</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Nodes</div>
             </div>
           </div>
         </GlassCard>
@@ -122,10 +126,10 @@ export function SafeHome() {
         className="grid grid-cols-4 gap-2"
       >
         {quickStats.map((stat, index) => (
-          <GlassCard key={index} className="p-3 text-center" variant="subtle">
-            <stat.icon className={`w-5 h-5 mx-auto mb-2 ${stat.color}`} />
-            <div className="text-sm font-bold text-foreground">{stat.value}</div>
-            <div className="text-[10px] text-muted-foreground">{stat.label}</div>
+          <GlassCard key={index} className="p-2.5 text-center h-[72px] flex flex-col items-center justify-center" variant="subtle">
+            <stat.icon className={`w-4 h-4 mb-1.5 ${stat.color}`} />
+            <div className="text-xs font-bold text-foreground truncate w-full">{stat.value}</div>
+            <div className="text-[9px] text-muted-foreground truncate w-full">{stat.label}</div>
           </GlassCard>
         ))}
       </motion.div>

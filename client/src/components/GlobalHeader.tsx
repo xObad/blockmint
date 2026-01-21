@@ -4,6 +4,7 @@ import { Menu, Bell, Sun, Moon, X, Home, Wallet, PieChart, HelpCircle, LogOut, S
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { logOut } from "@/lib/firebase";
+import { ScrollAwareStatusBar } from "./ScrollAwareStatusBar";
 
 interface GlobalHeaderProps {
   onOpenSettings?: () => void;
@@ -31,8 +32,14 @@ export function GlobalHeader({
 
   return (
     <>
+      {/* Scroll-aware background for system status bar */}
+      <ScrollAwareStatusBar />
+      
+      {/* Spacer for system status bar - doubled for better spacing */}
+      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
+      
       <header
-        className="bg-transparent pt-safe"
+        className="bg-transparent"
       >
         <div className="flex items-center gap-4 px-4 h-16">
           {/* Left Side - Hamburger Menu & Settings */}

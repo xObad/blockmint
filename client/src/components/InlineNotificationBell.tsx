@@ -1,58 +1,47 @@
 /**
- * Safe Header (Compliance Mode)
+ * Inline Notification Bell
  * 
- * Minimal header for Safe Mode:
- * - Just the notification bell icon
- * - NO title bar
- * - Proper safe area for iOS status bar and Dynamic Island
- * - Notification panel drops down like main app
- * - Scroll-aware background for system elements
+ * A reusable notification bell component that can be placed inline within cards
+ * or headers. Shows notifications in a dropdown panel.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X } from "lucide-react";
-import { ScrollAwareStatusBar } from "./ScrollAwareStatusBar";
 
-interface SafeHeaderProps {
-  notificationCount?: number;
-  /** Hide the notification bell (for pages that integrate it elsewhere) */
-  hideBell?: boolean;
+interface InlineNotificationBellProps {
+  className?: string;
+  /** Custom size variant */
+  size?: "sm" | "md";
 }
 
-export function SafeHeader({ notificationCount: propNotificationCount, hideBell = false }: SafeHeaderProps) {
-  // For Safe Mode (review mode), we don't use real notifications
-  // Always show empty notification panel
+export function InlineNotificationBell({ 
+  className = "",
+  size = "md"
+}: InlineNotificationBellProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   
   // Safe Mode always has 0 notifications (no real data)
   const displayCount = 0;
+  
+  const iconSize = size === "sm" ? "w-4 h-4" : "w-[17px] h-[17px]";
+  const buttonSize = size === "sm" ? "w-8 h-8" : "w-10 h-10";
+  const dotSize = size === "sm" ? "w-2 h-2 top-1 right-1" : "w-2.5 h-2.5 top-1.5 right-1.5";
 
   return (
     <>
-      {/* Scroll-aware background for system status bar */}
-      <ScrollAwareStatusBar />
-      
-      {/* Spacer for system status bar - doubled for better spacing */}
-      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
-      
-      {/* Minimal header - just bell icon on the right */}
-      {!hideBell && (
-      <div className="flex items-center justify-end px-4 h-12">
-        <motion.button
-          className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate relative"
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowNotifications(!showNotifications)}
-        >
-          <Bell className="w-[17px] h-[17px] text-muted-foreground" />
-          {displayCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/50" />
-          )}
-        </motion.button>
-      </div>
-      )}
+      <motion.button
+        className={`${buttonSize} rounded-2xl liquid-glass flex items-center justify-center hover-elevate relative ${className}`}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowNotifications(!showNotifications)}
+      >
+        <Bell className={`${iconSize} text-muted-foreground`} />
+        {displayCount > 0 && (
+          <span className={`absolute ${dotSize} bg-red-500 rounded-full shadow-lg shadow-red-500/50`} />
+        )}
+      </motion.button>
 
-      {/* Notifications Panel - Same as GlobalHeader (drops down from top) */}
+      {/* Notifications Panel */}
       <AnimatePresence>
         {showNotifications && (
           <>
@@ -97,4 +86,4 @@ export function SafeHeader({ notificationCount: propNotificationCount, hideBell 
   );
 }
 
-export default SafeHeader;
+export default InlineNotificationBell;

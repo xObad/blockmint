@@ -4,12 +4,15 @@
  * This is a separate onboarding flow for Safe Mode.
  * NO crypto references, NO sign up option.
  * Only allows existing users to sign in.
+ * 
+ * Matches the design of the main Onboarding component.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Server, BarChart3, Bell, Shield, ChevronRight, ChevronLeft } from "lucide-react";
+import { Server, BarChart3, Bell, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface SafeOnboardingProps {
   onComplete: () => void;
@@ -18,139 +21,208 @@ interface SafeOnboardingProps {
 const slides = [
   {
     icon: Server,
-    title: "Monitor Your Infrastructure",
+    title: "Node Manager",
+    subtitle: "Infrastructure Control",
     description: "Track server health, uptime, and performance metrics in real-time with our intuitive dashboard.",
-    color: "from-cyan-500 to-blue-600",
+    gradient: "from-cyan-500 via-blue-400 to-cyan-600",
   },
   {
     icon: BarChart3,
     title: "Advanced Analytics",
+    subtitle: "Data Insights",
     description: "Visualize CPU, memory, and network performance with detailed charts and historical data.",
-    color: "from-purple-500 to-pink-600",
+    gradient: "from-purple-500 via-pink-400 to-purple-600",
   },
   {
     icon: Bell,
     title: "Smart Notifications",
+    subtitle: "Stay Informed",
     description: "Receive instant alerts when your servers need attention or performance drops below thresholds.",
-    color: "from-orange-500 to-red-600",
+    gradient: "from-orange-500 via-amber-400 to-orange-600",
   },
   {
     icon: Shield,
     title: "Secure Access",
+    subtitle: "Enterprise Security",
     description: "Enterprise-grade security with biometric authentication and encrypted connections.",
-    color: "from-green-500 to-emerald-600",
+    gradient: "from-emerald-500 via-teal-400 to-emerald-600",
   },
 ];
 
 export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const nextSlide = () => {
+  const handleNext = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
+    } else {
+      onComplete();
     }
   };
 
-  const prevSlide = () => {
+  const handlePrevious = () => {
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
     }
   };
 
-  const isLastSlide = currentSlide === slides.length - 1;
+  const slide = slides[currentSlide];
+  const Icon = slide.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col">
-      {/* Skip button */}
-      <div className="absolute top-safe right-4 z-10 pt-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onComplete}
-          className="text-gray-400 hover:text-white"
-        >
-          Skip
-        </Button>
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/15 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Slide Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
+        {/* Header with Logo and Skip button */}
+        <div className="flex items-center justify-center mb-2 relative">
+          <motion.div 
+            className="h-32 flex items-center justify-center relative"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <img
+              src="/attached_assets/App-Logo.png"
+              alt="BlockMint"
+              className="h-28 w-auto object-contain relative z-10"
+              style={{
+                filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(16, 185, 129, 0.4)) contrast(1.15) saturate(1.25)',
+                imageRendering: '-webkit-optimize-contrast',
+              }}
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          </motion.div>
+          <div className="absolute right-0 flex flex-col items-end gap-2">
+            <motion.button
+              onClick={onComplete}
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-2xl font-light text-muted-foreground hover:text-foreground"
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              aria-label="Skip onboarding"
+            >
+              ×
+            </motion.button>
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* Slide Content */}
         <AnimatePresence mode="wait">
           <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, { offset, velocity }) => {
+              const swipe = Math.abs(offset.x) * velocity.x;
+              if (swipe < -10000) {
+                handleNext();
+              } else if (swipe > 10000) {
+                handlePrevious();
+              }
+            }}
             key={currentSlide}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
-            className="text-center max-w-md"
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
-            {/* Icon */}
-            <div className={`w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br ${slides[currentSlide].color} flex items-center justify-center shadow-2xl`}>
-              {(() => {
-                const Icon = slides[currentSlide].icon;
-                return <Icon className="w-12 h-12 text-white" />;
-              })()}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {/* Icon Container */}
+              <motion.div 
+                className="relative w-48 h-48 sm:w-52 sm:h-52 mb-8"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20 rounded-full blur-3xl`} />
+                <div className={`relative z-10 w-full h-full rounded-3xl bg-gradient-to-br ${slide.gradient} flex items-center justify-center shadow-2xl`}>
+                  <Icon className="w-24 h-24 text-white" />
+                </div>
+              </motion.div>
+
+              {/* Text Content */}
+              <div className="text-center space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-sm font-semibold`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {slide.subtitle}
+                </motion.div>
+                
+                <h1 className="font-display text-3xl font-bold text-foreground">
+                  {slide.title}
+                </h1>
+                
+                <p className="text-muted-foreground leading-relaxed max-w-sm">
+                  {slide.description}
+                </p>
+              </div>
             </div>
 
-            {/* Title */}
-            <h2 className="text-2xl font-bold mb-4">
-              {slides[currentSlide].title}
-            </h2>
-
-            {/* Description */}
-            <p className="text-gray-400 text-lg leading-relaxed">
-              {slides[currentSlide].description}
-            </p>
+            {/* Dots Indicator */}
+            <div className="flex justify-center gap-2 my-8 mt-6">
+              {slides.map((_, index) => (
+                <motion.div
+                  key={index}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    index === currentSlide 
+                      ? 'w-8 bg-primary' 
+                      : 'w-2 bg-muted-foreground/30'
+                  }`}
+                  animate={{ scale: index === currentSlide ? 1.1 : 1 }}
+                  onClick={() => setCurrentSlide(index)}
+                  style={{ cursor: 'pointer' }}
+                />
+              ))}
+            </div>
           </motion.div>
         </AnimatePresence>
 
-        {/* Dots indicator */}
-        <div className="flex gap-2 mt-12">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                index === currentSlide
-                  ? "bg-cyan-500 w-8"
-                  : "bg-gray-600 hover:bg-gray-500"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="px-8 pb-safe space-y-4">
-        <div className="flex gap-4">
-          {currentSlide > 0 && (
-            <Button
-              variant="outline"
-              onClick={prevSlide}
-              className="flex-1 py-6 border-gray-700 text-gray-300"
-            >
-              <ChevronLeft className="w-5 h-5 mr-2" />
-              Back
-            </Button>
-          )}
-          
-          <Button
-            onClick={isLastSlide ? onComplete : nextSlide}
-            className={`flex-1 py-6 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 ${
-              currentSlide === 0 ? "w-full" : ""
-            }`}
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
           >
-            {isLastSlide ? "Get Started" : "Next"}
-            {!isLastSlide && <ChevronRight className="w-5 h-5 ml-2" />}
-          </Button>
-        </div>
+            {/* Pulsing glow effect */}
+            <motion.div
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 opacity-60 blur-xl"
+              animate={{
+                scale: [1, 1.05, 1],
+                opacity: [0.4, 0.7, 0.4],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+            <Button
+              onClick={handleNext}
+              className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {currentSlide === slides.length - 1 ? "Get Started" : "Continue"}
+              </span>
+            </Button>
+          </motion.div>
 
-        {/* Sign in only - NO sign up */}
-        {isLastSlide && (
-          <p className="text-center text-gray-500 text-sm">
-            Already have an account? Sign in to continue.
+          {/* Sign in hint */}
+          <p className="text-center text-xs text-muted-foreground/80 pt-2">
+            Sign in to access your infrastructure dashboard.
           </p>
-        )}
+        </div>
       </div>
     </div>
   );
