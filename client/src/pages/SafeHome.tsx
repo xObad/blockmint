@@ -137,10 +137,12 @@ export function SafeHome() {
         className="grid grid-cols-4 gap-2"
       >
         {quickStats.map((stat, index) => (
-          <GlassCard key={index} className="p-2.5 text-center h-[72px] flex flex-col items-center justify-center" variant="subtle">
-            <stat.icon className={`w-4 h-4 mb-1.5 ${stat.color}`} />
-            <div className="text-xs font-bold text-foreground truncate w-full">{stat.value}</div>
-            <div className="text-[9px] text-muted-foreground truncate w-full">{stat.label}</div>
+          <GlassCard key={index} className="p-2.5 h-[72px] flex flex-col items-center justify-center" variant="subtle">
+            <div className="flex items-center justify-center w-full">
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+            </div>
+            <div className="text-xs font-bold text-foreground text-center truncate w-full mt-1.5">{stat.value}</div>
+            <div className="text-[9px] text-muted-foreground text-center truncate w-full">{stat.label}</div>
           </GlassCard>
         ))}
       </motion.div>
