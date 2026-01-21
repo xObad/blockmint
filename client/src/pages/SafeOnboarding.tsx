@@ -79,9 +79,9 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
         {/* Header with Logo and Skip button */}
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between pt-4 pb-2">
           <motion.div 
-            className="h-16 flex items-center justify-center relative"
+            className="h-20 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -89,7 +89,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-14 w-auto object-contain relative z-10"
+              className="h-16 w-auto object-contain relative z-10"
               style={{
                 filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.35)) contrast(1.1) saturate(1.2)',
                 imageRendering: '-webkit-optimize-contrast',
@@ -135,19 +135,19 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             <div className="flex-1 flex flex-col items-center justify-center">
               {/* Icon Container - 3D glass style */}
               <motion.div 
-                className="relative w-28 h-28 sm:w-32 sm:h-32 mb-6"
-                animate={{ y: [0, -6, 0] }}
+                className="relative w-20 h-20 sm:w-24 sm:h-24 mb-4"
+                animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
               >
                 {/* Glow effect */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-3xl blur-2xl scale-110`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-2xl blur-xl scale-110`} />
                 {/* Glass container with gradient border */}
-                <div className="relative z-10 w-full h-full rounded-3xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden">
+                <div className="relative z-10 w-full h-full rounded-2xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-xl overflow-hidden">
                   {/* Inner gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20`} />
                   {/* Icon with gradient */}
-                  <div className={`relative z-10 p-4 rounded-2xl bg-gradient-to-br ${slide.gradient}`}>
-                    <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-lg" />
+                  <div className={`relative z-10 p-3 rounded-xl bg-gradient-to-br ${slide.gradient}`}>
+                    <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
                   </div>
                 </div>
               </motion.div>
@@ -175,7 +175,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             </div>
 
             {/* Dots Indicator */}
-            <div className="flex justify-center gap-2 my-4">
+            <div className="flex justify-center gap-2 mt-2 mb-2">
               {slides.map((_, index) => (
                 <motion.div
                   key={index}
@@ -194,7 +194,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className="space-y-2 pb-2">
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -226,7 +226,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
           </motion.div>
 
           {/* Sign in hint */}
-          <p className="text-center text-xs text-muted-foreground/80 pt-1 pb-2">
+          <p className="text-center text-xs text-muted-foreground/80 pt-0 pb-1">
             Sign in to access your infrastructure dashboard.
           </p>
         </div>
