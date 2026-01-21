@@ -6,6 +6,7 @@
  * Focuses on cloud computing and technology news.
  */
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Newspaper, 
