@@ -79,9 +79,9 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
         {/* Header with Logo and Skip button */}
-        <div className="flex items-center justify-center mb-2 relative">
+        <div className="flex items-center justify-center mb-0 relative">
           <motion.div 
-            className="h-32 flex items-center justify-center relative"
+            className="h-24 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -89,7 +89,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-28 w-auto object-contain relative z-10"
+              className="h-20 w-auto object-contain relative z-10"
               style={{
                 filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(16, 185, 129, 0.4)) contrast(1.15) saturate(1.25)',
                 imageRendering: '-webkit-optimize-contrast',
@@ -132,16 +132,16 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center py-4">
               {/* Icon Container */}
               <motion.div 
-                className="relative w-48 h-48 sm:w-52 sm:h-52 mb-8"
+                className="relative w-40 h-40 sm:w-44 sm:h-44 mb-6"
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20 rounded-full blur-3xl`} />
                 <div className={`relative z-10 w-full h-full rounded-3xl bg-gradient-to-br ${slide.gradient} flex items-center justify-center shadow-2xl`}>
-                  <Icon className="w-24 h-24 text-white" />
+                  <Icon className="w-20 h-20 text-white" />
                 </div>
               </motion.div>
 
@@ -168,7 +168,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             </div>
 
             {/* Dots Indicator */}
-            <div className="flex justify-center gap-2 my-8 mt-6">
+            <div className="flex justify-center gap-2 my-4">
               {slides.map((_, index) => (
                 <motion.div
                   key={index}
@@ -209,7 +209,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             />
             <Button
               onClick={handleNext}
-              className="relative w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
+              className="relative w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -219,7 +219,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
           </motion.div>
 
           {/* Sign in hint */}
-          <p className="text-center text-xs text-muted-foreground/80 pt-2">
+          <p className="text-center text-xs text-muted-foreground/80 pt-1 pb-2">
             Sign in to access your infrastructure dashboard.
           </p>
         </div>

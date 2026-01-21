@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { SiGoogle, SiApple } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,24 +179,21 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 overflow-y-auto">
-        {/* Spacer for system status bar - doubled for better spacing */}
-        <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)] shrink-0" />
+        {/* Spacer for system status bar - reduced spacing */}
+        <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)] shrink-0" />
         
-        {/* Header with back and theme toggle */}
-        <div className="flex items-center justify-between mb-4">
-          {onBack ? (
-            <button
-              onClick={onBack}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
-              type="button"
-              aria-label="Go back"
-              disabled={isLoading}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          ) : (
-            <div className="w-9 h-9" />
-          )}
+        {/* Header with X button and theme toggle */}
+        <div className="flex items-center justify-between mb-2">
+          <motion.button
+            onClick={onBack}
+            className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-2xl font-light text-muted-foreground hover:text-foreground"
+            whileTap={{ scale: 0.95 }}
+            type="button"
+            aria-label="Go back to onboarding"
+            disabled={isLoading}
+          >
+            ×
+          </motion.button>
           <div className="flex-1"></div>
           <ThemeToggle />
         </div>
@@ -206,9 +203,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
           animate={{ opacity: 1, y: 0 }}
           className="flex-1 flex flex-col"
         >
-          <div className="text-center mb-4">
+          <div className="text-center mb-2">
             <motion.div 
-              className="w-full h-32 mx-auto mb-3 relative flex items-center justify-center"
+              className="w-full h-24 mx-auto mb-2 relative flex items-center justify-center"
               initial={{ y: -100, scale: 0.5, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               transition={{ 
@@ -221,7 +218,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               <img
                 src="/attached_assets/App-Logo.png"
                 alt="BlockMint"
-                className="h-28 w-auto object-contain relative z-10"
+                className="h-20 w-auto object-contain relative z-10"
                 style={{
                   filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
                   imageRendering: '-webkit-optimize-contrast',
@@ -333,7 +330,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
             </p>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground/60 mt-auto pt-8">
+          <p className="text-center text-xs text-muted-foreground/60 mt-6 pb-4">
             By Continuing, You Agree To Our{" "}
             <Link 
               href="/legal/terms" 

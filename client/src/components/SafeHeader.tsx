@@ -33,8 +33,8 @@ export function SafeHeader({ notificationCount: propNotificationCount, hideBell 
       {/* Scroll-aware background for system status bar */}
       <ScrollAwareStatusBar />
       
-      {/* Spacer for system status bar - doubled for better spacing */}
-      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
+      {/* Spacer for system status bar - reduced spacing */}
+      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)]" />
       
       {/* Minimal header - just bell icon on the right */}
       {!hideBell && (

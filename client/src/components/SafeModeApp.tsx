@@ -167,8 +167,8 @@ export function SafeModeApp() {
       {/* Scroll-aware background for system status bar */}
       <ScrollAwareStatusBar />
       
-      {/* Spacer for system status bar - doubled for better spacing */}
-      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2),88px)]" />
+      {/* Spacer for system status bar - reduced spacing */}
+      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)]" />
 
       {/* Main Content */}
       <main className="relative z-10 max-w-md mx-auto px-4 pb-24">

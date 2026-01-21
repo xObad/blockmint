@@ -73,6 +73,20 @@ export function SafeHome() {
       animate={{ opacity: 1 }}
       className="flex flex-col gap-5 pb-24"
     >
+      {/* Header with notification bell */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Infrastructure Overview</p>
+          </div>
+          <InlineNotificationBell />
+        </div>
+      </motion.div>
+
       {/* System Health Card - Replaces Total Balance */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -92,13 +106,10 @@ export function SafeHome() {
                 <p className="text-sm text-muted-foreground">Infrastructure Status</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-2 py-1 text-xs whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
-                All Online
-              </Badge>
-              <InlineNotificationBell size="sm" />
-            </div>
+            <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-2 py-1 text-xs whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+              All Online
+            </Badge>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
