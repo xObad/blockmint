@@ -41,11 +41,6 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
       
-      - name: Resolve Swift Package Manager dependencies
-        script: |
-          cd ios/App
-          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
-      
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
@@ -64,6 +59,7 @@ workflows:
             -configuration Release \
             -archivePath $CM_BUILD_DIR/build/App.xcarchive \
             -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
             archive
           
           xcode-project build-ipa --archive $CM_BUILD_DIR/build/App.xcarchive
