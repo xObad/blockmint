@@ -48,6 +48,7 @@ import { SafeModeApp } from "@/components/SafeModeApp";
 import { SafeTermsOfService } from "@/pages/SafeTermsOfService";
 import { SafePrivacyPolicy } from "@/pages/SafePrivacyPolicy";
 import { SafeNewsArticle } from "@/pages/SafeNewsArticle";
+import Support from "@/pages/Support";
 
 // Web Storefront (compliance mode for web browser - allows signup, USDT deposit)
 import { WebStorefrontApp } from "@/components/WebStorefrontApp";
@@ -501,6 +502,7 @@ function AppRouter() {
         <Route path="/privacy" component={SafePrivacyPolicy} />
         <Route path="/terms" component={SafeTermsOfService} />
         <Route path="/safe-news/:id" component={SafeNewsArticle} />
+        <Route path="/support" component={Support} />
         <Route path="/db-admin" component={DatabaseAdmin} />
         <Route path="/console/:rest*" component={WebStorefrontApp} />
         <Route path="/console" component={WebStorefrontApp} />
@@ -520,6 +522,7 @@ function AppRouter() {
       </Route>
       <Route path="/db-admin" component={DatabaseAdmin} />
       <Route path="/article/:id" component={ArticlePage} />
+      <Route path="/support" component={Support} />
       <Route path="/virtual-card">
         {() => <VirtualCard onBack={() => window.history.back()} />}
       </Route>

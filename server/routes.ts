@@ -4023,5 +4023,112 @@ export async function registerRoutes(
     }
   });
 
+  // Support Contact Form
+  app.post("/api/support", async (req, res) => {
+    try {
+      const { subject, description, userEmail, accountEmail } = req.body;
+      
+      if (!subject || !description || !userEmail) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userEmail)) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      // Try to use Resend if API key is available
+      const resendApiKey = process.env.RESEND_API_KEY;
+      
+      if (resendApiKey) {
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendApiKey);
+
+        const emailContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #ea580c); padding: 20px; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">🛠️ BlockMint Support Request</h1>
+            </div>
+            <div style="background: #1a1a24; padding: 30px; border-radius: 0 0 10px 10px; color: #e5e5e5;">
+              <h2 style="color: #f59e0b; margin-top: 0;">${subject}</h2>
+              
+              <div style="background: #252532; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; white-space: pre-wrap;">${description}</p>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+              
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 8px 0; color: #888;">Contact Email:</td>
+                  <td style="padding: 8px 0;"><a href="mailto:${userEmail}" style="color: #f59e0b;">${userEmail}</a></td>
+                </tr>
+                ${accountEmail ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #888;">Account Email:</td>
+                  <td style="padding: 8px 0;"><a href="mailto:${accountEmail}" style="color: #f59e0b;">${accountEmail}</a></td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td style="padding: 8px 0; color: #888;">Submitted:</td>
+                  <td style="padding: 8px 0;">${new Date().toLocaleString()}</td>
+                </tr>
+              </table>
+            </div>
+            <p style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">
+              This message was sent from BlockMint Support Form
+            </p>
+          </div>
+        `;
+
+        // Send to both support emails
+        await resend.emails.send({
+          from: "BlockMint Support <support@hardisk.co>",
+          to: ["info@hardisk.co", "iamberonacci@gmail.com"],
+          replyTo: userEmail,
+          subject: `[Support] ${subject}`,
+          html: emailContent,
+        });
+
+        // Send confirmation to user
+        await resend.emails.send({
+          from: "BlockMint Support <support@hardisk.co>",
+          to: userEmail,
+          subject: "We received your support request - BlockMint",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: linear-gradient(135deg, #f59e0b, #ea580c); padding: 20px; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">✅ Message Received</h1>
+              </div>
+              <div style="background: #1a1a24; padding: 30px; border-radius: 0 0 10px 10px; color: #e5e5e5;">
+                <p>Thank you for contacting BlockMint Support!</p>
+                <p>We have received your message regarding: <strong>${subject}</strong></p>
+                <p>Our support team will review your request and get back to you within 24-48 hours.</p>
+                <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+                <p style="color: #888; font-size: 14px;">
+                  If you have any additional information to add, please reply to this email.
+                </p>
+              </div>
+            </div>
+          `,
+        });
+
+        console.log("Support email sent successfully via Resend");
+      } else {
+        // Fallback: Store in database for manual processing
+        console.log("RESEND_API_KEY not set, logging support request:");
+        console.log({ subject, description, userEmail, accountEmail, timestamp: new Date().toISOString() });
+        
+        // You could also store in a support_requests table
+      }
+
+      res.json({ success: true, message: "Support request submitted successfully" });
+    } catch (error) {
+      console.error("Failed to send support email:", error);
+      res.status(500).json({ error: "Failed to send support request" });
+    }
+  });
+
   return httpServer;
 }
