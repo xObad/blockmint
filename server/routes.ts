@@ -2786,6 +2786,60 @@ export async function registerRoutes(
     }
   });
 
+  // Admin disable 2FA for user
+  app.post("/api/admin/users/:userId/disable-2fa", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      // Get user
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.twoFactorEnabled) {
+        return res.status(400).json({ error: "2FA is not enabled for this user" });
+      }
+
+      // Disable 2FA and clear secret
+      await db.update(users)
+        .set({ 
+          twoFactorEnabled: false,
+          twoFactorSecret: null
+        })
+        .where(eq(users.id, userId));
+
+      // Create notification for user
+      await db.insert(notifications).values({
+        userId,
+        type: "security",
+        category: "user",
+        title: "🔐 Two-Factor Authentication Disabled",
+        message: "Your two-factor authentication has been disabled by support at your request. You can re-enable it anytime from Settings > Security.",
+        priority: "high",
+        data: { action: "2fa_disabled_by_admin" },
+      });
+
+      // Log admin action
+      await db.insert(adminActions).values({
+        adminId: "system",
+        targetUserId: userId,
+        actionType: "disable_2fa",
+        details: { userEmail: user.email },
+      }).catch(() => {});
+
+      console.log(`Admin disabled 2FA for user: ${user.email}`);
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
   // Get all config for admin
   app.get("/api/admin/config", async (_req, res) => {
     try {
@@ -2952,8 +3006,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "2FA not set up for this user" });
       }
 
-      // Verify token
-      const isValid = verify({ token, secret: user[0].twoFactorSecret });
+      // Verify token (otplib functions are async and return { valid: boolean })
+      const verifyResult = await verify({ token, secret: user[0].twoFactorSecret });
+      const isValid = verifyResult.valid;
 
       if (!isValid) {
         return res.status(400).json({ error: "Invalid token" });
@@ -2986,8 +3041,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "2FA not enabled for this user" });
       }
 
-      // Verify token before disabling
-      const isValid = verify({ token, secret: user[0].twoFactorSecret! });
+      // Verify token before disabling (otplib functions are async and return { valid: boolean })
+      const verifyResult = await verify({ token, secret: user[0].twoFactorSecret! });
+      const isValid = verifyResult.valid;
 
       if (!isValid) {
         return res.status(400).json({ error: "Invalid token" });
@@ -3045,8 +3101,14 @@ export async function registerRoutes(
         return res.status(404).json({ error: "2FA not enabled for this user" });
       }
 
-      // Verify token
-      const isValid = verify({ token, secret: user[0].twoFactorSecret! });
+      // Verify token (otplib functions are async and return { valid: boolean })
+      console.log("Verifying 2FA token for user:", userId);
+      console.log("Token received:", token);
+      console.log("User has secret:", !!user[0].twoFactorSecret);
+      
+      const verifyResult = await verify({ token, secret: user[0].twoFactorSecret! });
+      const isValid = verifyResult.valid;
+      console.log("Token verification result:", isValid);
 
       if (!isValid) {
         return res.status(400).json({ error: "Invalid token" });
@@ -3055,7 +3117,7 @@ export async function registerRoutes(
       res.json({ success: true, message: "2FA verified successfully" });
     } catch (error) {
       console.error("Error verifying 2FA login:", error);
-      res.status(500).json({ error: "Failed to verify 2FA" });
+      res.status(500).json({ error: "Verification failed. Please try again." });
     }
   });
 

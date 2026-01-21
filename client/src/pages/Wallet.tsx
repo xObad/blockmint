@@ -724,6 +724,7 @@ export function Wallet({
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           data-testid="dialog-wallet-deposit"
+          hideCloseButton
         >
           <div className="flex items-center justify-between p-4 pb-2 border-b border-white/10">
             <div>
@@ -901,6 +902,7 @@ export function Wallet({
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           data-testid="dialog-wallet-withdraw"
+          hideCloseButton
         >
           <div className="flex items-center justify-between p-4 pb-2 border-b border-white/10">
             <div>

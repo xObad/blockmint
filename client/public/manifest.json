@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/attached_assets/App-Icon.png",
+      "src": "/attached_assets/App-Logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/attached_assets/App-Icon.png",
+      "src": "/attached_assets/App-Logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

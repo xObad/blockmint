@@ -82,7 +82,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
             <img
-              src="/attached_assets/BlockMint-Logo.svg"
+              src="/attached_assets/App-Logo.png"
               alt="BlockMint"
               className="h-48 w-auto object-contain relative z-10"
               style={{

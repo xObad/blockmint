@@ -248,7 +248,7 @@ export function StorefrontAuth({ onAuthSuccess, onBack }: StorefrontAuthProps) {
             >
               {/* Try to load the logo, fallback to icon */}
               <img
-                src="/attached_assets/BlockMint-Logo.svg"
+                src="/attached_assets/App-Logo.png"
                 alt="BlockMint"
                 className="h-36 w-auto object-contain relative z-10"
                 style={{

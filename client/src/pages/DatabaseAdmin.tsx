@@ -193,6 +193,8 @@ interface User {
   createdAt: string;
   isActive: boolean;
   role?: string;
+  twoFactorEnabled?: boolean;
+  firebaseUid?: string;
 }
 
 interface AdminUserPurchasesResponse {
@@ -580,6 +582,25 @@ export function DatabaseAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/balances", variables.userId] });
       toast({ title: "Balance adjusted successfully" });
+    },
+  });
+
+  const disable2FA = useMutation({
+    mutationFn: async ({ userId }: { userId: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/disable-2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to disable 2FA");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "2FA Disabled", description: "Two-factor authentication has been disabled for this user" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1031,6 +1052,21 @@ export function DatabaseAdmin() {
                                 >
                                   Deduct Balance
                                 </Button>
+                                {user.twoFactorEnabled && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                    onClick={() => {
+                                      if (confirm(`Are you sure you want to disable 2FA for ${user.email}? They will be able to login without 2FA verification.`)) {
+                                        disable2FA.mutate({ userId: user.id });
+                                      }
+                                    }}
+                                  >
+                                    <Shield className="w-4 h-4 mr-1" />
+                                    Disable 2FA
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>

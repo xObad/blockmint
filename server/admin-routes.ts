@@ -112,6 +112,66 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Toggle user active status (Block/Unblock)
+  app.post("/api/admin/users/:userId/toggle-status", devAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { isActive } = req.body;
+      
+      const [user] = await db.update(schema.users)
+        .set({ isActive })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      res.status(500).json({ error: "Failed to toggle user status" });
+    }
+  });
+
+  // Admin disable 2FA for user
+  app.post("/api/admin/users/:userId/disable-2fa", devAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Get user
+      const [user] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.twoFactorEnabled) {
+        return res.status(400).json({ error: "2FA is not enabled for this user" });
+      }
+
+      // Disable 2FA and clear secret
+      await db.update(schema.users)
+        .set({ 
+          twoFactorEnabled: false,
+          twoFactorSecret: null
+        })
+        .where(eq(schema.users.id, userId));
+
+      // Create notification for user
+      await db.insert(schema.notifications).values({
+        userId,
+        type: "security",
+        category: "user",
+        title: "🔐 Two-Factor Authentication Disabled",
+        message: "Your two-factor authentication has been disabled by support at your request. You can re-enable it anytime from Settings > Security.",
+        priority: "high",
+        data: { action: "2fa_disabled_by_admin" },
+      });
+
+      console.log(`Admin disabled 2FA for user: ${user.email}`);
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
   // ============ WALLET MANAGEMENT ============
   
   // Get all user wallets

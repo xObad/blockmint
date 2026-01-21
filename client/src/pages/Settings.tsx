@@ -730,15 +730,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               </div>
             }
           />
-          {(process.env.NODE_ENV === "development" || isAdminUser) && (
-            <SettingItem
-              icon={Shield}
-              label="Admin Panel"
-              description={process.env.NODE_ENV === "development" ? "Access Admin Dashboard (Dev Only)" : "Access Admin Dashboard"}
-              onClick={() => window.location.href = '/admin'}
-              testId="button-admin-panel"
-            />
-          )}
         </GlassCard>
       </div>
 

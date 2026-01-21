@@ -156,15 +156,6 @@ export function SafeSettings() {
       >
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground">Manage your preferences</p>
-        {/* Biometric Test Section (for QA/dev) */}
-        <div className="mt-4 p-3 rounded-lg bg-card/60 border border-primary/20">
-          <div className="text-xs text-muted-foreground mb-1">Biometric Test</div>
-          <div className="text-xs">Type: {biometricType}</div>
-          <div className="text-xs">Available: {biometricAvailable ? 'Yes' : 'No'}</div>
-          <div className="text-xs">Auth Result: {biometricAuthResult}</div>
-          <div className="text-xs break-all">Credentials: {credentialResult}</div>
-          <button className="mt-2 px-3 py-1 rounded bg-primary text-white text-xs" onClick={testBiometrics}>Run Biometric Test</button>
-        </div>
       </motion.div>
 
       {/* Account Section */}
