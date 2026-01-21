@@ -45,10 +45,10 @@ export function ScrollAwareStatusBar({
           transition={{ duration: 0.25, ease: "easeOut" }}
           className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
           style={{
-            height: "calc(env(safe-area-inset-top, 44px) + 31px)",
-            background: "linear-gradient(to bottom, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.7) 60%, transparent 100%)",
-            backdropFilter: "blur(12px) saturate(1.2)",
-            WebkitBackdropFilter: "blur(12px) saturate(1.2)",
+            height: "calc(env(safe-area-inset-top, 44px) + 41px)",
+            background: "linear-gradient(to bottom, hsl(var(--background) / 0.6) 0%, hsl(var(--background) / 0.3) 70%, transparent 100%)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
         />
       )}
