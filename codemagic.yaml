@@ -12,7 +12,7 @@ workflows:
       vars:
         BUNDLE_ID: "co.hardisk.blockmint"
         APP_NAME: "BlockMint"
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: 22.0.0
     triggering:
@@ -54,7 +54,7 @@ workflows:
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --config Release
     artifacts:
