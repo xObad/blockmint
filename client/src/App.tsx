@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,23 +16,7 @@ import { SafeBottomNav } from "@/components/SafeBottomNav";
 import { GlobalHeader } from "@/components/GlobalHeader";
 import { SafeHeader } from "@/components/SafeHeader";
 import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
-import { Dashboard } from "@/pages/Dashboard";
-import { Wallet } from "@/pages/Wallet";
-import { Invest } from "@/pages/Invest";
-import { SoloMining } from "@/pages/SoloMining";
-import { Mining } from "@/pages/Mining";
-import { Settings } from "@/pages/Settings";
-import { Onboarding } from "@/pages/Onboarding";
-import { AuthPage } from "@/pages/AuthPage";
 import { DashboardSkeleton, WalletSkeleton } from "@/components/LoadingSkeleton";
-import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
-import { TermsOfService } from "@/pages/TermsOfService";
-import { Referral } from "@/pages/Referral";
-import { History } from "@/pages/History";
-import { VirtualCard } from "@/pages/VirtualCard";
-import { DatabaseAdmin } from "@/pages/DatabaseAdmin";
-import { ArticlePage } from "@/pages/ArticlePage";
-import { News } from "@/pages/News";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
 import { TwoFactorVerifyScreen } from "@/components/TwoFactorVerifyScreen";
 import { AppLockProvider } from "@/components/AppLock";
@@ -41,22 +25,49 @@ import { useMiningData } from "@/hooks/useMiningData";
 import { onAuthChange, logOut } from "@/lib/firebase";
 import type { User } from "firebase/auth";
 
+// Lazy load heavy pages for faster initial load
+const Dashboard = lazy(() => import("@/pages/Dashboard").then(m => ({ default: m.Dashboard })));
+const Wallet = lazy(() => import("@/pages/Wallet").then(m => ({ default: m.Wallet })));
+const Invest = lazy(() => import("@/pages/Invest").then(m => ({ default: m.Invest })));
+const SoloMining = lazy(() => import("@/pages/SoloMining").then(m => ({ default: m.SoloMining })));
+const Mining = lazy(() => import("@/pages/Mining").then(m => ({ default: m.Mining })));
+const Settings = lazy(() => import("@/pages/Settings").then(m => ({ default: m.Settings })));
+const Onboarding = lazy(() => import("@/pages/Onboarding").then(m => ({ default: m.Onboarding })));
+const AuthPage = lazy(() => import("@/pages/AuthPage").then(m => ({ default: m.AuthPage })));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService = lazy(() => import("@/pages/TermsOfService").then(m => ({ default: m.TermsOfService })));
+const Referral = lazy(() => import("@/pages/Referral").then(m => ({ default: m.Referral })));
+const History = lazy(() => import("@/pages/History").then(m => ({ default: m.History })));
+const VirtualCard = lazy(() => import("@/pages/VirtualCard").then(m => ({ default: m.VirtualCard })));
+const DatabaseAdmin = lazy(() => import("@/pages/DatabaseAdmin").then(m => ({ default: m.DatabaseAdmin })));
+const ArticlePage = lazy(() => import("@/pages/ArticlePage").then(m => ({ default: m.ArticlePage })));
+const News = lazy(() => import("@/pages/News").then(m => ({ default: m.News })));
+const Support = lazy(() => import("@/pages/Support"));
+
 // Safe Mode pages and app shell (compliance mode for mobile app)
-import { SafeHome } from "@/pages/SafeHome";
-import { SafeMetrics } from "@/pages/SafeMetrics";
-import { SafeSettings } from "@/pages/SafeSettings";
-import { SafeModeApp } from "@/components/SafeModeApp";
-import { SafeTermsOfService } from "@/pages/SafeTermsOfService";
-import { SafePrivacyPolicy } from "@/pages/SafePrivacyPolicy";
-import { SafeNewsArticle } from "@/pages/SafeNewsArticle";
-import Support from "@/pages/Support";
+const SafeHome = lazy(() => import("@/pages/SafeHome").then(m => ({ default: m.SafeHome })));
+const SafeMetrics = lazy(() => import("@/pages/SafeMetrics").then(m => ({ default: m.SafeMetrics })));
+const SafeSettings = lazy(() => import("@/pages/SafeSettings").then(m => ({ default: m.SafeSettings })));
+const SafeModeApp = lazy(() => import("@/components/SafeModeApp").then(m => ({ default: m.SafeModeApp })));
+const SafeTermsOfService = lazy(() => import("@/pages/SafeTermsOfService").then(m => ({ default: m.SafeTermsOfService })));
+const SafePrivacyPolicy = lazy(() => import("@/pages/SafePrivacyPolicy").then(m => ({ default: m.SafePrivacyPolicy })));
+const SafeNewsArticle = lazy(() => import("@/pages/SafeNewsArticle").then(m => ({ default: m.SafeNewsArticle })));
 
 // Web Storefront (compliance mode for web browser - allows signup, USDT deposit)
-import { WebStorefrontApp } from "@/components/WebStorefrontApp";
+const WebStorefrontApp = lazy(() => import("@/components/WebStorefrontApp").then(m => ({ default: m.WebStorefrontApp })));
 
 type AppView = "onboarding" | "auth" | "main";
 type AuthMode = "signin" | "register";
 type SafeTabType = "home" | "metrics" | "news" | "settings";
+
+// Simple loading fallback for lazy components
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
 
 function MobileApp() {
   const [activeTab, setActiveTab] = useState<TabType>("home");
@@ -215,7 +226,9 @@ function MobileApp() {
   if (appView === "onboarding") {
     return (
       <div className="min-h-screen">
-        <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipOnboarding} />
+        <Suspense fallback={<PageLoader />}>
+          <Onboarding onComplete={handleOnboardingComplete} onSignIn={handleSignIn} onSkip={handleSkipOnboarding} />
+        </Suspense>
       </div>
     );
   }
@@ -223,12 +236,14 @@ function MobileApp() {
   if (appView === "auth") {
     return (
       <div className="min-h-screen">
-        <AuthPage 
-          mode={authMode}
-          onBack={() => setAppView("onboarding")}
-          onModeChange={setAuthMode}
-          onComplete={handleAuthComplete}
-        />
+        <Suspense fallback={<PageLoader />}>
+          <AuthPage 
+            mode={authMode}
+            onBack={() => setAppView("onboarding")}
+            onModeChange={setAuthMode}
+            onComplete={handleAuthComplete}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -273,6 +288,7 @@ function MobileApp() {
       />
 
       <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
+        <Suspense fallback={<PageLoader />}>
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
             isLoading ? (
@@ -340,6 +356,7 @@ function MobileApp() {
             />
           )}
         </AnimatePresence>
+        </Suspense>
 
         <motion.footer
           initial={{ opacity: 0, y: 20 }}
@@ -490,6 +507,7 @@ function AppRouter() {
   // This is what the App Store reviewer sees (no crypto, no signup)
   if (isComplianceMode) {
     return (
+      <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/legal/privacy" component={SafePrivacyPolicy} />
         <Route path="/legal/terms" component={SafeTermsOfService} />
@@ -503,11 +521,13 @@ function AppRouter() {
         <Route path="/" component={SafeModeApp} />
         <Route component={SafeModeApp} />
       </Switch>
+      </Suspense>
     );
   }
   
   // NORMAL MODE - Full crypto mining app (compliance OFF)
   return (
+    <Suspense fallback={<PageLoader />}>
     <Switch>
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />
@@ -526,6 +546,7 @@ function AppRouter() {
       <Route path="/" component={MobileApp} />
       <Route component={MobileApp} />
     </Switch>
+    </Suspense>
   );
 }
 
