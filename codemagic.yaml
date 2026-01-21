@@ -104,7 +104,7 @@ workflows:
     environment:
       android_signing:
         - blockmint_keystore
-      java: 17
+      java: 21
       node: 22.0.0
       vars:
         BUNDLE_ID: "co.hardisk.blockmint"
