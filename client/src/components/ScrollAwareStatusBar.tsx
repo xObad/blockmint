@@ -47,7 +47,7 @@ export function ScrollAwareStatusBar({
           className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
           style={{
             // Height covers Dynamic Island area + buffer
-            height: "calc(env(safe-area-inset-top, 59px) + 44px)",
+            height: "calc(env(safe-area-inset-top, 59px) + 41px)",
             // Smooth gradient fading to transparent at bottom (no visible edge)
             background: `linear-gradient(
               180deg, 
