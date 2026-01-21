@@ -48,7 +48,7 @@ workflows:
       
       - name: Set up code signing settings on Xcode project
         script: |
-          xcode-project use-profiles --project ios/App/App.xcworkspace
+          xcode-project use-profiles --project ios/App/App.xcodeproj
       
       - name: Increment build number
         script: |
