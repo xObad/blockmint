@@ -10,3 +10,8 @@ dist/
 *~
 .cache/
 coverage/
+
+# Keystore files
+*.keystore
+*.keystore.b64
+*.jks
