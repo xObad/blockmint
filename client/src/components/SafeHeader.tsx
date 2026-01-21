@@ -26,11 +26,8 @@ export function SafeHeader({ notificationCount: propNotificationCount }: SafeHea
 
   return (
     <>
-      {/* Safe area spacer for iOS status bar / Dynamic Island */}
-      <div className="pt-safe" />
-      
-      {/* Minimal header - just bell icon on the right */}
-      <div className="flex items-center justify-end px-4 h-12">
+      {/* Minimal header - just bell icon on the right with safe area padding */}
+      <div className="flex items-center justify-end px-4 h-12 mt-[max(env(safe-area-inset-top,44px),44px)]">
         <motion.button
           className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate relative"
           whileTap={{ scale: 0.95 }}
