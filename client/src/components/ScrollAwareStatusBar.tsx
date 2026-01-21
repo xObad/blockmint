@@ -46,9 +46,9 @@ export function ScrollAwareStatusBar({
           className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
           style={{
             height: "calc(env(safe-area-inset-top, 44px) + 41px)",
-            background: "linear-gradient(to bottom, hsl(var(--background) / 0.6) 0%, hsl(var(--background) / 0.3) 70%, transparent 100%)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            background: "linear-gradient(to bottom, hsl(var(--background) / 0.4) 0%, hsl(var(--background) / 0.15) 70%, transparent 100%)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
           }}
         />
       )}
