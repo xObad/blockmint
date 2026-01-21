@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Server, BarChart3, Bell, Shield } from "lucide-react";
+import { Server, BarChart3, Bell, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -79,9 +79,9 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
         {/* Header with Logo and Skip button */}
-        <div className="flex items-center justify-center mb-0 relative">
+        <div className="flex items-center justify-between py-2">
           <motion.div 
-            className="h-24 flex items-center justify-center relative"
+            className="h-16 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -89,25 +89,25 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-20 w-auto object-contain relative z-10"
+              className="h-14 w-auto object-contain relative z-10"
               style={{
-                filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(16, 185, 129, 0.4)) contrast(1.15) saturate(1.25)',
+                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.35)) contrast(1.1) saturate(1.2)',
                 imageRendering: '-webkit-optimize-contrast',
               }}
               onError={(e) => { e.currentTarget.style.display = "none"; }}
             />
           </motion.div>
-          <div className="absolute right-0 flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <motion.button
               onClick={onComplete}
-              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-2xl font-light text-muted-foreground hover:text-foreground"
+              className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
               whileTap={{ scale: 0.95 }}
               type="button"
               aria-label="Skip onboarding"
             >
-              ×
+              <X className="w-5 h-5 text-muted-foreground" />
             </motion.button>
-            <ThemeToggle />
           </div>
         </div>
 
@@ -132,16 +132,23 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
-            <div className="flex-1 flex flex-col items-center justify-center py-4">
-              {/* Icon Container */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {/* Icon Container - 3D glass style */}
               <motion.div 
-                className="relative w-40 h-40 sm:w-44 sm:h-44 mb-6"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+                className="relative w-28 h-28 sm:w-32 sm:h-32 mb-6"
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20 rounded-full blur-3xl`} />
-                <div className={`relative z-10 w-full h-full rounded-3xl bg-gradient-to-br ${slide.gradient} flex items-center justify-center shadow-2xl`}>
-                  <Icon className="w-20 h-20 text-white" />
+                {/* Glow effect */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-3xl blur-2xl scale-110`} />
+                {/* Glass container with gradient border */}
+                <div className="relative z-10 w-full h-full rounded-3xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden">
+                  {/* Inner gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20`} />
+                  {/* Icon with gradient */}
+                  <div className={`relative z-10 p-4 rounded-2xl bg-gradient-to-br ${slide.gradient}`}>
+                    <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-white drop-shadow-lg" />
+                  </div>
                 </div>
               </motion.div>
 

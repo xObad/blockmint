@@ -148,7 +148,13 @@ export function SafeModeApp() {
   if (appView === "auth") {
     return (
       <div className="min-h-screen">
-        <SafeAuthPage onAuthSuccess={handleAuthComplete} />
+        <SafeAuthPage 
+          onAuthSuccess={handleAuthComplete} 
+          onBack={() => {
+            localStorage.removeItem("hasSeenOnboarding");
+            setAppView("onboarding");
+          }}
+        />
       </div>
     );
   }

@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, X } from "lucide-react";
 import { SiGoogle, SiApple } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,13 +186,13 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
         <div className="flex items-center justify-between mb-2">
           <motion.button
             onClick={onBack}
-            className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate transition-colors text-2xl font-light text-muted-foreground hover:text-foreground"
+            className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
             whileTap={{ scale: 0.95 }}
             type="button"
             aria-label="Go back to onboarding"
             disabled={isLoading}
           >
-            ×
+            <X className="w-5 h-5 text-muted-foreground" />
           </motion.button>
           <div className="flex-1"></div>
           <ThemeToggle />
