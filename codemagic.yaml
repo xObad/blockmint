@@ -53,12 +53,16 @@ workflows:
       - name: Increment build number
         script: |
           cd ios/App
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$BUNDLE_ID" || echo "0")
+          echo "Fetching latest build number for $BUNDLE_ID..."
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$BUNDLE_ID" 2>/dev/null || echo "1")
+          echo "Latest build number from App Store: $LATEST_BUILD_NUMBER"
           NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
           echo "Setting build number to $NEW_BUILD_NUMBER"
           # Update Info.plist directly
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD_NUMBER" App/Info.plist
-          echo "Build number updated to $NEW_BUILD_NUMBER"
+          # Verify the change
+          VERIFIED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
+          echo "Verified build number in Info.plist: $VERIFIED"
       
       - name: Build ipa for distribution
         script: |
