@@ -54,12 +54,20 @@ workflows:
         script: |
           cd ios/App
           echo "Fetching latest build number for $BUNDLE_ID..."
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$BUNDLE_ID" 2>/dev/null || echo "1")
-          echo "Latest build number from App Store: $LATEST_BUILD_NUMBER"
+          # Get the latest build number, default to 0 if none found
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$BUNDLE_ID" 2>/dev/null || echo "0")
+          # If the result is empty or not a number, default to current plist value or 2
+          if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Could not get build number from App Store, checking current plist..."
+            LATEST_BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist 2>/dev/null || echo "2")
+          fi
+          echo "Latest build number: $LATEST_BUILD_NUMBER"
           NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
           echo "Setting build number to $NEW_BUILD_NUMBER"
           # Update Info.plist directly
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD_NUMBER" App/Info.plist
+          # Also update the project.pbxproj for CURRENT_PROJECT_VERSION
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW_BUILD_NUMBER;/g" App.xcodeproj/project.pbxproj
           # Verify the change
           VERIFIED=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist)
           echo "Verified build number in Info.plist: $VERIFIED"
