@@ -12,7 +12,7 @@ workflows:
       vars:
         BUNDLE_ID: "co.hardisk.blockmint"
         APP_NAME: "BlockMint"
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
       node: 22.0.0
     triggering:
@@ -41,9 +41,14 @@ workflows:
           npx cap add ios || true
           npx cap sync ios
       
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App
+          pod install --repo-update
+      
       - name: Set up code signing settings on Xcode project
         script: |
-          xcode-project use-profiles
+          xcode-project use-profiles --project ios/App/App.xcworkspace
       
       - name: Increment build number
         script: |
@@ -54,7 +59,7 @@ workflows:
       - name: Build ipa for distribution
         script: |
           cd ios/App
-          xcodebuild -project App.xcodeproj \
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
             -archivePath $CM_BUILD_DIR/build/App.xcarchive \
@@ -63,6 +68,8 @@ workflows:
             archive
           
           xcode-project build-ipa \
+            --workspace App.xcworkspace \
+            --scheme App \
             --archive-directory $CM_BUILD_DIR/build \
             --ipa-directory $CM_BUILD_DIR/build/ipa
     artifacts:
