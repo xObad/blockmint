@@ -46,21 +46,19 @@ export function ScrollAwareStatusBar({
           transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
           style={{
-            // Height covers Dynamic Island area + extra buffer for smooth fade
-            height: "calc(env(safe-area-inset-top, 59px) + 60px)",
-            // Ultra-smooth gradient - bottom 40% is nearly invisible
+            // Height covers Dynamic Island area + buffer
+            height: "calc(env(safe-area-inset-top, 59px) + 44px)",
+            // Smooth gradient fading to transparent at bottom (no visible edge)
             background: `linear-gradient(
               180deg, 
-              hsl(var(--background) / 0.55) 0%, 
-              hsl(var(--background) / 0.4) 20%,
-              hsl(var(--background) / 0.25) 40%,
-              hsl(var(--background) / 0.12) 55%,
-              hsl(var(--background) / 0.05) 70%,
-              hsl(var(--background) / 0.02) 85%,
+              hsl(var(--background) / 0.6) 0%, 
+              hsl(var(--background) / 0.45) 30%,
+              hsl(var(--background) / 0.25) 60%,
+              hsl(var(--background) / 0.1) 80%,
               transparent 100%
             )`,
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
         />
       )}
