@@ -20,26 +20,49 @@ export function ScrollAwareStatusBar({
   threshold = 15,
   className = ""
 }: ScrollAwareStatusBarProps) {
-  // Always visible status bar background
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    // Check initial scroll position
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const isVisible = scrollY > threshold;
+
   return (
-    <div
-      className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
-      style={{
-        // Height covers Dynamic Island area + buffer
-        height: "calc(env(safe-area-inset-top, 59px) + 44px)",
-        // Smooth gradient fading to invisible at bottom
-        background: `linear-gradient(
-          180deg, 
-          hsl(var(--background) / 0.5) 0%, 
-          hsl(var(--background) / 0.35) 25%,
-          hsl(var(--background) / 0.2) 50%,
-          hsl(var(--background) / 0.08) 75%,
-          transparent 100%
-        )`,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-      }}
-    />
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          className={`fixed top-0 left-0 right-0 z-[90] pointer-events-none ${className}`}
+          style={{
+            // Height covers Dynamic Island area + buffer
+            height: "calc(env(safe-area-inset-top, 59px) + 44px)",
+            // Smooth gradient fading to transparent at bottom (no visible edge)
+            background: `linear-gradient(
+              180deg, 
+              hsl(var(--background) / 0.6) 0%, 
+              hsl(var(--background) / 0.45) 30%,
+              hsl(var(--background) / 0.25) 60%,
+              hsl(var(--background) / 0.1) 80%,
+              transparent 100%
+            )`,
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+        />
+      )}
+    </AnimatePresence>
   );
 }
 
