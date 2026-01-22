@@ -50,15 +50,18 @@ export function ScrollAwareStatusBar({
             height: "calc(env(safe-area-inset-top, 59px) + 41px)",
             // Smooth gradient fading to transparent at bottom (no visible edge)
             background: `linear-gradient(
-              180deg, 
-              hsl(var(--background) / 0.6) 0%, 
-              hsl(var(--background) / 0.45) 30%,
-              hsl(var(--background) / 0.25) 60%,
-              hsl(var(--background) / 0.1) 80%,
+              to bottom, 
+              hsl(var(--background) / 0.95) 0%, 
+              hsl(var(--background) / 0.8) 20%,
+              hsl(var(--background) / 0.6) 40%,
+              hsl(var(--background) / 0.4) 60%,
+              hsl(var(--background) / 0.2) 80%,
               transparent 100%
             )`,
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            maskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
           }}
         />
       )}

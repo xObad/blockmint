@@ -169,7 +169,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
               </div>
             </div>
 
-            <div className="flex justify-center gap-2 mb-8 -mt-2">
+            <div className="flex justify-center gap-2 mb-16 -mt-2">
               {onboardingPages.map((_, index) => (
                 <motion.div
                   key={index}
@@ -185,7 +185,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           </motion.div>
         </AnimatePresence>
 
-        <div className="space-y-3 -mt-4">
+        <div className="space-y-1 -mt-[1.5rem]">
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}

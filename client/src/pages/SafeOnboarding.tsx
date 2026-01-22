@@ -174,8 +174,8 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
               </div>
             </div>
 
-            {/* Dots Indicator - raised 20px */}
-            <div className="flex justify-center gap-2 mb-3 -mt-2">
+            {/* Dots Indicator - raised 30px */}
+            <div className="flex justify-center gap-2 mb-10 -mt-2">
               {slides.map((_, index) => (
                 <motion.div
                   key={index}
@@ -194,7 +194,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="space-y-1 pb-1 -mt-4">
+        <div className="space-y-1 pb-1 -mt-[1.5rem]">
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -226,7 +226,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
           </motion.div>
 
           {/* Sign in hint */}
-          <p className="text-center text-xs text-muted-foreground/80 pt-0 pb-1 -mt-1">
+          <p className="text-center text-xs text-muted-foreground/80 pt-0 pb-1 -mt-4">
             Sign in to access your infrastructure dashboard.
           </p>
         </div>
