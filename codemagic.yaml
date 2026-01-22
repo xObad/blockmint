@@ -54,15 +54,27 @@ workflows:
         script: |
           cd ios/App
           echo "Fetching latest build number for $BUNDLE_ID..."
-          # Get the latest build number, default to 0 if none found
+          # Get the latest build number from App Store Connect
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$BUNDLE_ID" 2>/dev/null || echo "0")
-          # If the result is empty or not a number, default to current plist value or 2
+          # If the result is empty or not a number, use current plist value
           if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
             echo "Could not get build number from App Store, checking current plist..."
-            LATEST_BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist 2>/dev/null || echo "2")
+            LATEST_BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist 2>/dev/null || echo "5")
           fi
-          echo "Latest build number: $LATEST_BUILD_NUMBER"
-          NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+          echo "Latest build number from App Store: $LATEST_BUILD_NUMBER"
+          # Get current plist value
+          CURRENT_PLIST=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" App/Info.plist 2>/dev/null || echo "5")
+          echo "Current plist build number: $CURRENT_PLIST"
+          # Use the higher of the two + 1
+          if [ "$CURRENT_PLIST" -gt "$LATEST_BUILD_NUMBER" ] 2>/dev/null; then
+            NEW_BUILD_NUMBER=$((CURRENT_PLIST + 1))
+          else
+            NEW_BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))
+          fi
+          # Ensure minimum of 5
+          if [ "$NEW_BUILD_NUMBER" -lt 5 ]; then
+            NEW_BUILD_NUMBER=5
+          fi
           echo "Setting build number to $NEW_BUILD_NUMBER"
           # Update Info.plist directly
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD_NUMBER" App/Info.plist
