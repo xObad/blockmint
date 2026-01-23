@@ -43,6 +43,16 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
   const { toast } = useToast();
   const isIOS = isIOSDevice();
 
+  // Safety timeout to prevent infinite loading
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+      )
+    ]);
+  };
+
   const handleResendVerification = async () => {
     setIsLoading(true);
     try {
@@ -105,11 +115,17 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
   const handleSocialAuth = async (provider: "google" | "apple") => {
     setIsLoading(true);
     try {
+      let user;
       if (provider === "google") {
-        await signInWithGoogle();
+        user = await withTimeout(signInWithGoogle(), 30000);
       } else {
-        await signInWithApple();
+        user = await withTimeout(signInWithApple(), 30000);
       }
+      
+      if (!user) {
+        throw new Error('NO_USER');
+      }
+      
       toast({
         title: "Welcome!",
         description: "You have successfully signed in.",
@@ -120,7 +136,19 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       let title = "Oops! Something Went Wrong";
       let message = "Please try again in a moment.";
       
-      if (error.code === "auth/email-already-in-use") {
+      if (error.message === 'TIMEOUT') {
+        title = "Connection Timeout";
+        message = "The sign-in took too long. Please check your connection and try again.";
+      } else if (error.message === 'NO_USER') {
+        title = "Sign-In Cancelled";
+        message = "Sign-in was cancelled or failed. Please try again.";
+      } else if (error.code === "auth/popup-closed-by-user") {
+        title = "Sign-In Cancelled";
+        message = "You closed the sign-in window. Please try again.";
+      } else if (error.code === "auth/cancelled-popup-request") {
+        title = "Sign-In Cancelled";
+        message = "Sign-in was cancelled. Please try again.";
+      } else if (error.code === "auth/email-already-in-use") {
         title = "Email Already Registered";
         message = "This email is already in use. Try signing in or use a different email.";
       } else if (error.code === "auth/invalid-email") {
@@ -197,14 +225,20 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
     setIsLoading(true);
     try {
       if (mode === "signin") {
-        await signInWithEmail(email, password);
+        const user = await withTimeout(signInWithEmail(email, password), 30000);
+        if (!user) {
+          throw new Error('NO_USER');
+        }
         toast({
           title: "Welcome Back!",
           description: "You have successfully signed in.",
         });
         onComplete();
       } else {
-        await registerWithEmail(email, password, name.trim());
+        const user = await withTimeout(registerWithEmail(email, password, name.trim()), 30000);
+        if (!user) {
+          throw new Error('NO_USER');
+        }
         // Skip email verification - user can go directly to app
         onComplete();
         toast({
@@ -217,7 +251,13 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       let title = "Oops! Something Went Wrong";
       let message = "Please try again in a moment.";
       
-      if (error.code === "auth/email-already-in-use") {
+      if (error.message === 'TIMEOUT') {
+        title = "Connection Timeout";
+        message = "The sign-in took too long. Please check your connection and try again.";
+      } else if (error.message === 'NO_USER') {
+        title = "Authentication Failed";
+        message = "Could not complete authentication. Please try again.";
+      } else if (error.code === "auth/email-already-in-use") {
         title = "Email Already Registered";
         message = "This email is already in use. Try signing in or use a different email.";
       } else if (error.code === "auth/invalid-email") {

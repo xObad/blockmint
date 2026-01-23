@@ -33,6 +33,16 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Safety timeout to prevent infinite loading
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
+      )
+    ]);
+  };
+
   const handleResetPassword = async () => {
     if (!email) {
       toast({
@@ -65,11 +75,18 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
   const handleSocialAuth = async (provider: "google" | "apple") => {
     setIsLoading(true);
     try {
+      let user;
       if (provider === "google") {
-        await signInWithGoogle();
+        user = await withTimeout(signInWithGoogle(), 30000);
       } else {
-        await signInWithApple();
+        user = await withTimeout(signInWithApple(), 30000);
       }
+      
+      // Check if we got a valid user
+      if (!user) {
+        throw new Error('NO_USER');
+      }
+      
       toast({
         title: "Welcome!",
         description: "You have successfully signed in.",
@@ -80,7 +97,19 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       let title = "Oops! Something Went Wrong";
       let message = "Please try again in a moment.";
       
-      if (error.code === "auth/user-not-found") {
+      if (error.message === 'TIMEOUT') {
+        title = "Connection Timeout";
+        message = "The sign-in took too long. Please check your connection and try again.";
+      } else if (error.message === 'NO_USER') {
+        title = "Sign-In Cancelled";
+        message = "Sign-in was cancelled or failed. Please try again.";
+      } else if (error.code === "auth/popup-closed-by-user") {
+        title = "Sign-In Cancelled";
+        message = "You closed the sign-in window. Please try again.";
+      } else if (error.code === "auth/cancelled-popup-request") {
+        title = "Sign-In Cancelled";
+        message = "Sign-in was cancelled. Please try again.";
+      } else if (error.code === "auth/user-not-found") {
         title = "Account Not Found";
         message = "No account exists with this email. Please contact your administrator.";
       } else if (error.code === "auth/invalid-credential") {
@@ -126,7 +155,12 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
 
     setIsLoading(true);
     try {
-      await signInWithEmail(email, password);
+      const user = await withTimeout(signInWithEmail(email, password), 30000);
+      
+      if (!user) {
+        throw new Error('NO_USER');
+      }
+      
       toast({
         title: "Welcome Back!",
         description: "You have successfully signed in.",
@@ -137,7 +171,13 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       let title = "Oops! Something Went Wrong";
       let message = "Please try again in a moment.";
       
-      if (error.code === "auth/invalid-email") {
+      if (error.message === 'TIMEOUT') {
+        title = "Connection Timeout";
+        message = "The sign-in took too long. Please check your connection and try again.";
+      } else if (error.message === 'NO_USER') {
+        title = "Sign-In Failed";
+        message = "Could not sign in. Please try again.";
+      } else if (error.code === "auth/invalid-email") {
         title = "Invalid Email";
         message = "Please enter a valid email address.";
       } else if (error.code === "auth/wrong-password") {

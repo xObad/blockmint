@@ -386,13 +386,20 @@ export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
   }
   
   try {
-    const response = await plugin.authorize({
+    // Add timeout for the native call
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('APPLE_SIGNIN_TIMEOUT')), 60000);
+    });
+    
+    const authPromise = plugin.authorize({
       clientId: 'co.hardisk.blockmint', // Your app's bundle ID
       redirectURI: 'https://hardisk.co/__/auth/handler', // Firebase auth handler
       scopes: 'email name',
       state: Math.random().toString(36).substring(7),
       nonce: Math.random().toString(36).substring(7)
     });
+    
+    const response = await Promise.race([authPromise, timeoutPromise]);
     
     return {
       success: true,
@@ -405,6 +412,13 @@ export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
       }
     };
   } catch (error: any) {
+    // Handle user cancellation gracefully
+    if (error.message?.includes('cancelled') || error.message?.includes('canceled') || error.code === 1001) {
+      return {
+        success: false,
+        error: 'User cancelled Apple Sign-In'
+      };
+    }
     return {
       success: false,
       error: error.message || 'Apple Sign-In failed'
