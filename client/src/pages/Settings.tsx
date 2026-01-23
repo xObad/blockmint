@@ -1146,7 +1146,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md top-[35%]">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
@@ -1201,7 +1201,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md top-[35%]">
           <DialogHeader>
             <DialogTitle>Set PIN Lock</DialogTitle>
             <DialogDescription>
@@ -1248,7 +1248,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md top-[35%]">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
             <DialogDescription>
