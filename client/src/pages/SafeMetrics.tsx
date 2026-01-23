@@ -8,7 +8,9 @@
  * Includes "Request New Node" provisioning flow
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { onAuthChange } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Thermometer, 
@@ -119,6 +121,34 @@ export function SafeMetrics() {
   const [showProvisioning, setShowProvisioning] = useState(false);
   const [selectedSpec, setSelectedSpec] = useState<string | null>(null);
   const [requestSent, setRequestSent] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthChange((u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const isDemoUser = user?.email === "abdelrahman.ramadan.now@gmail.com";
+
+  // Data configuration based on user mode
+  const displayData = isDemoUser ? {
+    current: currentMetrics,
+    temp: temperatureData,
+    memory: memoryData,
+    cpu: cpuData
+  } : {
+    current: [
+      { label: "Avg Temperature", value: "0°C", icon: Thermometer, status: "offline" },
+      { label: "Memory Usage", value: "0%", icon: HardDrive, status: "offline" },
+      { label: "CPU Load", value: "0%", icon: Cpu, status: "offline" },
+      { label: "Disk I/O", value: "0 GB/s", icon: Database, status: "offline" },
+    ],
+    temp: temperatureData.map(d => ({ ...d, temp: 0 })),
+    memory: memoryData.map(d => ({ ...d, usage: 0 })),
+    cpu: cpuData.map(d => ({ ...d, load: 0 }))
+  };
 
   const handleRequestAllocation = () => {
     if (selectedSpec) {
@@ -159,7 +189,7 @@ export function SafeMetrics() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-2 gap-3"
       >
-        {currentMetrics.map((metric, index) => (
+        {displayData.current.map((metric, index) => (
           <GlassCard key={index} className="p-4" variant="subtle">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -212,7 +242,7 @@ export function SafeMetrics() {
 
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={temperatureData}>
+              <AreaChart data={displayData.temp}>
                 <defs>
                   <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
@@ -227,7 +257,7 @@ export function SafeMetrics() {
                   tickLine={false}
                 />
                 <YAxis 
-                  domain={[30, 60]}
+                  domain={[0, 60]}
                   tick={{ fontSize: 10, fill: '#888' }}
                   axisLine={false}
                   tickLine={false}
@@ -277,7 +307,7 @@ export function SafeMetrics() {
 
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={memoryData}>
+              <AreaChart data={displayData.memory}>
                 <defs>
                   <linearGradient id="memoryGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
@@ -342,7 +372,7 @@ export function SafeMetrics() {
 
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cpuData}>
+              <AreaChart data={displayData.cpu}>
                 <defs>
                   <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />

@@ -79,7 +79,8 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       if (provider === "google") {
         user = await withTimeout(signInWithGoogle(), 30000);
       } else {
-        user = await withTimeout(signInWithApple(), 30000);
+        // Shorter timeout for Apple Sign-In
+        user = await withTimeout(signInWithApple(), 3000);
       }
       
       // Check if we got a valid user
@@ -100,9 +101,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       if (error.message === 'TIMEOUT') {
         title = "Connection Timeout";
         message = "The sign-in took too long. Please check your connection and try again.";
-      } else if (error.message === 'NO_USER') {
+      } else if (error.message === 'NO_USER' || error.message === 'User cancelled Apple Sign-In') {
         title = "Sign-In Cancelled";
-        message = "Sign-in was cancelled or failed. Please try again.";
+        message = "Sign-in was cancelled. Please try again.";
       } else if (error.code === "auth/popup-closed-by-user") {
         title = "Sign-In Cancelled";
         message = "You closed the sign-in window. Please try again.";

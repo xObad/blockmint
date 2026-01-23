@@ -412,8 +412,17 @@ export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
       }
     };
   } catch (error: any) {
+    console.error('Apple Sign-In Error:', error);
+    
     // Handle user cancellation gracefully
-    if (error.message?.includes('cancelled') || error.message?.includes('canceled') || error.code === 1001) {
+    // Check various cancellation patterns: 1001 is standard, but some versions use localized strings
+    const isCancelled = 
+      error.message?.toLowerCase().includes('cancel') || 
+      error.code === 1001 || 
+      error.code === '1001' ||
+      JSON.stringify(error).toLowerCase().includes('cancel');
+
+    if (isCancelled) {
       return {
         success: false,
         error: 'User cancelled Apple Sign-In'

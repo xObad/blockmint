@@ -8,6 +8,9 @@
  */
 
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { onAuthChange } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 import { 
   Server, 
   Activity, 
@@ -67,6 +70,46 @@ const quickStats = [
 ];
 
 export function SafeHome() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthChange((u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const isDemoUser = user?.email === "abdelrahman.ramadan.now@gmail.com";
+
+  if (loading) return null;
+
+  // Configuration based on user mode
+  // Demo user sees simulated activity
+  // New users see "zero state" architecture but same layout
+  const displayStats = isDemoUser ? {
+    systemHealth: { status: "All Online", onlineLink: "99.98%", nodes: "4/4" },
+    quickStats: [
+      { label: "Avg Latency", value: "41ms", icon: Zap, color: "text-emerald-400" },
+      { label: "CPU Load", value: "41%", icon: Cpu, color: "text-blue-400" },
+      { label: "Bandwidth", value: "2.4 Gbps", icon: Globe, color: "text-purple-400" },
+      { label: "Requests/s", value: "12.4K", icon: BarChart3, color: "text-amber-400" },
+    ],
+    trafficData: networkTrafficData,
+    nodes: nodeStatus
+  } : {
+    systemHealth: { status: "Provisioning", onlineLink: "0.00%", nodes: "0/0" },
+    quickStats: [
+      { label: "Avg Latency", value: "0ms", icon: Zap, color: "text-muted-foreground" },
+      { label: "CPU Load", value: "0%", icon: Cpu, color: "text-muted-foreground" },
+      { label: "Bandwidth", value: "0 Gbps", icon: Globe, color: "text-muted-foreground" },
+      { label: "Requests/s", value: "0", icon: BarChart3, color: "text-muted-foreground" },
+    ],
+    trafficData: networkTrafficData.map(d => ({ ...d, inbound: 0, outbound: 0 })),
+    nodes: []
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -106,9 +149,9 @@ export function SafeHome() {
                 <p className="text-sm text-muted-foreground">Infrastructure Status</p>
               </div>
             </div>
-            <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 px-2 py-1 text-xs whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
-              All Online
+            <Badge variant="outline" className={`${isDemoUser ? "text-emerald-400 border-emerald-500/30" : "text-amber-400 border-amber-500/30"} px-2 py-1 text-xs whitespace-nowrap`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isDemoUser ? "bg-emerald-400" : "bg-amber-400"} mr-1.5 animate-pulse`} />
+              {displayStats.systemHealth.status}
             </Badge>
           </div>
 
@@ -118,11 +161,11 @@ export function SafeHome() {
               <div className="text-[10px] text-muted-foreground mt-0.5">Status</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-background/50">
-              <div className="text-lg font-bold text-emerald-400">99.98%</div>
+              <div className={`text-lg font-bold ${isDemoUser ? "text-emerald-400" : "text-muted-foreground"}`}>{displayStats.systemHealth.onlineLink}</div>
               <div className="text-[10px] text-muted-foreground mt-0.5">Uptime</div>
             </div>
             <div className="text-center p-3 rounded-xl bg-background/50">
-              <div className="text-lg font-bold text-foreground">4/4</div>
+              <div className="text-lg font-bold text-foreground">{displayStats.systemHealth.nodes}</div>
               <div className="text-[10px] text-muted-foreground mt-0.5">Nodes</div>
             </div>
           </div>
@@ -136,7 +179,7 @@ export function SafeHome() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-4 gap-2"
       >
-        {quickStats.map((stat, index) => (
+        {displayStats.quickStats.map((stat, index) => (
           <GlassCard key={index} className="p-2.5 h-[72px] flex flex-col items-center justify-center" variant="subtle">
             <div className="flex items-center justify-center w-full">
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
@@ -164,7 +207,7 @@ export function SafeHome() {
 
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={networkTrafficData}>
+              <AreaChart data={displayStats.trafficData}>
                 <defs>
                   <linearGradient id="inboundGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -241,61 +284,71 @@ export function SafeHome() {
             <Server className="w-4 h-4" />
             Active Nodes
           </h3>
-          <Badge variant="secondary" className="text-xs">4 Online</Badge>
+          <Badge variant="secondary" className="text-xs">{isDemoUser ? "4 Online" : "0 Online"}</Badge>
         </div>
 
-        <div className="space-y-3">
-          {nodeStatus.map((node, index) => (
-            <motion.div
-              key={node.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 + index * 0.1 }}
-            >
-              <GlassCard className="p-4" variant="subtle">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Server className="w-5 h-5 text-primary" />
+        {displayStats.nodes.length > 0 ? (
+          <div className="space-y-3">
+            {displayStats.nodes.map((node, index) => (
+              <motion.div
+                key={node.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+              >
+                <GlassCard className="p-4" variant="subtle">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Server className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground">{node.name}</h4>
+                        <p className="text-xs text-muted-foreground">{node.region}</p>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className="text-emerald-400 border-emerald-500/30"
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      {node.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">CPU</span>
+                        <span className="font-medium">{node.cpu}%</span>
+                      </div>
+                      <Progress value={node.cpu} className="h-1.5" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-foreground">{node.name}</h4>
-                      <p className="text-xs text-muted-foreground">{node.region}</p>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Memory</span>
+                        <span className="font-medium">{node.memory}%</span>
+                      </div>
+                      <Progress value={node.memory} className="h-1.5" />
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground">Latency</div>
+                      <div className="text-sm font-semibold text-foreground">{node.latency}ms</div>
                     </div>
                   </div>
-                  <Badge 
-                    variant="outline" 
-                    className="text-emerald-400 border-emerald-500/30"
-                  >
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    {node.status}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">CPU</span>
-                      <span className="font-medium">{node.cpu}%</span>
-                    </div>
-                    <Progress value={node.cpu} className="h-1.5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Memory</span>
-                      <span className="font-medium">{node.memory}%</span>
-                    </div>
-                    <Progress value={node.memory} className="h-1.5" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Latency</div>
-                    <div className="text-sm font-semibold text-foreground">{node.latency}ms</div>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          ))}
-        </div>
+                </GlassCard>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <GlassCard className="p-8 flex flex-col items-center justify-center text-center opacity-80" variant="subtle">
+             <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3">
+                <Server className="w-6 h-6 text-muted-foreground" />
+             </div>
+             <p className="text-sm font-medium text-foreground">No Nodes Provisioned</p>
+             <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">Use the metrics tab to request your first node allocation.</p>
+          </GlassCard>
+        )}
       </motion.div>
 
       {/* System Alerts */}
