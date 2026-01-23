@@ -125,7 +125,10 @@ export function PinEntry({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
+      className={cn(
+        "fixed inset-0 z-[100] flex flex-col items-center bg-background",
+        mode === "setup" ? "justify-start pt-[15vh]" : "justify-center"
+      )}
     >
       {/* Background gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
