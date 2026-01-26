@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Loader2, X } from "lucide-react";
-import { SiGoogle, SiApple } from "react-icons/si";
+import { SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -290,19 +290,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               <span className="text-foreground">Continue With Google</span>
             </Button>
 
-            <Button
-              onClick={() => handleSocialAuth("apple")}
-              variant="outline"
-              className="w-full h-11 text-sm font-medium bg-black dark:bg-white border-white/20 gap-3"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
-              ) : (
-                <SiApple className="w-5 h-5 text-white dark:text-black" />
-              )}
-              <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
-            </Button>
+            {/* Apple Sign-In removed from Safe Mode to avoid review issues */}
 
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">

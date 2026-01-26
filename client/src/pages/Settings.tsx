@@ -1041,11 +1041,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             icon={Mail}
             label="Contact Support"
             description="Get Help With Your Account"
-            onClick={() => {
-              const subject = encodeURIComponent("Support Request");
-              const body = encodeURIComponent("Hello Support,\n\n[Describe your issue here]\n\n");
-              window.location.href = `mailto:info@hardisk.co?subject=${subject}&body=${body}`;
-            }}
+            onClick={() => window.open('mailto:info@hardisk.co', '_blank')}
             testId="button-contact-support"
           />
         </GlassCard>
@@ -1146,7 +1142,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="max-w-md top-[15%] translate-y-0">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
@@ -1201,7 +1197,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-        <DialogContent className="max-w-md top-[15%] translate-y-0">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Set PIN Lock</DialogTitle>
             <DialogDescription>
@@ -1248,7 +1244,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       </Dialog>
 
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="max-w-md top-[15%] translate-y-0">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
             <DialogDescription>

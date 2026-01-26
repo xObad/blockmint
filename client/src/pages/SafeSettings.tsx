@@ -355,7 +355,7 @@ export function SafeSettings() {
             icon={Mail}
             label="Contact Support"
             description="Get help from our team"
-            onClick={() => toast({ title: "Support", description: "Opening support..." })}
+            onClick={() => window.location.href = "mailto:support@hardisk.co?subject=Hardisk%20Support%20Request&body=Please%20describe%20your%20issue%20below%3A%0A%0A"}
           />
           <SettingItem
             icon={FileText}
@@ -426,7 +426,7 @@ export function SafeSettings() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl"
+              className="fixed inset-x-4 top-[15%] max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold">Profile</h2>
@@ -487,7 +487,7 @@ export function SafeSettings() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl"
+              className="fixed inset-x-4 top-[15%] max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold">Security</h2>
