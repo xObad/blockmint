@@ -21,6 +21,8 @@ import {
   signInWithEmail, 
   resetPassword
 } from "@/lib/firebase";
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 interface SafeAuthPageProps {
   onAuthSuccess: () => void;
@@ -77,17 +79,29 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
     try {
       let user;
       if (provider === "google") {
-        user = await withTimeout(signInWithGoogle(), 30000);
+        if (Capacitor.getPlatform() === 'ios') {
+          // Use Safari View Controller for Google sign-in
+          await Browser.open({ url: 'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin' });
+          // After redirect, handle result in app (requires deep link handling)
+          // You may need to implement a listener for Browser finished event and handle the auth result
+          setIsLoading(false);
+          return;
+        } else {
+          user = await withTimeout(signInWithGoogle(), 30000);
+        }
       } else {
-        // Shorter timeout for Apple Sign-In
-        user = await withTimeout(signInWithApple(), 3000);
+        if (Capacitor.getPlatform() === 'ios') {
+          // Use Safari View Controller for Apple sign-in
+          await Browser.open({ url: 'https://appleid.apple.com/auth/authorize' });
+          setIsLoading(false);
+          return;
+        } else {
+          user = await withTimeout(signInWithApple(), 3000);
+        }
       }
-      
-      // Check if we got a valid user
       if (!user) {
         throw new Error('NO_USER');
       }
-      
       toast({
         title: "Welcome!",
         description: "You have successfully signed in.",

@@ -98,6 +98,14 @@ export function SafeSettings() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
+
+  // Delete account dialog state
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Handle delete account
+  // (تمت إزالة التعريفات المكررة لدالة handleDeleteAccount)
   // Biometric test state
   const [biometricType, setBiometricType] = useState<string>('none');
   const [biometricAvailable, setBiometricAvailable] = useState<boolean>(false);
@@ -230,6 +238,57 @@ export function SafeSettings() {
         description: "Failed to sign out. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast({
+        title: "Confirmation Required",
+        description: "Please type DELETE to confirm account deletion.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsDeletingAccount(true);
+    try {
+      const user = getUserInfo();
+      if (!user?.id && !user?.uid) throw new Error("User not found");
+      const userId = user.id || user.uid;
+      // Get ID token if available (optional, for secure API)
+      let idToken = null;
+      try {
+        const { getIdToken } = await import("@/lib/firebase");
+        idToken = await getIdToken();
+      } catch {}
+      const response = await fetch(`/api/auth/account/${userId}`, {
+        method: "DELETE",
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete account");
+      }
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been scheduled for deletion.",
+      });
+      localStorage.clear();
+      setShowDeleteAccountDialog(false);
+      setDeleteConfirmText("");
+      setTimeout(() => setLocation("/login"), 1500);
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: (error && typeof error === 'object' && 'message' in error) ? (error as Error).message : "Failed to delete account. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -408,8 +467,99 @@ export function SafeSettings() {
             onClick={handleSignOut}
             destructive
           />
+          <SettingItem
+            icon={Shield}
+            label="Delete Account"
+            description="Permanently delete your account"
+            onClick={() => setShowDeleteAccountDialog(true)}
+            destructive
+          />
         </GlassCard>
       </motion.div>
+
+        {/* Delete Account Dialog */}
+        <AnimatePresence>
+          {showDeleteAccountDialog && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            >
+              <div className="bg-background rounded-xl shadow-xl p-6 w-full max-w-md border border-border">
+                <h2 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
+                  <Shield className="w-5 h-5" /> Delete Account
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This action is <strong>permanent</strong> and will remove all your data from our system. Type <b>DELETE</b> to confirm.
+                </p>
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2 mb-4"
+                  placeholder="Type DELETE to confirm"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value.toUpperCase())}
+                  disabled={isDeletingAccount}
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setShowDeleteAccountDialog(false); setDeleteConfirmText(""); }}
+                    disabled={isDeletingAccount}
+                  >Cancel</Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+                  >{isDeletingAccount ? "Deleting..." : "Delete My Account"}</Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      {/* Account Deletion Dialog */}
+      <AnimatePresence>
+        {showDeleteAccountDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          >
+            <div className="bg-background rounded-2xl shadow-xl p-6 max-w-md w-full border border-border">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="w-6 h-6 text-red-500" />
+                <span className="font-bold text-lg text-red-500">Delete Account</span>
+              </div>
+              <p className="text-sm mb-2">This action is <b>permanent</b> and will delete all your account data. This cannot be undone.</p>
+              <p className="text-xs text-muted-foreground mb-4">Type <b>DELETE</b> below to confirm.</p>
+              <input
+                type="text"
+                className="w-full border rounded-md p-2 mb-4"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value.toUpperCase())}
+                placeholder="Type DELETE"
+                disabled={isDeletingAccount}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => { setShowDeleteAccountDialog(false); setDeleteConfirmText(""); }}
+                  disabled={isDeletingAccount}
+                >Cancel</Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== "DELETE" || isDeletingAccount}
+                >{isDeletingAccount ? "Deleting..." : "Delete My Account"}</Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Profile Modal */}
       <AnimatePresence>
