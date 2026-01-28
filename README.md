@@ -33,12 +33,7 @@ Thank you for your feedback. The app version submitted for review is a complianc
 - **Account Deletion:**
   Users can now request account deletion directly from the app via the Settings page. This action is permanent and removes all user data from our servers and authentication provider. This complies with App Store Guideline 5.1.1(v).
 
-- **Business Model:**
-  1. Only authorized server administrators use the app.
-  2. There are no paid subscriptions, features, or services in this app.
-  3. No paid content or features are accessible in the app.
-  4. No content is unlocked by any means other than administrator authorization.
-  5. Accounts are provisioned by our IT team; users cannot create accounts or pay any fees via the app.
+
 
 If you need a test account or further clarification, please let us know.
 

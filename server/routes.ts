@@ -3192,10 +3192,9 @@ export async function registerRoutes(
       
       // Log the deletion for audit
       await db.insert(adminActions).values({
-        adminUserId: dbUserId,
+        adminId: dbUserId,
         actionType: "account_deletion_request",
-        targetId: dbUserId,
-        targetType: "user",
+        targetUserId: dbUserId,
         details: { deletedAt: new Date().toISOString(), reason: "user_requested" },
       });
       

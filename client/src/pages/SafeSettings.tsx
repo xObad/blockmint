@@ -273,14 +273,21 @@ export function SafeSettings() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to delete account");
       }
-      toast({
-        title: "Account Deleted",
-        description: "Your account has been scheduled for deletion.",
-      });
+      // Sign out from Firebase, clear localStorage, and redirect
+      try {
+        const { logOut } = await import("@/lib/firebase");
+        await logOut();
+      } catch {}
       localStorage.clear();
       setShowDeleteAccountDialog(false);
       setDeleteConfirmText("");
-      setTimeout(() => setLocation("/login"), 1500);
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been deleted.",
+      });
+      setTimeout(() => {
+        setLocation("/login");
+      }, 1200);
     } catch (error) {
       toast({
         title: "Deletion Failed",
