@@ -2275,6 +2275,7 @@ export function DatabaseAdmin() {
                               {editingConfig?.id === cfg.id ? (
                                 <>
                                   <Button
+                                    type="button"
                                     size="sm"
                                     onClick={() => {
                                       updateConfig.mutate({ id: cfg.id, value: editConfigValue });
@@ -2282,13 +2283,14 @@ export function DatabaseAdmin() {
                                   >
                                     <Save className="w-4 h-4" />
                                   </Button>
-                                  <Button size="sm" variant="outline" onClick={() => setEditingConfig(null)}>
+                                  <Button type="button" size="sm" variant="outline" onClick={() => setEditingConfig(null)}>
                                     <X className="w-4 h-4" />
                                   </Button>
                                 </>
                               ) : (
                                 <>
                                   <Button
+                                    type="button"
                                     size="sm"
                                     variant="outline"
                                     onClick={() => {
@@ -2299,6 +2301,7 @@ export function DatabaseAdmin() {
                                     <Edit2 className="w-4 h-4" />
                                   </Button>
                                   <Button
+                                    type="button"
                                     size="sm"
                                     variant="destructive"
                                     onClick={() => setDeleteConfigId(cfg.id)}
@@ -2665,17 +2668,17 @@ export function DatabaseAdmin() {
       </Dialog>
 
       {/* Delete Config Dialog */}
-      <Dialog open={!!deleteConfigId} onOpenChange={() => setDeleteConfigId(null)}>
+      <Dialog open={!!deleteConfigId} onOpenChange={(open) => !open && setDeleteConfigId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Configuration</DialogTitle>
             <DialogDescription>Are you sure you want to delete this configuration entry?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfigId(null)}>
+            <Button type="button" variant="outline" onClick={() => setDeleteConfigId(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => deleteConfigId && deleteConfig.mutate(deleteConfigId)}>
+            <Button type="button" variant="destructive" onClick={() => deleteConfigId && deleteConfig.mutate(deleteConfigId)}>
               Delete
             </Button>
           </DialogFooter>
