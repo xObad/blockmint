@@ -48,24 +48,44 @@ interface BiometricAvailability {
 }
 
 let NativeBiometric: any = null;
+let biometricPluginLoaded = false;
+let biometricPluginPromise: Promise<any> | null = null;
 
-// Lazy load the biometric plugin
-async function getBiometricPlugin() {
-  if (NativeBiometric) return NativeBiometric;
+// Preload the biometric plugin on native platforms
+function preloadBiometricPlugin() {
+  if (biometricPluginPromise) return biometricPluginPromise;
   
   if (!isNativePlatform()) {
     console.log('Biometrics: Not available on web');
-    return null;
+    biometricPluginLoaded = true;
+    return Promise.resolve(null);
   }
   
-  try {
-    const module = await import('capacitor-native-biometric');
-    NativeBiometric = module.NativeBiometric;
-    return NativeBiometric;
-  } catch (error) {
-    console.error('Failed to load biometric plugin:', error);
-    return null;
-  }
+  biometricPluginPromise = import('capacitor-native-biometric')
+    .then(module => {
+      NativeBiometric = module.NativeBiometric;
+      biometricPluginLoaded = true;
+      console.log('[Biometrics] Plugin preloaded successfully');
+      return NativeBiometric;
+    })
+    .catch(error => {
+      console.error('[Biometrics] Failed to load plugin:', error);
+      biometricPluginLoaded = true;
+      return null;
+    });
+  
+  return biometricPluginPromise;
+}
+
+// Start preloading immediately on native
+if (isNativePlatform()) {
+  preloadBiometricPlugin();
+}
+
+// Get the biometric plugin (waits for preload)
+async function getBiometricPlugin() {
+  if (biometricPluginLoaded) return NativeBiometric;
+  return preloadBiometricPlugin();
 }
 
 // Helper to add timeout to async operations

@@ -559,12 +559,68 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
         console.log('[Settings] PIN setup completed, now setting up biometric...');
         setIsBiometricLoading(true);
         
+        // Use setTimeout to ensure the loading state renders before blocking calls
+        setTimeout(async () => {
+          try {
+            // Now continue with biometric setup
+            console.log('[Settings] Checking biometric availability for enabling...');
+            const availability = await checkBiometricAvailability();
+            console.log('[Settings] Biometric availability:', availability);
+            
+            if (!availability.isAvailable) {
+              toast({
+                title: "Biometrics Not Available",
+                description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
+                variant: "destructive",
+              });
+              setIsBiometricLoading(false);
+              return;
+            }
+
+            // Verify identity before enabling
+            console.log('[Settings] Requesting biometric verification...');
+            const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
+            console.log('[Settings] Biometric verification result:', result);
+            
+            if (!result.success) {
+              if (!result.error?.toLowerCase().includes('cancel')) {
+                toast({
+                  title: "Authentication Failed",
+                  description: result.error || "Could not verify your identity. Please try again.",
+                  variant: "destructive",
+                });
+              }
+              setIsBiometricLoading(false);
+              return;
+            }
+
+            console.log('[Settings] Enabling biometric in database...');
+            toggleBiometricMutation.mutate(true);
+            setIsBiometricLoading(false);
+          } catch (error) {
+            console.error('[Settings] Biometric setup error:', error);
+            toast({
+              title: "Setup Failed",
+              description: "Failed to enable biometric authentication. Please try again.",
+              variant: "destructive",
+            });
+            setIsBiometricLoading(false);
+          }
+        }, 50);
+      });
+      return;
+    }
+
+    if (enabled) {
+      // Set loading state asynchronously to ensure UI updates
+      setIsBiometricLoading(true);
+      
+      // Use setTimeout to ensure the loading state renders before blocking calls
+      setTimeout(async () => {
         try {
-          // Small delay to ensure the UI has updated
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // Now continue with biometric setup
+          // Check biometric availability using native services
           console.log('[Settings] Checking biometric availability for enabling...');
+          
           const availability = await checkBiometricAvailability();
           console.log('[Settings] Biometric availability:', availability);
           
@@ -574,15 +630,22 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
               description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
               variant: "destructive",
             });
+            setIsBiometricLoading(false);
             return;
           }
 
           // Verify identity before enabling
           console.log('[Settings] Requesting biometric verification...');
+          toast({
+            title: "Verify Your Identity",
+            description: "Use Face ID or passcode to continue.",
+          });
+          
           const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
           console.log('[Settings] Biometric verification result:', result);
           
           if (!result.success) {
+            // Don't show error for user cancellation
             if (!result.error?.toLowerCase().includes('cancel')) {
               toast({
                 title: "Authentication Failed",
@@ -590,11 +653,13 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
                 variant: "destructive",
               });
             }
+            setIsBiometricLoading(false);
             return;
           }
 
           console.log('[Settings] Enabling biometric in database...');
           toggleBiometricMutation.mutate(true);
+          setIsBiometricLoading(false);
         } catch (error) {
           console.error('[Settings] Biometric setup error:', error);
           toast({
@@ -602,66 +667,9 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
             description: "Failed to enable biometric authentication. Please try again.",
             variant: "destructive",
           });
-        } finally {
           setIsBiometricLoading(false);
         }
-      });
-      return;
-    }
-
-    if (enabled) {
-      setIsBiometricLoading(true);
-      
-      try {
-        // Check biometric availability using native services
-        console.log('[Settings] Checking biometric availability for enabling...');
-        
-        const availability = await checkBiometricAvailability();
-        console.log('[Settings] Biometric availability:', availability);
-        
-        if (!availability.isAvailable) {
-          toast({
-            title: "Biometrics Not Available",
-            description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // Verify identity before enabling
-        console.log('[Settings] Requesting biometric verification...');
-        toast({
-          title: "Verify Your Identity",
-          description: "Use Face ID or passcode to continue.",
-        });
-        
-        const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
-        console.log('[Settings] Biometric verification result:', result);
-        
-        if (!result.success) {
-          // Don't show error for user cancellation
-          if (!result.error?.toLowerCase().includes('cancel')) {
-            toast({
-              title: "Authentication Failed",
-              description: result.error || "Could not verify your identity. Please try again.",
-              variant: "destructive",
-            });
-          }
-          return;
-        }
-
-        console.log('[Settings] Enabling biometric in database...');
-        toggleBiometricMutation.mutate(true);
-      } catch (error) {
-        console.error('[Settings] Biometric setup error:', error);
-        toast({
-          title: "Setup Failed",
-          description: "Failed to enable biometric authentication. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsBiometricLoading(false);
-      }
+      }, 50);
     } else {
       toggleBiometricMutation.mutate(false);
     }
