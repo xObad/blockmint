@@ -36,7 +36,7 @@ export function GlobalHeader({
       <ScrollAwareStatusBar />
       
       {/* Spacer for system status bar - reduced spacing */}
-      <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)]" />
+      <div className="h-[env(safe-area-inset-top,0px)]" />
       
       <header
         className="bg-transparent"

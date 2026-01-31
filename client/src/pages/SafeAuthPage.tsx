@@ -235,7 +235,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 overflow-y-auto">
         {/* Spacer for system status bar - reduced spacing */}
-        <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)] shrink-0" />
+        <div className="h-[env(safe-area-inset-top,0px)] shrink-0" />
         
         {/* Header with X button and theme toggle */}
         <div className="flex items-center justify-between mb-2">
