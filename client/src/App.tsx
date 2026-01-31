@@ -593,14 +593,14 @@ function AppRouter() {
 
 function App() {
   // Get user ID from localStorage for AppLock
-  const [userId, setUserId] = useState<number | undefined>(undefined);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
-        setUserId(parsed.id || parsed.dbId);
+        setUserId(parsed.id || parsed.dbId || parsed.uid);
       } catch (e) {
         console.error("Failed to parse user from localStorage");
       }

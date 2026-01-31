@@ -46,7 +46,7 @@ export function useAppLock() {
 
 interface AppLockProviderProps {
   children: ReactNode;
-  userId?: number;
+  userId?: string;
 }
 
 export function AppLockProvider({ children, userId }: AppLockProviderProps) {
