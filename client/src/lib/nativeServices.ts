@@ -2,7 +2,7 @@
  * Native Services - Capacitor Plugin Wrappers
  * 
  * This module provides unified access to native device features:
- * - Biometrics (Face ID, Touch ID) - Native iOS implementation
+ * - Face ID (iOS only via custom native plugin)
  * - Push Notifications
  * - Apple Sign-In (native implementation)
  * 
@@ -33,8 +33,31 @@ export function isAndroid(): boolean {
 }
 
 // ============================================================
-// FACE ID / TOUCH ID (Native iOS Implementation)
+// FACE ID (iOS ONLY)
 // ============================================================
+
+interface FaceIDIsAvailableResult {
+  isAvailable: boolean;
+  biometryType: string;
+  passcodeAvailable?: boolean;
+  errorCode?: number;
+  errorMessage?: string;
+}
+
+interface FaceIDAuthResult {
+  success: boolean;
+  errorCode?: number;
+  errorMessage?: string;
+  cancelled?: boolean;
+}
+
+interface FaceIDPlugin {
+  isAvailable(): Promise<FaceIDIsAvailableResult>;
+  authenticate(options: { reason: string; useFallback?: boolean }): Promise<FaceIDAuthResult>;
+}
+
+// Register the custom FaceIDPlugin (iOS only)
+const FaceID = registerPlugin<FaceIDPlugin>('FaceIDPlugin');
 
 interface BiometricResult {
   success: boolean;
@@ -47,39 +70,14 @@ interface BiometricAvailability {
   errorMessage?: string;
 }
 
-// Native Face ID plugin interface
-interface FaceIDPluginInterface {
-  isAvailable(): Promise<{
-    isAvailable: boolean;
-    biometryType: string;
-    passcodeAvailable: boolean;
-    errorCode?: number;
-    errorMessage?: string;
-  }>;
-  authenticate(options: {
-    reason: string;
-    useFallback?: boolean;
-  }): Promise<{
-    success: boolean;
-    errorCode?: number;
-    errorMessage?: string;
-    cancelled?: boolean;
-  }>;
-}
-
-// Register our custom Face ID plugin (iOS only)
-const FaceID = isIOS() 
-  ? registerPlugin<FaceIDPluginInterface>('FaceIDPlugin')
-  : null;
-
 /**
- * Check if biometric authentication is available on this device
+ * Check if Face ID is available on this device
+ * Only available on iOS - returns not available for Android and web
  */
 export async function checkBiometricAvailability(): Promise<BiometricAvailability> {
-  console.log('[FaceID] checkBiometricAvailability starting...');
-  
-  if (!isIOS() || !FaceID) {
-    console.log('[FaceID] Not iOS platform or plugin not available');
+  // Face ID is iOS only
+  if (!isIOS()) {
+    console.log('[FaceID] Not iOS - Face ID unavailable');
     return {
       isAvailable: false,
       biometryType: 'none',
@@ -88,41 +86,43 @@ export async function checkBiometricAvailability(): Promise<BiometricAvailabilit
   }
   
   try {
-    console.log('[FaceID] Calling native isAvailable...');
+    console.log('[FaceID] Checking availability...');
     const result = await FaceID.isAvailable();
-    console.log('[FaceID] Availability result:', JSON.stringify(result));
+    console.log('[FaceID] Availability result:', result);
     
     // Map biometry type
     let biometryType: 'face' | 'fingerprint' | 'iris' | 'none' = 'none';
-    if (result.biometryType === 'face') biometryType = 'face';
-    else if (result.biometryType === 'fingerprint') biometryType = 'fingerprint';
-    else if (result.biometryType === 'optic') biometryType = 'iris';
+    if (result.biometryType === 'face') {
+      biometryType = 'face';
+    } else if (result.biometryType === 'fingerprint') {
+      biometryType = 'fingerprint';
+    }
     
     return {
       isAvailable: result.isAvailable,
       biometryType,
       errorMessage: result.errorMessage
     };
-  } catch (error: any) {
-    console.error('[FaceID] Availability check error:', error);
+  } catch (error) {
+    console.error('[FaceID] Error checking availability:', error);
     return {
       isAvailable: false,
       biometryType: 'none',
-      errorMessage: error.message || 'Failed to check Face ID availability'
+      errorMessage: error instanceof Error ? error.message : 'Failed to check Face ID availability'
     };
   }
 }
 
 /**
- * Authenticate user with Face ID / Touch ID
+ * Authenticate user with Face ID
+ * Only available on iOS - returns failure for Android and web
  */
 export async function authenticateWithBiometrics(
   reason: string = 'Verify your identity'
 ): Promise<BiometricResult> {
-  console.log('[FaceID] authenticateWithBiometrics called');
-  
-  if (!isIOS() || !FaceID) {
-    console.log('[FaceID] Not iOS platform or plugin not available');
+  // Face ID is iOS only
+  if (!isIOS()) {
+    console.log('[FaceID] Not iOS - authentication unavailable');
     return {
       success: false,
       error: 'Face ID is only available on iOS devices'
@@ -130,35 +130,22 @@ export async function authenticateWithBiometrics(
   }
   
   try {
-    console.log('[FaceID] Starting authentication with reason:', reason);
-    
+    console.log('[FaceID] Starting authentication...');
     const result = await FaceID.authenticate({
       reason,
-      useFallback: true
+      useFallback: true // Allow passcode fallback
     });
+    console.log('[FaceID] Authentication result:', result);
     
-    console.log('[FaceID] Authentication result:', JSON.stringify(result));
-    
-    if (result.success) {
-      return { success: true };
-    } else {
-      // Don't report cancellation as an error
-      if (result.cancelled) {
-        return {
-          success: false,
-          error: 'Authentication cancelled'
-        };
-      }
-      return {
-        success: false,
-        error: result.errorMessage || 'Authentication failed'
-      };
-    }
-  } catch (error: any) {
+    return {
+      success: result.success,
+      error: result.errorMessage
+    };
+  } catch (error) {
     console.error('[FaceID] Authentication error:', error);
     return {
       success: false,
-      error: error.message || 'Authentication failed'
+      error: error instanceof Error ? error.message : 'Face ID authentication failed'
     };
   }
 }

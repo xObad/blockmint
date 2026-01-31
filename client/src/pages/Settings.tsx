@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { 
-  User, Shield, Bell, Key, Fingerprint, Clock, 
+  User, Shield, Bell, Key, ScanFace, Clock, 
   DollarSign, Globe, ChevronRight, ChevronLeft, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
   Link2, Unlink, Wallet, CalendarClock, ArrowDownToLine,
@@ -25,7 +25,7 @@ import { useBTCPrice } from "@/hooks/useBTCPrice";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { requestNotificationPermission } from "@/lib/firebase";
-import { checkBiometricAvailability, authenticateWithBiometrics } from "@/lib/nativeServices";
+import { checkBiometricAvailability, authenticateWithBiometrics, isIOS } from "@/lib/nativeServices";
 import type { UserSettings } from "@/lib/types";
 import type { User as FirebaseUser } from "firebase/auth";
 
@@ -1052,20 +1052,23 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
               />
             }
           />
-          <SettingItem
-            icon={Fingerprint}
-            label="Biometric Lock"
-            description="Use Fingerprint Or Face ID"
-            testId="setting-biometric"
-            action={
-              <Switch
-                data-testid="switch-biometric"
-                checked={securitySettings?.biometricEnabled ?? false}
-                onCheckedChange={handleBiometricToggle}
-                disabled={isBiometricLoading || toggleBiometricMutation.isPending}
-              />
-            }
-          />
+          {/* Face ID - iOS only */}
+          {isIOS() && (
+            <SettingItem
+              icon={ScanFace}
+              label="Face ID"
+              description="Unlock With Face ID"
+              testId="setting-faceid"
+              action={
+                <Switch
+                  data-testid="switch-faceid"
+                  checked={securitySettings?.biometricEnabled ?? false}
+                  onCheckedChange={handleBiometricToggle}
+                  disabled={isBiometricLoading || toggleBiometricMutation.isPending}
+                />
+              }
+            />
+          )}
           <div className="py-3" data-testid="setting-session-timeout">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04] text-muted-foreground">

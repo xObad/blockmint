@@ -104,28 +104,28 @@ public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
     
     /// Get user-friendly error message for LAError codes
     private func getErrorMessage(for errorCode: Int) -> String {
-        switch Int32(errorCode) {
-        case LAError.authenticationFailed.rawValue:
+        switch errorCode {
+        case Int(LAError.authenticationFailed.rawValue):
             return "Authentication failed. Please try again."
-        case LAError.userCancel.rawValue:
+        case Int(LAError.userCancel.rawValue):
             return "Authentication was cancelled."
-        case LAError.userFallback.rawValue:
+        case Int(LAError.userFallback.rawValue):
             return "User chose to use passcode."
-        case LAError.systemCancel.rawValue:
+        case Int(LAError.systemCancel.rawValue):
             return "Authentication was cancelled by the system."
-        case LAError.passcodeNotSet.rawValue:
+        case Int(LAError.passcodeNotSet.rawValue):
             return "Device passcode is not set. Please set a passcode in Settings."
-        case LAError.biometryNotAvailable.rawValue:
+        case Int(LAError.biometryNotAvailable.rawValue):
             return "Face ID/Touch ID is not available on this device."
-        case LAError.biometryNotEnrolled.rawValue:
+        case Int(LAError.biometryNotEnrolled.rawValue):
             return "Face ID/Touch ID is not set up. Please configure it in Settings."
-        case LAError.biometryLockout.rawValue:
+        case Int(LAError.biometryLockout.rawValue):
             return "Face ID/Touch ID is locked. Please use your passcode."
-        case LAError.appCancel.rawValue:
+        case Int(LAError.appCancel.rawValue):
             return "Authentication was cancelled by the app."
-        case LAError.invalidContext.rawValue:
+        case Int(LAError.invalidContext.rawValue):
             return "Authentication context is invalid."
-        case LAError.notInteractive.rawValue:
+        case Int(LAError.notInteractive.rawValue):
             return "Authentication requires user interaction."
         default:
             return "An unknown error occurred."
