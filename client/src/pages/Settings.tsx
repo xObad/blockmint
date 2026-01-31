@@ -7,7 +7,6 @@ import {
   Link2, Unlink, Wallet, CalendarClock, ArrowDownToLine,
   Trash2, AlertTriangle
 } from "lucide-react";
-import { useLocation } from "wouter";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
 import { Switch } from "@/components/ui/switch";
@@ -35,6 +34,7 @@ interface SettingsProps {
   onSettingsChange: (settings: Partial<UserSettings>) => void;
   user?: FirebaseUser | null;
   onLogout?: () => void;
+  onClose?: () => void;
 }
 
 interface ServerSecuritySettings {
@@ -122,7 +122,7 @@ function getBiometricType(): 'face' | 'fingerprint' | 'unknown' {
   return 'unknown';
 }
 
-export function Settings({ settings, onSettingsChange, user, onLogout }: SettingsProps) {
+export function Settings({ settings, onSettingsChange, user, onLogout, onClose }: SettingsProps) {
   const { toast } = useToast();
   const { currency, setCurrency } = useCurrency();
   const queryClient = useQueryClient();
@@ -766,7 +766,13 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
     }
   };
 
-  const [, setLocation] = useLocation();
+  const handleBack = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      window.history.back();
+    }
+  };
 
   return (
     <motion.div
@@ -782,7 +788,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         className="flex items-center gap-3"
       >
         <button
-          onClick={() => setLocation('/dashboard')}
+          onClick={handleBack}
           className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center hover:bg-white/[0.12] transition-colors"
         >
           <ChevronLeft className="w-5 h-5 text-foreground" />

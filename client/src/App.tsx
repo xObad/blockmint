@@ -1,4 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { App as CapacitorApp } from '@capacitor/app';
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -108,6 +109,35 @@ function MobileApp() {
     selectPool,
     updateSettings,
   } = useMiningData();
+
+  // Handle hardware back button (iOS swipe gesture / Android back button)
+  useEffect(() => {
+    const backButtonListener = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      // If settings is open, close it
+      if (showSettings) {
+        setShowSettings(false);
+        return;
+      }
+      
+      // If on non-home tab, go back to home tab
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return;
+      }
+      
+      // Otherwise, use browser history or minimize app
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        // On home tab with no history, minimize app (don't exit)
+        CapacitorApp.minimizeApp();
+      }
+    });
+
+    return () => {
+      backButtonListener.then(listener => listener.remove());
+    };
+  }, [showSettings, activeTab]);
 
   useEffect(() => {
     // Version check to reset localStorage on new app version
@@ -472,6 +502,7 @@ function MobileApp() {
                 settings={settings}
                 onSettingsChange={updateSettings}
                 user={firebaseUser}
+                onClose={() => setShowSettings(false)}
                 onLogout={async () => {
                   await logOut();
                   localStorage.clear(); // Clear all local storage including onboarding flag
