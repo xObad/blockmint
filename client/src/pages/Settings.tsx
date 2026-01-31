@@ -776,7 +776,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
 
   return (
     <motion.div
-      className="flex flex-col gap-6 pb-6"
+      className="flex flex-col gap-6 pb-6 pt-3"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
