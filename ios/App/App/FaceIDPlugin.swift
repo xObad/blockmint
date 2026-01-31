@@ -3,7 +3,14 @@ import Capacitor
 import LocalAuthentication
 
 @objc(FaceIDPlugin)
-public class FaceIDPlugin: CAPPlugin {
+public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "FaceIDPlugin"
+    public let jsName = "FaceIDPlugin"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "authenticate", returnType: CAPPluginReturnPromise)
+    ]
+    
     public override func load() {
         print("[FaceIDPlugin] Plugin loaded successfully")
     }
