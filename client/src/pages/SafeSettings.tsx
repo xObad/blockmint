@@ -165,7 +165,9 @@ export function SafeSettings() {
   const handleBiometricsToggle = async (enabled: boolean) => {
     if (enabled) {
       // Check if biometrics are available
+      console.log('[SafeSettings] Checking biometric availability...');
       const availability = await checkBiometricAvailability();
+      console.log('[SafeSettings] Biometric availability:', availability);
       
       if (!availability.isAvailable) {
         toast({
@@ -177,7 +179,10 @@ export function SafeSettings() {
       }
       
       // Verify before enabling
+      console.log('[SafeSettings] Requesting biometric verification...');
       const result = await authenticateWithBiometrics("Enable biometric login");
+      console.log('[SafeSettings] Biometric result:', result);
+      
       if (result.success) {
         setBiometricsEnabled(true);
         localStorage.setItem("safe_biometrics_enabled", "true");
@@ -186,11 +191,14 @@ export function SafeSettings() {
           description: `${availability.biometryType === 'face' ? 'Face ID' : 'Touch ID'} has been enabled`
         });
       } else {
-        toast({
-          title: "Authentication Failed",
-          description: result.error || "Could not verify your identity",
-          variant: "destructive"
-        });
+        // Don't show error for user cancellation
+        if (!result.error?.toLowerCase().includes('cancel')) {
+          toast({
+            title: "Authentication Failed",
+            description: result.error || "Could not verify your identity",
+            variant: "destructive"
+          });
+        }
       }
     } else {
       setBiometricsEnabled(false);
@@ -203,12 +211,15 @@ export function SafeSettings() {
   };
 
   async function testBiometrics() {
+    console.log('[SafeSettings] Testing biometrics...');
     const { checkBiometricAvailability, authenticateWithBiometrics, setCredentials, getCredentials } = await import('@/lib/nativeServices');
     const availability = await checkBiometricAvailability();
+    console.log('[SafeSettings] Test - availability:', availability);
     setBiometricType(availability.biometryType);
     setBiometricAvailable(availability.isAvailable);
     if (availability.isAvailable) {
       const result = await authenticateWithBiometrics('Test Biometric Auth');
+      console.log('[SafeSettings] Test - auth result:', result);
       setBiometricAuthResult(result.success ? 'Authenticated!' : `Failed: ${result.error}`);
       // Store credentials
       await setCredentials('blockmint-app', 'user@email.com', 'secure-token');
@@ -216,7 +227,7 @@ export function SafeSettings() {
       const creds = await getCredentials('blockmint-app');
       setCredentialResult(JSON.stringify(creds));
     } else {
-      setBiometricAuthResult('Biometrics not available');
+      setBiometricAuthResult('Biometrics not available: ' + (availability.errorMessage || 'unknown'));
       setCredentialResult('');
     }
   }

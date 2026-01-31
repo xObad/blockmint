@@ -45,5 +45,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>BlockMint uses Face ID to securely unlock the app and protect your account.</string>
 </dict>
 </plist>

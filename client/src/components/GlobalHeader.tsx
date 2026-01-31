@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, Bell, Sun, Moon, X, Home, Wallet, PieChart, HelpCircle, LogOut, Settings as SettingsIcon, Shield } from "lucide-react";
+import { ChevronLeft, Bell, Sun, Moon, X, Settings as SettingsIcon } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { logOut } from "@/lib/firebase";
 import { ScrollAwareStatusBar } from "./ScrollAwareStatusBar";
 
 interface GlobalHeaderProps {
@@ -21,36 +20,37 @@ export function GlobalHeader({
 }: GlobalHeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const [showMenu, setShowMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const handleLogout = async () => {
-    await logOut();
-    localStorage.clear();
-    window.location.href = '/';
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onNavigateToHome?.();
+    }
   };
 
   return (
     <>
-      {/* Scroll-aware background for system status bar */}
+      {/* Scroll-aware status bar gradient */}
       <ScrollAwareStatusBar />
       
-      {/* Spacer for system status bar - reduced spacing */}
-      <div className="h-[env(safe-area-inset-top,0px)]" />
-      
+      {/* Header with integrated safe area - no extra spacer needed */}
       <header
-        className="bg-transparent"
+        className="sticky top-0 z-40 bg-transparent"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="flex items-center gap-4 px-4 h-16">
-          {/* Left Side - Hamburger Menu & Settings */}
+        <div className="flex items-center gap-4 px-4 h-14">
+          {/* Left Side - Back Button & Settings */}
           <div className="flex items-center gap-2">
             <motion.button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={handleBack}
               className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
               whileTap={{ scale: 0.95 }}
               type="button"
+              aria-label="Go back"
             >
-              <Menu className="w-[17px] h-[17px] text-muted-foreground" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </motion.button>
             <motion.button
               onClick={onOpenSettings}
@@ -91,108 +91,6 @@ export function GlobalHeader({
           </div>
         </div>
       </header>
-
-      {/* Hamburger Menu */}
-      <AnimatePresence>
-        {showMenu && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-              onClick={() => setShowMenu(false)}
-            />
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed left-0 top-0 bottom-0 w-80 z-[101] liquid-glass bg-background/95 backdrop-blur-xl border-r border-white/10 shadow-2xl"
-            >
-              <div className="flex flex-col h-full p-6 pt-safe">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="font-display text-2xl font-bold text-foreground">BlockMint</h2>
-                    <p className="text-sm text-muted-foreground">Mining Dashboard</p>
-                  </div>
-                  <motion.button
-                    onClick={() => setShowMenu(false)}
-                    className="w-9 h-9 rounded-lg liquid-glass flex items-center justify-center hover-elevate"
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
-                </div>
-
-                <nav className="flex-1 space-y-2">
-                  <motion.button
-                    onClick={() => { onNavigateToHome?.(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Home className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm font-medium text-foreground">Home</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={() => { onNavigateToWallet?.(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Wallet className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium text-foreground">Wallet</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={() => { onNavigateToInvest?.(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <PieChart className="w-5 h-5 text-purple-500" />
-                    <span className="text-sm font-medium text-foreground">Yield</span>
-                  </motion.button>
-                  
-                  <motion.button
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <HelpCircle className="w-5 h-5 text-cyan-500" />
-                    <span className="text-sm font-medium text-foreground">Support</span>
-                  </motion.button>
-
-                  <div className="pt-4 border-t border-white/10">
-                    <motion.button
-                      onClick={() => { onOpenSettings?.(); setShowMenu(false); }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <SettingsIcon className="w-5 h-5 text-slate-500" />
-                      <span className="text-sm font-medium text-foreground">Settings</span>
-                    </motion.button>
-                  </div>
-                </nav>
-
-                <div className="pt-4 border-t border-white/10">
-                  <motion.button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-500/10 transition-colors text-red-500"
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span className="text-sm font-medium">Sign Out</span>
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Notifications Panel */}
       <AnimatePresence>

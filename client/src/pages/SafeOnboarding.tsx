@@ -71,17 +71,17 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
+      {/* Background blur effects - positioned lower to avoid Dynamic Island */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/15 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[40%] -left-[20%] w-[70%] h-[50%] bg-primary/8 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/8 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe">
         {/* Header with Logo and Skip button */}
-        <div className="flex items-center justify-between pt-6 pb-1">
+        <div className="flex items-center justify-between pb-2">
           <motion.div 
-            className="h-20 flex items-center justify-center relative"
+            className="h-14 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -89,9 +89,9 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-16 w-auto object-contain relative z-10"
+              className="h-12 w-auto object-contain relative z-10"
               style={{
-                filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.35)) contrast(1.1) saturate(1.2)',
+                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))',
                 imageRendering: '-webkit-optimize-contrast',
               }}
               onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -132,57 +132,57 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center py-4">
               {/* Icon Container - 3D glass style */}
               <motion.div 
-                className="relative w-20 h-20 sm:w-24 sm:h-24 mb-4"
+                className="relative w-20 h-20 mb-4"
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
               >
                 {/* Glow effect */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-2xl blur-xl scale-110`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-25 rounded-2xl blur-lg scale-110`} />
                 {/* Glass container with gradient border */}
                 <div className="relative z-10 w-full h-full rounded-2xl bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-xl overflow-hidden">
                   {/* Inner gradient */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-20`} />
                   {/* Icon with gradient */}
                   <div className={`relative z-10 p-3 rounded-xl bg-gradient-to-br ${slide.gradient}`}>
-                    <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
+                    <Icon className="w-8 h-8 text-white drop-shadow-lg" />
                   </div>
                 </div>
               </motion.div>
 
               {/* Text Content */}
-              <div className="text-center space-y-3">
+              <div className="text-center space-y-3 px-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-                  className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-sm font-semibold`}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-xs font-semibold`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   {slide.subtitle}
                 </motion.div>
                 
-                <h1 className="font-display text-3xl font-bold text-foreground">
+                <h1 className="font-display text-2xl font-bold text-foreground px-2">
                   {slide.title}
                 </h1>
                 
-                <p className="text-muted-foreground leading-relaxed max-w-sm text-sm">
+                <p className="text-muted-foreground leading-relaxed text-sm max-w-sm mx-auto px-2">
                   {slide.description}
                 </p>
               </div>
             </div>
 
-            {/* Dots Indicator - raised 30px */}
-            <div className="flex justify-center gap-2 mb-10 -mt-2">
+            {/* Dots Indicator */}
+            <div className="flex justify-center gap-1.5 mt-6 mb-4">
               {slides.map((_, index) => (
                 <motion.div
                   key={index}
-                  className={`h-2 rounded-full transition-all duration-300 ${
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
                     index === currentSlide 
-                      ? 'w-8 bg-primary' 
-                      : 'w-2 bg-muted-foreground/30'
+                      ? 'w-6 bg-primary' 
+                      : 'w-1.5 bg-muted-foreground/30'
                   }`}
                   animate={{ scale: index === currentSlide ? 1.1 : 1 }}
                   onClick={() => setCurrentSlide(index)}
@@ -194,16 +194,16 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
         </AnimatePresence>
 
         {/* Action Buttons */}
-        <div className="space-y-1 pb-1 -mt-[1.5rem]">
+        <div className="space-y-2 pb-safe">
           <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             className="relative"
           >
             {/* Pulsing glow effect */}
             <motion.div
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 opacity-60 blur-xl"
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 opacity-50 blur-lg"
               animate={{
                 scale: [1, 1.05, 1],
                 opacity: [0.4, 0.7, 0.4],
@@ -216,7 +216,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
             />
             <Button
               onClick={handleNext}
-              className="relative w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/30 hover:shadow-xl hover:shadow-emerald-400/50 active:shadow-md active:shadow-emerald-400/40 transition-all duration-300 overflow-hidden group"
+              className="relative w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 text-white shadow-lg shadow-emerald-400/25 hover:shadow-xl hover:shadow-emerald-400/40 active:shadow-md active:shadow-emerald-400/30 transition-all duration-300 overflow-hidden group"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -226,7 +226,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
           </motion.div>
 
           {/* Sign in hint */}
-          <p className="text-center text-xs text-muted-foreground/80 pt-0 pb-1 -mt-4">
+          <p className="text-center text-xs text-muted-foreground/80 pt-1">
             Sign in to access your infrastructure dashboard.
           </p>
         </div>

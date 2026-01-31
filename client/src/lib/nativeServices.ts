@@ -68,13 +68,26 @@ async function getBiometricPlugin() {
   }
 }
 
+// Helper to add timeout to async operations
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(errorMsg)), ms)
+    )
+  ]);
+}
+
 /**
  * Check if biometric authentication is available on this device
  */
 export async function checkBiometricAvailability(): Promise<BiometricAvailability> {
+  console.log('[Biometrics] checkBiometricAvailability starting...');
+  
   const plugin = await getBiometricPlugin();
   
   if (!plugin) {
+    console.log('[Biometrics] No plugin available');
     return {
       isAvailable: false,
       biometryType: 'none',
@@ -83,20 +96,34 @@ export async function checkBiometricAvailability(): Promise<BiometricAvailabilit
   }
   
   try {
-    const result = await plugin.isAvailable();
+    console.log('[Biometrics] Calling plugin.isAvailable...');
+    // Use useFallback: true to allow device passcode as fallback
+    // Add 5 second timeout to prevent hanging
+    const result = await withTimeout(
+      plugin.isAvailable({ useFallback: true }),
+      5000,
+      'Biometric availability check timed out'
+    );
     
-    // Map biometry type
+    console.log('[Biometrics] Availability check result:', JSON.stringify(result));
+    
+    // Map biometry type from native plugin
+    // 0 = none, 1 = fingerprint/TouchID, 2 = Face ID, 3 = iris
     let biometryType: 'face' | 'fingerprint' | 'iris' | 'none' = 'none';
     if (result.biometryType === 1) biometryType = 'fingerprint';
     else if (result.biometryType === 2) biometryType = 'face';
     else if (result.biometryType === 3) biometryType = 'iris';
     
+    // Even if specific biometry is not available, device passcode might be
+    const isAvailable = result.isAvailable === true;
+    
     return {
-      isAvailable: result.isAvailable,
+      isAvailable,
       biometryType,
-      errorMessage: result.errorCode ? `Error: ${result.errorCode}` : undefined
+      errorMessage: result.errorCode ? `Error code: ${result.errorCode}` : undefined
     };
   } catch (error: any) {
+    console.error('[Biometrics] Availability check error:', error);
     return {
       isAvailable: false,
       biometryType: 'none',
@@ -111,9 +138,12 @@ export async function checkBiometricAvailability(): Promise<BiometricAvailabilit
 export async function authenticateWithBiometrics(
   reason: string = 'Verify your identity'
 ): Promise<BiometricResult> {
+  console.log('[Biometrics] authenticateWithBiometrics called');
+  
   const plugin = await getBiometricPlugin();
   
   if (!plugin) {
+    console.log('[Biometrics] No plugin available for authentication');
     return {
       success: false,
       error: 'Biometrics not available'
@@ -121,21 +151,66 @@ export async function authenticateWithBiometrics(
   }
   
   try {
-    await plugin.verifyIdentity({
+    console.log('[Biometrics] Starting authentication with reason:', reason);
+    console.log('[Biometrics] Plugin verifyIdentity available:', typeof plugin.verifyIdentity);
+    
+    // Add timeout to prevent hanging - 30 seconds should be plenty for user interaction
+    const authPromise = plugin.verifyIdentity({
       reason,
-      title: 'Authentication Required',
-      subtitle: 'BlockMint Security',
+      title: 'BlockMint',
+      subtitle: 'Authentication Required',
       description: reason,
       useFallback: true,
-      fallbackTitle: 'Use PIN',
-      maxAttempts: 3
+      fallbackTitle: 'Use Passcode',
+      maxAttempts: 5
     });
     
+    console.log('[Biometrics] verifyIdentity called, waiting for result...');
+    
+    await withTimeout(authPromise, 30000, 'Biometric authentication timed out');
+    
+    console.log('[Biometrics] Authentication successful');
     return { success: true };
   } catch (error: any) {
+    console.error('[Biometrics] Authentication error:', error);
+    console.error('[Biometrics] Error details:', JSON.stringify(error, null, 2));
+    
+    // Parse error code if available (plugin returns code as string)
+    const errorCode = parseInt(error.code || error.errorCode || '0', 10);
+    
+    // Map common LAError codes to user-friendly messages
+    let errorMessage = error.message || 'Authentication failed';
+    switch (errorCode) {
+      case -1: // authenticationFailed
+        errorMessage = 'Authentication failed. Please try again.';
+        break;
+      case -2: // userCancel
+        errorMessage = 'Authentication cancelled';
+        break;
+      case -3: // userFallback
+        errorMessage = 'User chose passcode fallback';
+        break;
+      case -4: // systemCancel
+        errorMessage = 'Authentication was cancelled by the system';
+        break;
+      case -5: // passcodeNotSet
+        errorMessage = 'Device passcode is not set';
+        break;
+      case -6: // touchIDNotAvailable (deprecated, now biometryNotAvailable)
+      case -7: // biometryNotAvailable
+        errorMessage = 'Biometric authentication is not available';
+        break;
+      case -8: // biometryNotEnrolled
+        errorMessage = 'No biometrics enrolled. Please set up Face ID or Touch ID in Settings.';
+        break;
+      case -9: // biometryLockout
+        errorMessage = 'Biometrics locked due to too many failed attempts. Use device passcode.';
+        break;
+    }
+    
     return {
       success: false,
-      error: error.message || 'Authentication failed'
+      error: errorMessage
     };
   }
 }

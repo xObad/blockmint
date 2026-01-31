@@ -67,16 +67,16 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent pointer-events-none" />
+      {/* Background blur effects - positioned lower to avoid Dynamic Island */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/15 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[40%] -left-[20%] w-[70%] h-[50%] bg-primary/8 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] bg-purple-500/8 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 pt-safe">
         <div className="flex items-center justify-center mb-2 relative">
           <motion.div 
-            className="h-32 flex items-center justify-center relative"
+            className="h-14 flex items-center justify-center relative"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -84,9 +84,9 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             <img
               src="/attached_assets/App-Logo.png"
               alt="BlockMint"
-              className="h-28 w-auto object-contain relative z-10"
+              className="h-12 w-auto object-contain relative z-10"
               style={{
-                filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 25px rgba(16, 185, 129, 0.4)) contrast(1.15) saturate(1.25)',
+                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3))',
                 imageRendering: '-webkit-optimize-contrast',
               }}
               onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -130,53 +130,53 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="flex-1 flex flex-col cursor-grab active:cursor-grabbing"
           >
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex-1 flex flex-col items-center justify-center py-4">
               <motion.div 
-                className="relative w-48 h-48 sm:w-52 sm:h-52 mb-8"
-                animate={{ y: [0, -8, 0] }}
+                className="relative w-44 h-44 mb-6"
+                animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 6, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${page.gradient} opacity-20 rounded-full blur-3xl`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${page.gradient} opacity-15 rounded-full blur-2xl`} />
                 <img 
                   src={page.image} 
                   alt={page.title}
-                  className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
+                  className="relative z-10 w-full h-full object-contain drop-shadow-xl"
                   data-testid={`img-onboarding-${currentPage}`}
                 />
               </motion.div>
 
-              <div className="text-center space-y-4">
+              <div className="text-center space-y-3 px-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${page.gradient} text-white text-sm font-semibold`}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${page.gradient} text-white text-xs font-semibold`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   {page.subtitle}
                 </motion.div>
                 
                 <h1 
-                  className="font-display text-3xl font-bold text-foreground"
+                  className="font-display text-2xl font-bold text-foreground px-2"
                   data-testid={`heading-onboarding-${currentPage}`}
                 >
                   {page.title}
                 </h1>
                 
-                <p className="text-muted-foreground leading-relaxed max-w-sm">
+                <p className="text-muted-foreground leading-relaxed text-sm max-w-sm mx-auto px-2">
                   {page.description}
                 </p>
               </div>
             </div>
 
-            <div className="flex justify-center gap-2 mb-16 -mt-2">
+            <div className="flex justify-center gap-1.5 mt-6 mb-4">
               {onboardingPages.map((_, index) => (
                 <motion.div
                   key={index}
-                  className={`h-2 rounded-full transition-all duration-300 ${
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
                     index === currentPage 
-                      ? 'w-8 bg-primary' 
-                      : 'w-2 bg-muted-foreground/30'
+                      ? 'w-6 bg-primary' 
+                      : 'w-1.5 bg-muted-foreground/30'
                   }`}
                   animate={{ scale: index === currentPage ? 1.1 : 1 }}
                 />
@@ -185,16 +185,16 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           </motion.div>
         </AnimatePresence>
 
-        <div className="space-y-1 -mt-[1.5rem]">
+        <div className="space-y-2 pb-safe">
           <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             className="relative"
           >
             {/* Pulsing glow effect */}
             <motion.div
-              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 opacity-60 blur-xl"
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 opacity-50 blur-lg"
               animate={{
                 scale: [1, 1.05, 1],
                 opacity: [0.4, 0.7, 0.4],
@@ -207,7 +207,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
             />
             <Button
               onClick={handleNext}
-              className="relative w-full h-14 text-lg font-bold bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 text-white shadow-2xl shadow-emerald-500/50 border-2 border-white/20 hover:border-white/40 transition-all duration-300 overflow-hidden group"
+              className="relative w-full h-12 text-base font-bold bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 text-white shadow-xl shadow-emerald-500/40 border border-white/20 hover:border-white/30 transition-all duration-300 overflow-hidden group"
               data-testid="button-next-onboarding"
             >
               {/* Shimmer effect */}
@@ -237,7 +237,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
                   animate={{ x: [0, 4, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  <ChevronRight className="w-6 h-6" />
+                  <ChevronRight className="w-5 h-5" />
                 </motion.div>
               </span>
             </Button>
@@ -261,7 +261,7 @@ export function Onboarding({ onComplete, onSignIn, onSkip }: OnboardingProps) {
           )}
         </div>
 
-        <div className="mt-6 text-center space-x-3">
+        <div className="mt-2 text-center space-x-3 pb-2">
           <Link 
             href="/terms" 
             className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"

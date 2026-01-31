@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
-import { SiGoogle, SiApple } from "react-icons/si";
+import { SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,6 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   signInWithGoogle, 
-  signInWithApple, 
   signInWithEmail, 
   registerWithEmail,
   resetPassword,
@@ -112,15 +111,10 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
     }
   };
 
-  const handleSocialAuth = async (provider: "google" | "apple") => {
+  const handleSocialAuth = async () => {
     setIsLoading(true);
     try {
-      let user;
-      if (provider === "google") {
-        user = await withTimeout(signInWithGoogle(), 30000);
-      } else {
-        user = await withTimeout(signInWithApple(), 30000);
-      }
+      const user = await withTimeout(signInWithGoogle(), 30000);
       
       if (!user) {
         throw new Error('NO_USER');
@@ -405,7 +399,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
 
           <div className="space-y-4">
             <Button
-              onClick={() => handleSocialAuth("google")}
+              onClick={handleSocialAuth}
               variant="outline"
               className="w-full h-11 text-sm font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
               data-testid="button-google-auth"
@@ -417,21 +411,6 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                 <SiGoogle className="w-5 h-5 text-[#4285F4]" />
               )}
               <span className="text-foreground">Continue With Google</span>
-            </Button>
-
-            <Button
-              onClick={() => handleSocialAuth("apple")}
-              variant="outline"
-              className="w-full h-11 text-sm font-medium bg-black dark:bg-white border-white/20 gap-3"
-              data-testid="button-apple-auth"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
-              ) : (
-                <SiApple className="w-5 h-5 text-white dark:text-black" />
-              )}
-              <span className="text-white dark:text-black font-semibold">Continue With Apple</span>
             </Button>
 
             <div className="relative my-4">
@@ -550,26 +529,26 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                 </>
               )}
             </p>
+            
+            <p className="text-center text-xs text-muted-foreground/60 mt-4">
+              By Continuing, You Agree To Our{" "}
+              <Link 
+                href="/terms" 
+                className="text-primary/80 hover:text-primary underline"
+                data-testid="link-terms-of-service"
+              >
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link 
+                href="/privacy" 
+                className="text-primary/80 hover:text-primary underline"
+                data-testid="link-privacy-policy"
+              >
+                Privacy Policy
+              </Link>
+            </p>
           </div>
-
-          <p className="text-center text-xs text-muted-foreground/60 mt-auto pt-8">
-            By Continuing, You Agree To Our{" "}
-            <Link 
-              href="/terms" 
-              className="text-primary/80 hover:text-primary underline"
-              data-testid="link-terms-of-service"
-            >
-              Terms of Service
-            </Link>
-            {" "}and{" "}
-            <Link 
-              href="/privacy" 
-              className="text-primary/80 hover:text-primary underline"
-              data-testid="link-privacy-policy"
-            >
-              Privacy Policy
-            </Link>
-          </p>
         </motion.div>
         )}
       </div>

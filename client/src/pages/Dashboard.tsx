@@ -824,8 +824,10 @@ export function Dashboard({
               <PopoverContent
                 side="bottom"
                 align="center"
-                sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto p-2 md:p-4"
+                sideOffset={45}
+                avoidCollisions={true}
+                collisionPadding={{ top: 60, bottom: 20, left: 16, right: 16 }}
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[50vh] overflow-y-auto p-2 md:p-3"
                 data-testid="popover-deposit"
               >
                 <div className="space-y-2 md:space-y-3">
@@ -1006,8 +1008,10 @@ export function Dashboard({
               <PopoverContent
                 side="bottom"
                 align="center"
-                sideOffset={10}
-                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto p-2 md:p-4"
+                sideOffset={45}
+                avoidCollisions={true}
+                collisionPadding={{ top: 60, bottom: 20, left: 16, right: 16 }}
+                className="liquid-glass border-white/10 bg-background/95 backdrop-blur-xl w-[min(380px,calc(100vw-2rem))] max-h-[50vh] overflow-y-auto p-2 md:p-3"
                 data-testid="popover-withdraw"
               >
                 <div className="space-y-2 md:space-y-3">

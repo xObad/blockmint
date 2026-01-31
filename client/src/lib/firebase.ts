@@ -3,11 +3,9 @@ import { initializeApp } from "firebase/app";
 import type { FirebaseApp } from "firebase/app";
 import { 
   getAuth, 
-  signInWithRedirect, 
   signInWithPopup,
   getRedirectResult, 
   GoogleAuthProvider,
-  OAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -61,7 +59,6 @@ if (firebaseConfigured) {
 export const auth = authInstance;
 
 const googleProvider = new GoogleAuthProvider();
-const appleProvider = new OAuthProvider("apple.com");
 
 // Sign in with Google
 export async function signInWithGoogle() {
@@ -81,37 +78,7 @@ export async function signInWithGoogle() {
 // Sign in with Apple
 export async function signInWithApple() {
   try {
-    if (!auth) {
-      console.warn("signInWithApple called but Firebase is not configured");
-      return null;
-    }
-    
-    // Check if we're on iOS native - use native Sign in with Apple
-    const { isIOS, nativeAppleSignIn } = await import('@/lib/nativeServices');
-    
-    if (isIOS()) {
-      console.log('Using native Apple Sign-In on iOS');
-      const nativeResult = await nativeAppleSignIn();
-      
-      if (nativeResult.success && nativeResult.user) {
-        // Sign in to Firebase with the Apple credential
-        const { OAuthProvider, signInWithCredential } = await import('firebase/auth');
-        const provider = new OAuthProvider('apple.com');
-        const credential = provider.credential({
-          idToken: nativeResult.user.identityToken,
-          rawNonce: undefined // Nonce handled by native plugin
-        });
-        
-        const result = await signInWithCredential(auth, credential);
-        return result.user;
-      } else {
-        throw new Error(nativeResult.error || 'Native Apple Sign-In failed');
-      }
-    }
-    
-    // Web fallback: use Firebase popup
-    const result = await signInWithPopup(auth, appleProvider);
-    return result.user;
+    throw new Error("Sign in with Apple is temporarily disabled");
   } catch (error) {
     console.error("Apple sign-in error:", error);
     throw error;

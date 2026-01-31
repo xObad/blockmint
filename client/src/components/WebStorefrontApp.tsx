@@ -30,6 +30,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { onAuthChange, logOut } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useKeyboardAdjustment } from "@/hooks/useKeyboardAdjustment";
 import type { User as FirebaseUser } from "firebase/auth";
 
 // Import pages
@@ -51,6 +52,9 @@ export function WebStorefrontApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Apply keyboard adjustment globally
+  useKeyboardAdjustment();
 
   // Check if user has seen onboarding and is logged in
   useEffect(() => {

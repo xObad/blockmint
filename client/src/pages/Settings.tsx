@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { 
   User, Shield, Bell, Key, Fingerprint, Clock, 
   DollarSign, Globe, ChevronRight, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
-  Link2, Unlink, Smartphone, Wallet, CalendarClock, ArrowDownToLine,
+  Link2, Unlink, Wallet, CalendarClock, ArrowDownToLine,
   Trash2, AlertTriangle
 } from "lucide-react";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
@@ -34,6 +34,12 @@ interface SettingsProps {
   onSettingsChange: (settings: Partial<UserSettings>) => void;
   user?: FirebaseUser | null;
   onLogout?: () => void;
+}
+
+interface ServerSecuritySettings {
+  pinLockEnabled?: boolean;
+  biometricEnabled?: boolean;
+  lockOnBackground?: boolean;
 }
 
 interface SettingItemProps {
@@ -149,21 +155,59 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+
+  const resolvedUserId = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const id = parsed.id || parsed.dbId || parsed.uid || parsed.userId || null;
+        console.log('[Settings] resolvedUserId from localStorage:', id, parsed);
+        return id;
+      }
+    } catch (e) {
+      console.error('[Settings] Error parsing user from localStorage:', e);
+    }
+    console.log('[Settings] resolvedUserId from user prop:', user?.uid);
+    return user?.uid ?? null;
+  }, [user]);
 
   // Fetch security settings from API
-  const { data: securitySettings } = useQuery<{ pinEnabled: boolean; biometricEnabled: boolean; lockOnBackground: boolean }>({
-    queryKey: ["/api/security/settings"],
-    enabled: !!user,
+  const { data: securitySettings, isLoading: isLoadingSettings, error: settingsError } = useQuery<ServerSecuritySettings, Error, { pinEnabled: boolean; biometricEnabled: boolean; lockOnBackground: boolean }>({
+    queryKey: ["/api/security/settings", resolvedUserId],
+    enabled: !!resolvedUserId,
+    select: (data) => {
+      console.log('[Settings] Security settings raw data:', data);
+      return {
+        pinEnabled: Boolean(data?.pinLockEnabled),
+        biometricEnabled: Boolean(data?.biometricEnabled),
+        lockOnBackground: Boolean(data?.lockOnBackground),
+      };
+    },
   });
+  
+  // Debug logging for security settings
+  useEffect(() => {
+    console.log('[Settings] Security settings state:', { 
+      resolvedUserId, 
+      securitySettings, 
+      isLoadingSettings, 
+      settingsError: settingsError?.message 
+    });
+  }, [resolvedUserId, securitySettings, isLoadingSettings, settingsError]);
 
   // Mutations for security settings
   const disablePinMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("DELETE", "/api/security/disable-pin");
+      if (!resolvedUserId) {
+        throw new Error("Missing user id for disabling PIN");
+      }
+      const response = await apiRequest("POST", "/api/security/disable-pin", { userId: resolvedUserId });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/security/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/security/settings", resolvedUserId] });
       toast({
         title: "PIN Disabled",
         description: "PIN code authentication has been turned off.",
@@ -173,11 +217,14 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
 
   const toggleBiometricMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      const response = await apiRequest("POST", "/api/security/biometric", { enabled });
+      if (!resolvedUserId) {
+        throw new Error("Missing user id for biometric toggle");
+      }
+      const response = await apiRequest("POST", "/api/security/biometric", { enabled, userId: resolvedUserId });
       return response.json();
     },
     onSuccess: (_, enabled) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/security/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/security/settings", resolvedUserId] });
       const biometricType = getBiometricType();
       const biometricName = biometricType === 'face' ? 'Face ID' : biometricType === 'fingerprint' ? 'Fingerprint' : 'Biometric';
       toast({
@@ -279,7 +326,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   }, [user]);
 
   const isGoogleLinked = linkedProviders.includes('google.com');
-  const isAppleLinked = linkedProviders.includes('apple.com');
   const isPasswordLinked = linkedProviders.includes('password');
 
   useEffect(() => {
@@ -488,49 +534,132 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
   };
 
   const handleBiometricToggle = async (enabled: boolean) => {
-    // Check if PIN is enabled first (biometric requires PIN as fallback)
-    if (enabled && !securitySettings?.pinEnabled) {
+    console.log('[Settings] handleBiometricToggle called, enabled:', enabled, 'pinEnabled:', securitySettings?.pinEnabled);
+    
+    if (!resolvedUserId) {
       toast({
-        title: "PIN Required",
-        description: "Please enable PIN lock first before enabling biometric authentication.",
+        title: "Missing user",
+        description: "Please sign in again to manage biometric settings.",
         variant: "destructive",
       });
       return;
     }
 
-    if (enabled) {
-      // Check biometric availability using native services
-      const availability = await checkBiometricAvailability();
+    // Check if PIN is enabled first (biometric requires PIN as fallback)
+    if (enabled && !securitySettings?.pinEnabled) {
+      // Automatically start PIN setup flow and continue to biometric after completion
+      toast({
+        title: "PIN Setup Required",
+        description: "Setting up PIN first, then enabling biometric authentication.",
+      });
       
-      if (!availability.isAvailable) {
-        toast({
-          title: "Biometrics Not Available",
-          description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        // Verify identity before enabling
-        const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
+      appLock.showPinSetup(async () => {
+        // This callback runs after PIN setup completes successfully
+        console.log('[Settings] PIN setup completed, now setting up biometric...');
+        setIsBiometricLoading(true);
         
-        if (!result.success) {
+        try {
+          // Small delay to ensure the UI has updated
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Now continue with biometric setup
+          console.log('[Settings] Checking biometric availability for enabling...');
+          const availability = await checkBiometricAvailability();
+          console.log('[Settings] Biometric availability:', availability);
+          
+          if (!availability.isAvailable) {
+            toast({
+              title: "Biometrics Not Available",
+              description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Verify identity before enabling
+          console.log('[Settings] Requesting biometric verification...');
+          const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
+          console.log('[Settings] Biometric verification result:', result);
+          
+          if (!result.success) {
+            if (!result.error?.toLowerCase().includes('cancel')) {
+              toast({
+                title: "Authentication Failed",
+                description: result.error || "Could not verify your identity. Please try again.",
+                variant: "destructive",
+              });
+            }
+            return;
+          }
+
+          console.log('[Settings] Enabling biometric in database...');
+          toggleBiometricMutation.mutate(true);
+        } catch (error) {
+          console.error('[Settings] Biometric setup error:', error);
           toast({
-            title: "Authentication Failed",
-            description: result.error || "Could not verify your identity. Please try again.",
+            title: "Setup Failed",
+            description: "Failed to enable biometric authentication. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsBiometricLoading(false);
+        }
+      });
+      return;
+    }
+
+    if (enabled) {
+      setIsBiometricLoading(true);
+      
+      try {
+        // Check biometric availability using native services
+        console.log('[Settings] Checking biometric availability for enabling...');
+        
+        const availability = await checkBiometricAvailability();
+        console.log('[Settings] Biometric availability:', availability);
+        
+        if (!availability.isAvailable) {
+          toast({
+            title: "Biometrics Not Available",
+            description: availability.errorMessage || "Your device doesn't support biometric authentication, or it's not set up in system settings.",
             variant: "destructive",
           });
           return;
         }
 
+        // Verify identity before enabling
+        console.log('[Settings] Requesting biometric verification...');
+        toast({
+          title: "Verify Your Identity",
+          description: "Use Face ID or passcode to continue.",
+        });
+        
+        const result = await authenticateWithBiometrics("Enable biometric login for BlockMint");
+        console.log('[Settings] Biometric verification result:', result);
+        
+        if (!result.success) {
+          // Don't show error for user cancellation
+          if (!result.error?.toLowerCase().includes('cancel')) {
+            toast({
+              title: "Authentication Failed",
+              description: result.error || "Could not verify your identity. Please try again.",
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        console.log('[Settings] Enabling biometric in database...');
         toggleBiometricMutation.mutate(true);
       } catch (error) {
+        console.error('[Settings] Biometric setup error:', error);
         toast({
           title: "Setup Failed",
           description: "Failed to enable biometric authentication. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setIsBiometricLoading(false);
       }
     } else {
       toggleBiometricMutation.mutate(false);
@@ -624,7 +753,15 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
       appLock.showPinSetup();
     } else {
       // Disable PIN via API
-      disablePinMutation.mutate();
+      if (resolvedUserId) {
+        disablePinMutation.mutate();
+      } else {
+        toast({
+          title: "Missing user",
+          description: "Please sign in again to manage PIN settings.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -762,29 +899,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
               {isGoogleLinked ? "Unlink" : "Link"}
             </Button>
           </div>
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-white/[0.08] to-white/[0.04]">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Apple</p>
-                <p className="text-sm text-muted-foreground">
-                  {isAppleLinked ? "Connected" : "Not connected"}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled
-            >
-              <Smartphone className="w-4 h-4 mr-1" />
-              iOS Only
-            </Button>
-          </div>
         </GlassCard>
       </div>
 
@@ -797,16 +911,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
             description="Mining Alerts And Payouts"
             testId="setting-notifications"
             action={
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowNotificationPrefsDialog(true)}
-                  className="text-xs"
-                >
-                  Configure
-                </Button>
-                <Switch
+              <Switch
                   data-testid="switch-notifications"
                   checked={settings.notificationsEnabled}
                   onCheckedChange={async (checked) => {
@@ -850,7 +955,6 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                     }
                   }}
                 />
-              </div>
             }
           />
           <div className="py-3 border-b border-white/[0.04]" data-testid="setting-currency">
@@ -932,7 +1036,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
                 data-testid="switch-biometric"
                 checked={securitySettings?.biometricEnabled ?? false}
                 onCheckedChange={handleBiometricToggle}
-                disabled={!securitySettings?.pinEnabled}
+                disabled={isBiometricLoading || toggleBiometricMutation.isPending}
               />
             }
           />

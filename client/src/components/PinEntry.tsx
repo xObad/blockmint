@@ -86,7 +86,9 @@ export function PinEntry({
   const handleBiometric = async () => {
     if (onBiometricRequest) {
       triggerHaptic();
+      console.log('[PinEntry] Biometric button pressed, calling onBiometricRequest...');
       const success = await onBiometricRequest();
+      console.log('[PinEntry] Biometric request result:', success);
       if (success) {
         onSuccess("biometric");
       }

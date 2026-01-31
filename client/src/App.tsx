@@ -10,6 +10,7 @@ import { ComplianceProvider, useCompliance } from "@/contexts/ComplianceContext"
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Switch, Route, Link, useLocation } from "wouter";
+import { useKeyboardAdjustment } from "@/hooks/useKeyboardAdjustment";
 
 import { BottomNav, type TabType } from "@/components/BottomNav";
 import { SafeBottomNav } from "@/components/SafeBottomNav";
@@ -70,13 +71,22 @@ function PageLoader() {
 }
 
 function MobileApp() {
-  const [activeTab, setActiveTab] = useState<TabType>("home");
+  const [activeTab, setActiveTabState] = useState<TabType>("home");
   const [showSettings, setShowSettings] = useState(false);
   const [appView, setAppView] = useState<AppView>("onboarding");
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
   const [pending2FA, setPending2FA] = useState(false);
+  
+  // Wrap tab change to always scroll to top on navigation
+  const setActiveTab = (tab: TabType) => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setActiveTabState(tab);
+  };
+  
+  // Apply keyboard adjustment globally for all input fields
+  useKeyboardAdjustment();
   
   const {
     miningStats,
@@ -287,7 +297,7 @@ function MobileApp() {
         onNavigateToInvest={() => setActiveTab("invest")}
       />
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pt-2 pb-48">
+      <main className="relative z-10 max-w-md mx-auto px-4 pb-48">
         <Suspense fallback={<PageLoader />}>
         <AnimatePresence mode="wait">
           {activeTab === "home" && (

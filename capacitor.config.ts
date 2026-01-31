@@ -5,13 +5,14 @@ const config: CapacitorConfig = {
   appName: 'BlockMint',
   webDir: 'dist/public',
   server: {
-    // Production server URL - app loads from your hosted server
-    // This ensures API calls with relative paths (/api/...) work correctly
-    url: 'https://hardisk.co',
-    androidScheme: 'https',
-    iosScheme: 'https',
-    // Allow navigation to external URLs
-    allowNavigation: ['hardisk.co', '*.hardisk.co'],
+    // Development: Load from local dev server
+    url: 'http://localhost:5000',
+    cleartext: true,
+    // Production: Uncomment these and comment out localhost
+    // url: 'https://hardisk.co',
+    // androidScheme: 'https',
+    // iosScheme: 'https',
+    // allowNavigation: ['hardisk.co', '*.hardisk.co'],
   },
   ios: {
     contentInset: 'automatic',
@@ -41,7 +42,7 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'none',
       style: 'dark',
       resizeOnFullScreen: true,
     },

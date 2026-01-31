@@ -17,7 +17,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
 import { 
   signInWithGoogle, 
-  signInWithApple, 
   signInWithEmail, 
   resetPassword
 } from "@/lib/firebase";
@@ -74,30 +73,19 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
     }
   };
 
-  const handleSocialAuth = async (provider: "google" | "apple") => {
+  const handleSocialAuth = async () => {
     setIsLoading(true);
     try {
       let user;
-      if (provider === "google") {
-        if (Capacitor.getPlatform() === 'ios') {
-          // Use Safari View Controller for Google sign-in
-          await Browser.open({ url: 'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin' });
-          // After redirect, handle result in app (requires deep link handling)
-          // You may need to implement a listener for Browser finished event and handle the auth result
-          setIsLoading(false);
-          return;
-        } else {
-          user = await withTimeout(signInWithGoogle(), 30000);
-        }
+      if (Capacitor.getPlatform() === 'ios') {
+        // Use Safari View Controller for Google sign-in
+        await Browser.open({ url: 'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin' });
+        // After redirect, handle result in app (requires deep link handling)
+        // You may need to implement a listener for Browser finished event and handle the auth result
+        setIsLoading(false);
+        return;
       } else {
-        if (Capacitor.getPlatform() === 'ios') {
-          // Use Safari View Controller for Apple sign-in
-          await Browser.open({ url: 'https://appleid.apple.com/auth/authorize' });
-          setIsLoading(false);
-          return;
-        } else {
-          user = await withTimeout(signInWithApple(), 3000);
-        }
+        user = await withTimeout(signInWithGoogle(), 30000);
       }
       if (!user) {
         throw new Error('NO_USER');
@@ -258,9 +246,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
           animate={{ opacity: 1, y: 0 }}
           className="flex-1 flex flex-col"
         >
-          <div className="text-center mb-2">
+          <div className="text-center mb-1">
             <motion.div 
-              className="w-full h-24 mx-auto mb-2 relative flex items-center justify-center"
+              className="w-full h-20 mx-auto mb-1 relative flex items-center justify-center"
               initial={{ y: -100, scale: 0.5, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               transition={{ 
@@ -289,9 +277,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Button
-              onClick={() => handleSocialAuth("google")}
+              onClick={handleSocialAuth}
               variant="outline"
               className="w-full h-11 text-sm font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
               disabled={isLoading}
@@ -304,9 +292,9 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               <span className="text-foreground">Continue With Google</span>
             </Button>
 
-            {/* Apple Sign-In removed from Safe Mode to avoid review issues */}
 
-            <div className="relative my-4">
+
+            <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
               </div>
@@ -315,8 +303,8 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               </div>
             </div>
 
-            <form onSubmit={handleEmailAuth} className="space-y-4">
-              <div className="space-y-3">
+            <form onSubmit={handleEmailAuth} className="space-y-3">
+              <div className="space-y-2">
                 <Input
                   type="email"
                   placeholder="Email Address"
@@ -368,28 +356,31 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
             </form>
 
             {/* No signup option - authorized users only message */}
-            <p className="text-center text-xs text-muted-foreground/80 pt-4 px-2">
+            <p className="text-center text-xs text-muted-foreground/80 px-2 mt-3">
               This application is for authorized users only. If you need access, please contact your system administrator.
             </p>
+            
+            <p className="text-center text-xs text-muted-foreground/60 mt-4">
+              By Continuing, You Agree To Our{" "}
+              <Link 
+                href="/legal/terms" 
+                className="text-primary/80 hover:text-primary underline"
+              >
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link 
+                href="/legal/privacy" 
+                className="text-primary/80 hover:text-primary underline"
+              >
+                Privacy Policy
+              </Link>
+            </p>
           </div>
-
-          <p className="text-center text-xs text-muted-foreground/60 mt-6 pb-4">
-            By Continuing, You Agree To Our{" "}
-            <Link 
-              href="/legal/terms" 
-              className="text-primary/80 hover:text-primary underline"
-            >
-              Terms of Service
-            </Link>
-            {" "}and{" "}
-            <Link 
-              href="/legal/privacy" 
-              className="text-primary/80 hover:text-primary underline"
-            >
-              Privacy Policy
-            </Link>
-          </p>
         </motion.div>
+        
+        {/* Safe area padding for home indicator */}
+        <div className="h-[env(safe-area-inset-bottom,16px)] shrink-0" />
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ import { SafeOnboarding } from "@/pages/SafeOnboarding";
 import { SafeAuthPage } from "@/pages/SafeAuthPage";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
 import { onAuthChange, logOut } from "@/lib/firebase";
+import { useKeyboardAdjustment } from "@/hooks/useKeyboardAdjustment";
 import type { User } from "firebase/auth";
 
 type SafeTabType = "home" | "metrics" | "news" | "settings";
@@ -34,6 +35,9 @@ export function SafeModeApp() {
   const [appView, setAppView] = useState<AppView>("onboarding");
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+
+  // Apply keyboard adjustment globally
+  useKeyboardAdjustment();
 
   // Determine active tab from location
   const getActiveTab = (): SafeTabType => {

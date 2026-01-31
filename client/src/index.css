@@ -238,6 +238,19 @@
   }
 }
 
+/* iOS Keyboard handling - move modals and sheets up when keyboard is visible */
+body.keyboard-open [role="dialog"] {
+  top: 15% !important;
+  max-height: calc(100vh - var(--keyboard-height, 300px) - 60px) !important;
+  transition: top 0.25s ease-out, max-height 0.25s ease-out;
+}
+
+body.keyboard-open [data-state="open"][data-side="bottom"] {
+  bottom: var(--keyboard-height, 300px) !important;
+  max-height: calc(100vh - var(--keyboard-height, 300px) - 60px) !important;
+  transition: bottom 0.25s ease-out, max-height 0.25s ease-out;
+}
+
 /**
  * Using the elevate system.
  * Automatic contrast adjustment.
