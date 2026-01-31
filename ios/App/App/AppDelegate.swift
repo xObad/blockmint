@@ -7,7 +7,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Plugin registration happens automatically via CAPBridgedPlugin protocol
+        // Log that app is starting
+        print("[AppDelegate] Application did finish launching")
+        
+        // Plugin registration happens via MyBridgeViewController.capacitorDidLoad()
+        // The FaceIDPlugin is registered there after the bridge is ready
+        
         return true
     }
 

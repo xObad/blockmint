@@ -86,9 +86,12 @@ export async function checkBiometricAvailability(): Promise<BiometricAvailabilit
   }
   
   try {
-    console.log('[FaceID] Checking availability...');
+    console.log('[FaceID] Checking availability on iOS...');
+    console.log('[FaceID] Capacitor platform:', Capacitor.getPlatform());
+    console.log('[FaceID] Is native:', Capacitor.isNativePlatform());
+    
     const result = await FaceID.isAvailable();
-    console.log('[FaceID] Availability result:', result);
+    console.log('[FaceID] Availability result:', JSON.stringify(result));
     
     // Map biometry type
     let biometryType: 'face' | 'fingerprint' | 'iris' | 'none' = 'none';
@@ -105,10 +108,12 @@ export async function checkBiometricAvailability(): Promise<BiometricAvailabilit
     };
   } catch (error) {
     console.error('[FaceID] Error checking availability:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[FaceID] Error message:', errorMsg);
     return {
       isAvailable: false,
       biometryType: 'none',
-      errorMessage: error instanceof Error ? error.message : 'Failed to check Face ID availability'
+      errorMessage: errorMsg || 'Failed to check Face ID availability'
     };
   }
 }

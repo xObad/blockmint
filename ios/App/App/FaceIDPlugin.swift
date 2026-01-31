@@ -2,8 +2,10 @@ import Foundation
 import Capacitor
 import LocalAuthentication
 
+// IMPORTANT: The @objc name must match what JavaScript expects
 @objc(FaceIDPlugin)
 public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
+    // These identifiers must match exactly what JS is looking for
     public let identifier = "FaceIDPlugin"
     public let jsName = "FaceIDPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -12,11 +14,13 @@ public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
     
     public override func load() {
-        print("[FaceIDPlugin] Plugin loaded successfully")
+        print("[FaceIDPlugin] Plugin load() called")
+        print("[FaceIDPlugin] Bridge available: \(bridge != nil)")
+        print("[FaceIDPlugin] WebView available: \(webView != nil)")
     }
     
     /// Check if Face ID/Touch ID is available on this device
-    @objc func isAvailable(_ call: CAPPluginCall) {
+    @objc public func isAvailable(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             let context = LAContext()
             var error: NSError?
@@ -61,7 +65,7 @@ public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
     }
     
     /// Authenticate user with Face ID/Touch ID
-    @objc func authenticate(_ call: CAPPluginCall) {
+    @objc public func authenticate(_ call: CAPPluginCall) {
         let reason = call.getString("reason") ?? "Verify your identity"
         let useFallback = call.getBool("useFallback") ?? true
         
