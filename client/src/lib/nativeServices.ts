@@ -2,7 +2,7 @@
  * Native Services - Capacitor Plugin Wrappers
  * 
  * This module provides unified access to native device features:
- * - Biometrics (Face ID, Touch ID, Fingerprint)
+ * - Biometrics (Face ID, Touch ID) - Native iOS implementation
  * - Push Notifications
  * - Apple Sign-In (native implementation)
  * 
@@ -10,7 +10,7 @@
  * by providing fallbacks or no-op implementations.
  */
 
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 // ============================================================
 // PLATFORM DETECTION
@@ -33,7 +33,7 @@ export function isAndroid(): boolean {
 }
 
 // ============================================================
-// BIOMETRICS (Face ID / Touch ID / Fingerprint)
+// FACE ID / TOUCH ID (Native iOS Implementation)
 // ============================================================
 
 interface BiometricResult {
@@ -47,256 +47,143 @@ interface BiometricAvailability {
   errorMessage?: string;
 }
 
-let NativeBiometric: any = null;
-let biometricPluginLoaded = false;
-let biometricPluginPromise: Promise<any> | null = null;
-
-// Preload the biometric plugin on native platforms
-function preloadBiometricPlugin() {
-  if (biometricPluginPromise) return biometricPluginPromise;
-  
-  if (!isNativePlatform()) {
-    console.log('Biometrics: Not available on web');
-    biometricPluginLoaded = true;
-    return Promise.resolve(null);
-  }
-  
-  biometricPluginPromise = import('capacitor-native-biometric')
-    .then(module => {
-      NativeBiometric = module.NativeBiometric;
-      biometricPluginLoaded = true;
-      console.log('[Biometrics] Plugin preloaded successfully');
-      return NativeBiometric;
-    })
-    .catch(error => {
-      console.error('[Biometrics] Failed to load plugin:', error);
-      biometricPluginLoaded = true;
-      return null;
-    });
-  
-  return biometricPluginPromise;
+// Native Face ID plugin interface
+interface FaceIDPluginInterface {
+  isAvailable(): Promise<{
+    isAvailable: boolean;
+    biometryType: string;
+    passcodeAvailable: boolean;
+    errorCode?: number;
+    errorMessage?: string;
+  }>;
+  authenticate(options: {
+    reason: string;
+    useFallback?: boolean;
+  }): Promise<{
+    success: boolean;
+    errorCode?: number;
+    errorMessage?: string;
+    cancelled?: boolean;
+  }>;
 }
 
-// Start preloading immediately on native
-if (isNativePlatform()) {
-  preloadBiometricPlugin();
-}
-
-// Get the biometric plugin (waits for preload)
-async function getBiometricPlugin() {
-  if (biometricPluginLoaded) return NativeBiometric;
-  return preloadBiometricPlugin();
-}
-
-// Helper to add timeout to async operations
-function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => 
-      setTimeout(() => reject(new Error(errorMsg)), ms)
-    )
-  ]);
-}
+// Register our custom Face ID plugin (iOS only)
+const FaceID = isIOS() 
+  ? registerPlugin<FaceIDPluginInterface>('FaceIDPlugin')
+  : null;
 
 /**
  * Check if biometric authentication is available on this device
  */
 export async function checkBiometricAvailability(): Promise<BiometricAvailability> {
-  console.log('[Biometrics] checkBiometricAvailability starting...');
+  console.log('[FaceID] checkBiometricAvailability starting...');
   
-  const plugin = await getBiometricPlugin();
-  
-  if (!plugin) {
-    console.log('[Biometrics] No plugin available');
+  if (!isIOS() || !FaceID) {
+    console.log('[FaceID] Not iOS platform or plugin not available');
     return {
       isAvailable: false,
       biometryType: 'none',
-      errorMessage: 'Biometrics not available on this platform'
+      errorMessage: 'Face ID is only available on iOS devices'
     };
   }
   
   try {
-    console.log('[Biometrics] Calling plugin.isAvailable...');
-    // Use useFallback: true to allow device passcode as fallback
-    // Add 5 second timeout to prevent hanging
-    const result = await withTimeout(
-      plugin.isAvailable({ useFallback: true }),
-      5000,
-      'Biometric availability check timed out'
-    );
+    console.log('[FaceID] Calling native isAvailable...');
+    const result = await FaceID.isAvailable();
+    console.log('[FaceID] Availability result:', JSON.stringify(result));
     
-    console.log('[Biometrics] Availability check result:', JSON.stringify(result));
-    
-    // Map biometry type from native plugin
-    // 0 = none, 1 = fingerprint/TouchID, 2 = Face ID, 3 = iris
+    // Map biometry type
     let biometryType: 'face' | 'fingerprint' | 'iris' | 'none' = 'none';
-    if (result.biometryType === 1) biometryType = 'fingerprint';
-    else if (result.biometryType === 2) biometryType = 'face';
-    else if (result.biometryType === 3) biometryType = 'iris';
-    
-    // Even if specific biometry is not available, device passcode might be
-    const isAvailable = result.isAvailable === true;
+    if (result.biometryType === 'face') biometryType = 'face';
+    else if (result.biometryType === 'fingerprint') biometryType = 'fingerprint';
+    else if (result.biometryType === 'optic') biometryType = 'iris';
     
     return {
-      isAvailable,
+      isAvailable: result.isAvailable,
       biometryType,
-      errorMessage: result.errorCode ? `Error code: ${result.errorCode}` : undefined
+      errorMessage: result.errorMessage
     };
   } catch (error: any) {
-    console.error('[Biometrics] Availability check error:', error);
+    console.error('[FaceID] Availability check error:', error);
     return {
       isAvailable: false,
       biometryType: 'none',
-      errorMessage: error.message || 'Failed to check biometric availability'
+      errorMessage: error.message || 'Failed to check Face ID availability'
     };
   }
 }
 
 /**
- * Authenticate user with biometrics
+ * Authenticate user with Face ID / Touch ID
  */
 export async function authenticateWithBiometrics(
   reason: string = 'Verify your identity'
 ): Promise<BiometricResult> {
-  console.log('[Biometrics] authenticateWithBiometrics called');
+  console.log('[FaceID] authenticateWithBiometrics called');
   
-  const plugin = await getBiometricPlugin();
-  
-  if (!plugin) {
-    console.log('[Biometrics] No plugin available for authentication');
+  if (!isIOS() || !FaceID) {
+    console.log('[FaceID] Not iOS platform or plugin not available');
     return {
       success: false,
-      error: 'Biometrics not available'
+      error: 'Face ID is only available on iOS devices'
     };
   }
   
   try {
-    console.log('[Biometrics] Starting authentication with reason:', reason);
-    console.log('[Biometrics] Plugin verifyIdentity available:', typeof plugin.verifyIdentity);
+    console.log('[FaceID] Starting authentication with reason:', reason);
     
-    // Add timeout to prevent hanging - 30 seconds should be plenty for user interaction
-    const authPromise = plugin.verifyIdentity({
+    const result = await FaceID.authenticate({
       reason,
-      title: 'BlockMint',
-      subtitle: 'Authentication Required',
-      description: reason,
-      useFallback: true,
-      fallbackTitle: 'Use Passcode',
-      maxAttempts: 5
+      useFallback: true
     });
     
-    console.log('[Biometrics] verifyIdentity called, waiting for result...');
+    console.log('[FaceID] Authentication result:', JSON.stringify(result));
     
-    await withTimeout(authPromise, 30000, 'Biometric authentication timed out');
-    
-    console.log('[Biometrics] Authentication successful');
-    return { success: true };
-  } catch (error: any) {
-    console.error('[Biometrics] Authentication error:', error);
-    console.error('[Biometrics] Error details:', JSON.stringify(error, null, 2));
-    
-    // Parse error code if available (plugin returns code as string)
-    const errorCode = parseInt(error.code || error.errorCode || '0', 10);
-    
-    // Map common LAError codes to user-friendly messages
-    let errorMessage = error.message || 'Authentication failed';
-    switch (errorCode) {
-      case -1: // authenticationFailed
-        errorMessage = 'Authentication failed. Please try again.';
-        break;
-      case -2: // userCancel
-        errorMessage = 'Authentication cancelled';
-        break;
-      case -3: // userFallback
-        errorMessage = 'User chose passcode fallback';
-        break;
-      case -4: // systemCancel
-        errorMessage = 'Authentication was cancelled by the system';
-        break;
-      case -5: // passcodeNotSet
-        errorMessage = 'Device passcode is not set';
-        break;
-      case -6: // touchIDNotAvailable (deprecated, now biometryNotAvailable)
-      case -7: // biometryNotAvailable
-        errorMessage = 'Biometric authentication is not available';
-        break;
-      case -8: // biometryNotEnrolled
-        errorMessage = 'No biometrics enrolled. Please set up Face ID or Touch ID in Settings.';
-        break;
-      case -9: // biometryLockout
-        errorMessage = 'Biometrics locked due to too many failed attempts. Use device passcode.';
-        break;
+    if (result.success) {
+      return { success: true };
+    } else {
+      // Don't report cancellation as an error
+      if (result.cancelled) {
+        return {
+          success: false,
+          error: 'Authentication cancelled'
+        };
+      }
+      return {
+        success: false,
+        error: result.errorMessage || 'Authentication failed'
+      };
     }
-    
+  } catch (error: any) {
+    console.error('[FaceID] Authentication error:', error);
     return {
       success: false,
-      error: errorMessage
+      error: error.message || 'Authentication failed'
     };
   }
 }
 
-/**
- * Store credentials securely using biometric-protected keychain/keystore
- */
+// Credential storage functions - not implemented for custom plugin
+// (we only use Face ID for authentication, not credential storage)
 export async function setCredentials(
   server: string,
   username: string,
   password: string
 ): Promise<boolean> {
-  const plugin = await getBiometricPlugin();
-  
-  if (!plugin) return false;
-  
-  try {
-    await plugin.setCredentials({
-      server,
-      username,
-      password
-    });
-    return true;
-  } catch (error) {
-    console.error('Failed to store credentials:', error);
-    return false;
-  }
+  console.log('[FaceID] Credential storage not implemented');
+  return false;
 }
 
-/**
- * Get stored credentials after biometric verification
- */
 export async function getCredentials(
   server: string
 ): Promise<{ username: string; password: string } | null> {
-  const plugin = await getBiometricPlugin();
-  
-  if (!plugin) return null;
-  
-  try {
-    const credentials = await plugin.getCredentials({ server });
-    return {
-      username: credentials.username,
-      password: credentials.password
-    };
-  } catch (error) {
-    console.error('Failed to get credentials:', error);
-    return null;
-  }
+  console.log('[FaceID] Credential retrieval not implemented');
+  return null;
 }
 
-/**
- * Delete stored credentials
- */
 export async function deleteCredentials(server: string): Promise<boolean> {
-  const plugin = await getBiometricPlugin();
-  
-  if (!plugin) return false;
-  
-  try {
-    await plugin.deleteCredentials({ server });
-    return true;
-  } catch (error) {
-    console.error('Failed to delete credentials:', error);
-    return false;
-  }
+  console.log('[FaceID] Credential deletion not implemented');
+  return false;
 }
 
 // ============================================================
@@ -545,9 +432,8 @@ export async function initializeNativeServices(): Promise<void> {
   
   console.log('Native services: Initializing for', getPlatform());
   
-  // Pre-load plugins
+  // Pre-load plugins (Face ID is registered automatically)
   await Promise.allSettled([
-    getBiometricPlugin(),
     getPushPlugin(),
     getAppleSignInPlugin()
   ]);
@@ -561,7 +447,7 @@ export default {
   isIOS,
   isAndroid,
   
-  // Biometrics
+  // Face ID / Touch ID
   checkBiometricAvailability,
   authenticateWithBiometrics,
   setCredentials,

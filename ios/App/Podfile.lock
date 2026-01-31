@@ -10,8 +10,6 @@ PODS:
   - CapacitorCordova (7.4.5)
   - CapacitorKeyboard (7.0.4):
     - Capacitor
-  - CapacitorNativeBiometric (0.0.1):
-    - Capacitor
   - CapacitorPushNotifications (7.0.4):
     - Capacitor
   - CapacitorSplashScreen (7.0.4):
@@ -28,7 +26,6 @@ DEPENDENCIES:
   - "CapacitorCommunityAppleSignIn (from `../../node_modules/@capacitor-community/apple-sign-in`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
-  - CapacitorNativeBiometric (from `../../node_modules/capacitor-native-biometric`)
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
@@ -47,8 +44,6 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorKeyboard:
     :path: "../../node_modules/@capacitor/keyboard"
-  CapacitorNativeBiometric:
-    :path: "../../node_modules/capacitor-native-biometric"
   CapacitorPushNotifications:
     :path: "../../node_modules/@capacitor/push-notifications"
   CapacitorSplashScreen:
@@ -65,12 +60,11 @@ SPEC CHECKSUMS:
   CapacitorCommunityAppleSignIn: 271cb2860576fd2961508bbfa7a82117d93eadca
   CapacitorCordova: 31bbe4466000c6b86d9b7f1181ee286cff0205aa
   CapacitorKeyboard: 5660c760113bfa48962817a785879373cf5339c3
-  CapacitorNativeBiometric: 78cf21304251a512e4597437325b5e9b0cd9f7b3
   CapacitorPushNotifications: 7604512af53bbfdf1dd8fb2256b9ef1e8a69cdc2
   CapacitorSplashScreen: 000f7591d546907dda5cbb514bd6b6d9e6048cf8
   CapacitorStatusBar: d0e0151c89c001a9c7125bac59ddedf76b664768
   CordovaPlugins: 4e4b10b11bd2b55de8912c6d5459f0904c0c2864
 
-PODFILE CHECKSUM: eb4aeae7ea78fe1c4e94f49411ffe874a8756053
+PODFILE CHECKSUM: a820dd3ce5eb7eb3a4181dc6bad889660547cc4a
 
 COCOAPODS: 1.16.2
