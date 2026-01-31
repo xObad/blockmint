@@ -2115,13 +2115,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid auth token - missing email. Please sign in with an email-based account." });
       }
 
-      const displayName = (payload as any).name || (payload as any).displayName;
-      const photoUrl = (payload as any).picture || (payload as any).photoURL;
+      const displayName = (payload as any).name || (payload as any).displayName || undefined;
+      const photoUrl = (payload as any).picture || (payload as any).photoURL || undefined;
       console.log("Auth sync: Creating/updating user", { uid, email, displayName });
       
       let result;
       try {
-        result = await authService.getOrCreateUser(payload.uid, payload.email, displayName, photoUrl);
+        result = await authService.getOrCreateUser(payload.uid, email, displayName, photoUrl);
       } catch (dbError) {
         console.error("Auth sync: Database error during user creation:", dbError);
         return res.status(500).json({ error: `Database error: ${dbError instanceof Error ? dbError.message : 'Unknown'}` });
@@ -3200,8 +3200,8 @@ export async function registerRoutes(
       
       // Delete from Firebase Auth
       try {
-        const { auth } = await import("./firebase-admin");
-        await auth.deleteUser(decoded.uid);
+        const { deleteUser } = await import("./firebase-admin");
+        await deleteUser(decoded.uid);
       } catch (firebaseError) {
         console.error("Failed to delete Firebase user:", firebaseError);
         // Continue anyway - user is already deactivated in our DB

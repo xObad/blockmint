@@ -811,7 +811,7 @@ export function DatabaseAdmin() {
                 </Button>
               </div>
 
-              <nav className="flex-1 p-4 space-y-1">
+              <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
@@ -825,10 +825,10 @@ export function DatabaseAdmin() {
                         : "text-muted-foreground hover:bg-muted"
                     }`}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-medium truncate">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
-                      <Badge className="ml-auto bg-amber-500">{item.badge}</Badge>
+                      <Badge className="ml-auto bg-amber-500 flex-shrink-0">{item.badge}</Badge>
                     )}
                   </button>
                 ))}
@@ -848,8 +848,8 @@ export function DatabaseAdmin() {
                           : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-medium truncate">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -867,38 +867,34 @@ export function DatabaseAdmin() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto min-w-0">
         {/* Header (all sizes) */}
-        <div className="sticky top-0 z-30 bg-card/80 backdrop-blur border-b border-border px-4 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button size="icon" variant="ghost" onClick={() => setIsMobileMenuOpen(true)}>
+        <div className="sticky top-0 z-30 bg-card/80 backdrop-blur border-b border-border px-3 sm:px-4 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <Button size="icon" variant="ghost" className="flex-shrink-0" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="text-lg font-bold capitalize">{activeNav.replace("-", " ")}</h1>
-              <p className="text-xs text-muted-foreground">Database admin tools</p>
-            </div>
+            <h1 className="text-base sm:text-lg font-bold capitalize truncate">{activeNav.replace("-", " ")}</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <Button
               variant="outline"
+              size="icon"
               onClick={() => {
                 queryClient.invalidateQueries();
                 toast({ title: "Refreshing…" });
               }}
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+              <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+            <Button onClick={handleLogout} variant="outline" size="icon">
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="p-4 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-3 sm:p-4 lg:p-8 max-w-7xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeNav}
@@ -909,488 +905,434 @@ export function DatabaseAdmin() {
             >
               {/* Users Tab */}
               {activeNav === "users" && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h2 className="text-2xl font-bold mb-2">User Management</h2>
-                    <p className="text-muted-foreground">Manage all registered users</p>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-1">User Management</h2>
+                    <p className="text-sm text-muted-foreground">Manage all registered users</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total users</p>
-                      <p className="text-2xl font-bold">{users.length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Active</p>
-                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Blocked</p>
-                      <p className="text-2xl font-bold">{users.filter(u => !u.isActive).length}</p>
+                  {/* Stats Cards */}
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-2">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="text-xl font-bold">{users.length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Active</p>
+                        <p className="text-xl font-bold text-green-500">{users.filter(u => u.isActive).length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Blocked</p>
+                        <p className="text-xl font-bold text-red-500">{users.filter(u => !u.isActive).length}</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-2">
+                  {/* Filters */}
+                  <div className="bg-card rounded-xl border border-border p-3 sm:p-4 space-y-3">
+                    <div>
                       <Label className="text-xs text-muted-foreground">Search users</Label>
                       <Input
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
-                        placeholder="Search by email or display name…"
-                        className="mt-2"
+                        placeholder="Search by email or name…"
+                        className="mt-1.5"
                       />
                     </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <Label className="text-xs text-muted-foreground">Status</Label>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Status Filter</Label>
                       <Select value={userStatusFilter} onValueChange={(v) => setUserStatusFilter(v as any)}>
-                        <SelectTrigger className="mt-2">
+                        <SelectTrigger className="mt-1.5">
                           <SelectValue placeholder="All" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="blocked">Blocked</SelectItem>
+                          <SelectItem value="all">All Users</SelectItem>
+                          <SelectItem value="active">Active Only</SelectItem>
+                          <SelectItem value="blocked">Blocked Only</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  <div className="bg-card rounded-xl border border-border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Display Name</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users
-                          .filter((u) => {
-                            const q = userSearch.trim().toLowerCase();
-                            if (!q) return true;
-                            return (
-                              u.email.toLowerCase().includes(q) ||
-                              (u.displayName || "").toLowerCase().includes(q)
-                            );
-                          })
-                          .filter((u) => {
-                            if (userStatusFilter === "all") return true;
-                            if (userStatusFilter === "active") return !!u.isActive;
-                            return !u.isActive;
-                          })
-                          .map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.email}</TableCell>
-                            <TableCell>{user.displayName || "—"}</TableCell>
-                            <TableCell>
-                              <Badge variant={user.isActive ? "default" : "destructive"}>
-                                {user.isActive ? "Active" : "Blocked"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedUserId(user.id);
-                                    setUserDetailsDialogOpen(true);
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    toggleUserStatus.mutate({ userId: user.id, isActive: !user.isActive });
-                                  }}
-                                >
-                                  {user.isActive ? "Block" : "Unblock"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
-                                    if (!symbol) return;
-                                    const amount = prompt("Enter amount to add:");
-                                    if (!amount) return;
-                                    const reason = prompt("Enter reason:") || "Admin adjustment";
-                                    adjustBalance.mutate({
-                                      userId: user.id,
-                                      symbol,
-                                      amount: parseFloat(amount),
-                                      type: "add",
-                                      reason,
-                                    });
-                                  }}
-                                >
-                                  Add Balance
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
-                                    if (!symbol) return;
-                                    const amount = prompt("Enter amount to deduct:");
-                                    if (!amount) return;
-                                    const reason = prompt("Enter reason:") || "Admin adjustment";
-                                    adjustBalance.mutate({
-                                      userId: user.id,
-                                      symbol,
-                                      amount: parseFloat(amount),
-                                      type: "deduct",
-                                      reason,
-                                    });
-                                  }}
-                                >
-                                  Deduct Balance
-                                </Button>
-                                {user.twoFactorEnabled && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-red-500 border-red-500/30 hover:bg-red-500/10"
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to disable 2FA for ${user.email}? They will be able to login without 2FA verification.`)) {
-                                        disable2FA.mutate({ userId: user.id });
-                                      }
-                                    }}
-                                  >
-                                    <Shield className="w-4 h-4 mr-1" />
-                                    Disable 2FA
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                      </Table>
-                    </div>
+                  {/* Users List - Card Layout */}
+                  <div className="space-y-3">
+                    {users
+                      .filter((u) => {
+                        const q = userSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          u.email.toLowerCase().includes(q) ||
+                          (u.displayName || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .filter((u) => {
+                        if (userStatusFilter === "all") return true;
+                        if (userStatusFilter === "active") return !!u.isActive;
+                        return !u.isActive;
+                      })
+                      .map((user) => (
+                      <div key={user.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                        {/* User Info Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm break-all">{user.email}</p>
+                            <p className="text-xs text-muted-foreground">{user.displayName || "No display name"}</p>
+                          </div>
+                          <Badge variant={user.isActive ? "default" : "destructive"} className="flex-shrink-0">
+                            {user.isActive ? "Active" : "Blocked"}
+                          </Badge>
+                        </div>
+                        
+                        {/* 2FA Status */}
+                        {user.twoFactorEnabled && (
+                          <div className="flex items-center gap-2 text-xs text-green-500">
+                            <Shield className="w-3 h-3" />
+                            <span>2FA Enabled</span>
+                          </div>
+                        )}
+                        
+                        {/* Action Buttons - Stacked */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedUserId(user.id);
+                              setUserDetailsDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              toggleUserStatus.mutate({ userId: user.id, isActive: !user.isActive });
+                            }}
+                          >
+                            {user.isActive ? "Block" : "Unblock"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
+                              if (!symbol) return;
+                              const amount = prompt("Enter amount to add:");
+                              if (!amount) return;
+                              const reason = prompt("Enter reason:") || "Admin adjustment";
+                              adjustBalance.mutate({
+                                userId: user.id,
+                                symbol,
+                                amount: parseFloat(amount),
+                                type: "add",
+                                reason,
+                              });
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add Bal
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              const symbol = prompt("Enter currency (BTC, USDT, ETH, etc.):");
+                              if (!symbol) return;
+                              const amount = prompt("Enter amount to deduct:");
+                              if (!amount) return;
+                              const reason = prompt("Enter reason:") || "Admin adjustment";
+                              adjustBalance.mutate({
+                                userId: user.id,
+                                symbol,
+                                amount: parseFloat(amount),
+                                type: "deduct",
+                                reason,
+                              });
+                            }}
+                          >
+                            Deduct Bal
+                          </Button>
+                        </div>
+                        
+                        {/* 2FA Disable Button */}
+                        {user.twoFactorEnabled && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-red-500 border-red-500/30 hover:bg-red-500/10"
+                            onClick={() => {
+                              if (confirm(`Disable 2FA for ${user.email}?`)) {
+                                disable2FA.mutate({ userId: user.id });
+                              }
+                            }}
+                          >
+                            <Shield className="w-3 h-3 mr-1" />
+                            Disable 2FA
+                          </Button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* Deposits Tab */}
               {activeNav === "deposits" && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <h2 className="text-2xl font-bold mb-2">Deposit Management</h2>
-                    <p className="text-muted-foreground">Review and approve deposit requests</p>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-1">Deposit Management</h2>
+                    <p className="text-sm text-muted-foreground">Review and approve deposit requests</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Pending</p>
-                      <p className="text-2xl font-bold text-amber-500">{adminStats?.deposits.pending.count || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">${(adminStats?.deposits.pending.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Confirmed</p>
-                      <p className="text-2xl font-bold text-green-500">{adminStats?.deposits.confirmed.count || 0}</p>
-                      <p className="text-xs text-green-400 mt-1">${(adminStats?.deposits.confirmed.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Rejected</p>
-                      <p className="text-2xl font-bold text-red-500">{adminStats?.deposits.rejected.count || 0}</p>
-                      <p className="text-xs text-red-400 mt-1">${(adminStats?.deposits.rejected.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Showing Recent</p>
-                      <p className="text-2xl font-bold">{allDeposits.length}</p>
+                  {/* Stats */}
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-3">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-xl font-bold text-amber-500">{adminStats?.deposits.pending.count || 0}</p>
+                        <p className="text-xs text-muted-foreground">${(adminStats?.deposits.pending.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Confirmed</p>
+                        <p className="text-xl font-bold text-green-500">{adminStats?.deposits.confirmed.count || 0}</p>
+                        <p className="text-xs text-green-400">${(adminStats?.deposits.confirmed.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Rejected</p>
+                        <p className="text-xl font-bold text-red-500">{adminStats?.deposits.rejected.count || 0}</p>
+                        <p className="text-xs text-red-400">${(adminStats?.deposits.rejected.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Showing</p>
+                        <p className="text-xl font-bold">{allDeposits.length}</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Solo Mining Quick Summary */}
                   {activeSoloPurchases.length > 0 && (
                     <div 
-                      className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 cursor-pointer hover:border-yellow-500/50 transition-colors"
+                      className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3 sm:p-4 cursor-pointer hover:border-yellow-500/50 transition-colors"
                       onClick={() => setActiveNav("solo-mining")}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                            <Target className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-yellow-500">Solo Mining Contracts</p>
-                            <p className="text-sm text-muted-foreground">
-                              {activeSoloPurchases.length} active • {totalSoloHashpower.toFixed(2)} PH/s total
-                            </p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-yellow-500 text-sm">Solo Mining</p>
+                          <p className="text-xs text-muted-foreground">
+                            {activeSoloPurchases.length} active • {totalSoloHashpower.toFixed(2)} PH/s
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold">${totalSoloInvestment.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">Total Investment</p>
+                          <p className="font-bold">${totalSoloInvestment.toLocaleString()}</p>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-3">
-                      <Label className="text-xs text-muted-foreground">Search deposits</Label>
+                  {/* Filters */}
+                  <div className="bg-card rounded-xl border border-border p-3 sm:p-4 space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Search</Label>
                       <Input
                         value={depositSearch}
                         onChange={(e) => setDepositSearch(e.target.value)}
-                        placeholder="Search by user email, currency, network…"
-                        className="mt-2"
+                        placeholder="Search by email, currency…"
+                        className="mt-1.5"
                       />
                     </div>
-                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-2">
-                      <Label className="text-xs text-muted-foreground">Status</Label>
-                      <Select value={depositStatusFilter} onValueChange={(v) => setDepositStatusFilter(v as any)}>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="rejected">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Status</Label>
+                        <Select value={depositStatusFilter} onValueChange={(v) => setDepositStatusFilter(v as any)}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Currency</Label>
+                        <Select value={depositCurrencyFilter} onValueChange={setDepositCurrencyFilter}>
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="USDT">USDT</SelectItem>
+                            <SelectItem value="BTC">BTC</SelectItem>
+                            <SelectItem value="ETH">ETH</SelectItem>
+                            <SelectItem value="LTC">LTC</SelectItem>
+                            <SelectItem value="USDC">USDC</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="bg-card rounded-xl border border-border p-4 md:col-span-1">
-                      <Label className="text-xs text-muted-foreground">Currency</Label>
-                      <Select value={depositCurrencyFilter} onValueChange={setDepositCurrencyFilter}>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="USDT">USDT</SelectItem>
-                          <SelectItem value="BTC">BTC</SelectItem>
-                          <SelectItem value="ETH">ETH</SelectItem>
-                          <SelectItem value="LTC">LTC</SelectItem>
-                          <SelectItem value="USDC">USDC</SelectItem>
-                          <SelectItem value="BNB">BNB</SelectItem>
-                          <SelectItem value="TON">TON</SelectItem>
-                          <SelectItem value="ZCASH">ZCASH</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={depositStatusFilter === "all" ? "default" : "outline"}
-                      onClick={() => setDepositStatusFilter("all")}
-                    >
-                      All
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={depositStatusFilter === "pending" ? "default" : "outline"}
-                      onClick={() => setDepositStatusFilter("pending")}
-                    >
-                      Pending
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={depositStatusFilter === "confirmed" ? "default" : "outline"}
-                      onClick={() => setDepositStatusFilter("confirmed")}
-                    >
-                      Confirmed
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={depositStatusFilter === "rejected" ? "default" : "outline"}
-                      onClick={() => setDepositStatusFilter("rejected")}
-                    >
-                      Rejected
-                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="w-full"
                       onClick={() => {
                         setDepositSearch("");
                         setDepositStatusFilter("all");
                         setDepositCurrencyFilter("all");
                       }}
                     >
-                      Clear
+                      Clear Filters
                     </Button>
                   </div>
 
                   {/* Pending Deposits */}
                   <div>
-                    <div className="flex items-center gap-3 mb-4">
-                      <h3 className="text-lg font-semibold">Pending Deposits</h3>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="font-semibold">Pending Deposits</h3>
                       <Badge variant="secondary">{pendingDeposits.length}</Badge>
                     </div>
 
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      {pendingDeposits
+                    {pendingDeposits
+                      .filter((d) => {
+                        const q = depositSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          (d.userEmail || "").toLowerCase().includes(q) ||
+                          (d.currency || "").toLowerCase().includes(q) ||
+                          (d.network || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .filter((d) => {
+                        if (depositCurrencyFilter === "all") return true;
+                        return (d.currency || "").toUpperCase() === depositCurrencyFilter;
+                      }).length === 0 ? (
+                      <div className="bg-card rounded-xl border border-border p-6 text-center">
+                        <Clock className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm text-muted-foreground">No pending deposits</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pendingDeposits
+                          .filter((d) => {
+                            const q = depositSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              (d.userEmail || "").toLowerCase().includes(q) ||
+                              (d.currency || "").toLowerCase().includes(q) ||
+                              (d.network || "").toLowerCase().includes(q)
+                            );
+                          })
+                          .filter((d) => {
+                            if (depositCurrencyFilter === "all") return true;
+                            return (d.currency || "").toUpperCase() === depositCurrencyFilter;
+                          })
+                          .map((deposit) => (
+                          <div key={deposit.id} className="bg-card rounded-xl border border-amber-500/30 p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm break-all">{deposit.userEmail || "Unknown"}</p>
+                                {deposit.userDisplayName && (
+                                  <p className="text-xs text-muted-foreground">{deposit.userDisplayName}</p>
+                                )}
+                              </div>
+                              <Badge variant="outline" className="flex-shrink-0">{deposit.network}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Amount</p>
+                                <p className="font-bold">{deposit.amount} {deposit.currency}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Date</p>
+                                <p className="text-sm">{new Date(deposit.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => {
+                                  setSelectedDeposit(deposit);
+                                  setConfirmDialogOpen(true);
+                                }}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() => {
+                                  setSelectedDeposit(deposit);
+                                  setRejectDialogOpen(true);
+                                }}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent Deposits */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Recent Deposits</h3>
+                    <div className="space-y-2">
+                      {allDeposits
+                        .slice(0, 20)
                         .filter((d) => {
                           const q = depositSearch.trim().toLowerCase();
                           if (!q) return true;
                           return (
                             (d.userEmail || "").toLowerCase().includes(q) ||
                             (d.currency || "").toLowerCase().includes(q) ||
-                            (d.network || "").toLowerCase().includes(q)
+                            (d.network || "").toLowerCase().includes(q) ||
+                            (d.status || "").toLowerCase().includes(q)
                           );
                         })
                         .filter((d) => {
                           if (depositCurrencyFilter === "all") return true;
                           return (d.currency || "").toUpperCase() === depositCurrencyFilter;
-                        }).length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground">
-                          <Clock className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                          <p>No pending deposits match your filters</p>
+                        })
+                        .filter((d) => {
+                          if (depositStatusFilter === "all") return true;
+                          return (d.status || "").toLowerCase() === depositStatusFilter;
+                        })
+                        .map((deposit) => (
+                        <div key={deposit.id} className="bg-card rounded-xl border border-border p-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{deposit.userEmail || "Unknown"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {deposit.amount} {deposit.currency} • {new Date(deposit.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={
+                              deposit.status === "confirmed" ? "default" :
+                              deposit.status === "rejected" ? "destructive" : "secondary"
+                            }
+                            className="flex-shrink-0"
+                          >
+                            {deposit.status}
+                          </Badge>
                         </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>User</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Network</TableHead>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {pendingDeposits
-                              .filter((d) => {
-                                const q = depositSearch.trim().toLowerCase();
-                                if (!q) return true;
-                                return (
-                                  (d.userEmail || "").toLowerCase().includes(q) ||
-                                  (d.currency || "").toLowerCase().includes(q) ||
-                                  (d.network || "").toLowerCase().includes(q)
-                                );
-                              })
-                              .filter((d) => {
-                                if (depositCurrencyFilter === "all") return true;
-                                return (d.currency || "").toUpperCase() === depositCurrencyFilter;
-                              })
-                              .map((deposit) => (
-                              <TableRow key={deposit.id}>
-                                <TableCell>
-                                  <div>
-                                    <div className="font-medium">{deposit.userEmail || "Unknown"}</div>
-                                    {deposit.userDisplayName && (
-                                      <div className="text-sm text-muted-foreground">{deposit.userDisplayName}</div>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="font-medium">
-                                    {deposit.amount} {deposit.currency}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">{deposit.network}</Badge>
-                                </TableCell>
-                                <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedDeposit(deposit);
-                                        setConfirmDialogOpen(true);
-                                      }}
-                                    >
-                                      <CheckCircle2 className="w-4 h-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => {
-                                        setSelectedDeposit(deposit);
-                                        setRejectDialogOpen(true);
-                                      }}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Deposit History */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Recent Deposits</h3>
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>User</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Date</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {allDeposits
-                                .slice(0, 20)
-                                .filter((d) => {
-                                  const q = depositSearch.trim().toLowerCase();
-                                  if (!q) return true;
-                                  return (
-                                    (d.userEmail || "").toLowerCase().includes(q) ||
-                                    (d.currency || "").toLowerCase().includes(q) ||
-                                    (d.network || "").toLowerCase().includes(q) ||
-                                    (d.status || "").toLowerCase().includes(q)
-                                  );
-                                })
-                                .filter((d) => {
-                                  if (depositCurrencyFilter === "all") return true;
-                                  return (d.currency || "").toUpperCase() === depositCurrencyFilter;
-                                })
-                                .filter((d) => {
-                                  if (depositStatusFilter === "all") return true;
-                                  return (d.status || "").toLowerCase() === depositStatusFilter;
-                                })
-                                .map((deposit) => (
-                              <TableRow key={deposit.id}>
-                                <TableCell className="font-medium">{deposit.userEmail || "Unknown"}</TableCell>
-                                <TableCell>
-                                  {deposit.amount} {deposit.currency}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      deposit.status === "confirmed"
-                                        ? "default"
-                                        : deposit.status === "rejected"
-                                        ? "destructive"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {deposit.status === "confirmed" && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                                    {deposit.status === "rejected" && <XCircle className="w-3 h-3 mr-1" />}
-                                    {deposit.status === "pending" && <Clock className="w-3 h-3 mr-1" />}
-                                    {deposit.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{new Date(deposit.createdAt).toLocaleString()}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1398,124 +1340,122 @@ export function DatabaseAdmin() {
 
               {/* Withdrawals Tab */}
               {activeNav === "withdrawals" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-2">Withdrawal Management</h2>
-                      <p className="text-muted-foreground">Review and process withdrawal requests</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/withdrawals/pending"] })}
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh
-                    </Button>
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold mb-1">Withdrawal Management</h2>
+                    <p className="text-sm text-muted-foreground">Review and process withdrawal requests</p>
                   </div>
 
-                  {/* Withdrawal Stats */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Pending</p>
-                      <p className="text-2xl font-bold text-amber-500">{adminStats?.withdrawals.pending.count || 0}</p>
-                      <p className="text-xs text-muted-foreground mt-1">${(adminStats?.withdrawals.pending.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Completed</p>
-                      <p className="text-2xl font-bold text-green-500">{adminStats?.withdrawals.completed.count || 0}</p>
-                      <p className="text-xs text-green-400 mt-1">${(adminStats?.withdrawals.completed.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Rejected</p>
-                      <p className="text-2xl font-bold text-red-500">{adminStats?.withdrawals.rejected.count || 0}</p>
-                      <p className="text-xs text-red-400 mt-1">${(adminStats?.withdrawals.rejected.amount || 0).toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Pending Queue</p>
-                      <p className="text-2xl font-bold">{pendingWithdrawals.length}</p>
+                  {/* Stats */}
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-3">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-xl font-bold text-amber-500">{adminStats?.withdrawals.pending.count || 0}</p>
+                        <p className="text-xs text-muted-foreground">${(adminStats?.withdrawals.pending.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                        <p className="text-xl font-bold text-green-500">{adminStats?.withdrawals.completed.count || 0}</p>
+                        <p className="text-xs text-green-400">${(adminStats?.withdrawals.completed.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Rejected</p>
+                        <p className="text-xl font-bold text-red-500">{adminStats?.withdrawals.rejected.count || 0}</p>
+                        <p className="text-xs text-red-400">${(adminStats?.withdrawals.rejected.amount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Queue</p>
+                        <p className="text-xl font-bold">{pendingWithdrawals.length}</p>
+                      </div>
                     </div>
                   </div>
 
                   {isLoadingWithdrawals ? (
-                    <div className="bg-card rounded-xl border border-border p-8 text-center">
+                    <div className="bg-card rounded-xl border border-border p-6 text-center">
                       <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
-                      <p className="text-muted-foreground">Loading withdrawal requests...</p>
+                      <p className="text-sm text-muted-foreground">Loading...</p>
                     </div>
                   ) : pendingWithdrawals && pendingWithdrawals.length > 0 ? (
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>User</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Network</TableHead>
-                            <TableHead>Address</TableHead>
-                            <TableHead>Fee</TableHead>
-                            <TableHead>Net Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pendingWithdrawals.map((withdrawal: any) => (
-                            <TableRow key={withdrawal.id}>
-                              <TableCell className="text-xs">
-                                {new Date(withdrawal.requestedAt).toLocaleString()}
-                              </TableCell>
-                              <TableCell className="font-medium">{withdrawal.userId}</TableCell>
-                              <TableCell className="font-mono">
-                                {withdrawal.amount} {withdrawal.symbol}
-                              </TableCell>
-                              <TableCell className="text-xs">{withdrawal.network}</TableCell>
-                              <TableCell className="text-xs font-mono">
-                                {withdrawal.toAddress?.substring(0, 10)}...
-                              </TableCell>
-                              <TableCell className="font-mono text-xs">
-                                {withdrawal.fee} {withdrawal.symbol}
-                              </TableCell>
-                              <TableCell className="font-mono">
-                                {withdrawal.netAmount} {withdrawal.symbol}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={
-                                  withdrawal.status === "completed" ? "default" :
-                                  withdrawal.status === "pending" ? "secondary" :
-                                  "destructive"
-                                }>
-                                  {withdrawal.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {withdrawal.status === "pending" && (
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      onClick={() => handleProcessWithdrawal(withdrawal.id, "approve")}
-                                    >
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => handleProcessWithdrawal(withdrawal.id, "reject")}
-                                    >
-                                      Reject
-                                    </Button>
-                                  </div>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                    <div className="space-y-3">
+                      {pendingWithdrawals.map((withdrawal: any) => (
+                        <div key={withdrawal.id} className="bg-card rounded-xl border border-amber-500/30 p-4 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground">User ID</p>
+                              <p className="text-sm font-medium break-all">{withdrawal.userId}</p>
+                            </div>
+                            <Badge variant={
+                              withdrawal.status === "completed" ? "default" :
+                              withdrawal.status === "pending" ? "secondary" : "destructive"
+                            }>
+                              {withdrawal.status}
+                            </Badge>
+                          </div>
+                          
+                          {/* Amount Info */}
+                          <div className="grid grid-cols-3 gap-2 text-center bg-muted/30 rounded-lg p-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Amount</p>
+                              <p className="font-mono font-bold text-sm">{withdrawal.amount}</p>
+                              <p className="text-xs">{withdrawal.symbol}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Fee</p>
+                              <p className="font-mono text-sm">{withdrawal.fee}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Net</p>
+                              <p className="font-mono font-bold text-sm text-green-500">{withdrawal.netAmount}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Details */}
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Network</p>
+                              <Badge variant="outline">{withdrawal.network}</Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Address</p>
+                              <p className="font-mono text-xs break-all text-muted-foreground">{withdrawal.toAddress}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Date</p>
+                              <p className="text-sm">{new Date(withdrawal.requestedAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Actions */}
+                          {withdrawal.status === "pending" && (
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleProcessWithdrawal(withdrawal.id, "approve")}
+                              >
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() => handleProcessWithdrawal(withdrawal.id, "reject")}
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    <div className="bg-card rounded-xl border border-border p-8 text-center">
-                      <ArrowUpToLine className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p className="text-muted-foreground">No withdrawal requests at this time</p>
+                    <div className="bg-card rounded-xl border border-border p-6 text-center">
+                      <ArrowUpToLine className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm text-muted-foreground">No withdrawal requests</p>
                     </div>
                   )}
                 </div>
@@ -1540,18 +1480,20 @@ export function DatabaseAdmin() {
                   </div>
 
                   {/* Stats Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Configs</p>
-                      <p className="text-2xl font-bold">{autoWithdrawConfigs.length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Active</p>
-                      <p className="text-2xl font-bold text-green-400">{autoWithdrawConfigs.filter((c: any) => c.enabled).length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Disabled</p>
-                      <p className="text-2xl font-bold text-muted-foreground">{autoWithdrawConfigs.filter((c: any) => !c.enabled).length}</p>
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-2">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="text-xl font-bold">{autoWithdrawConfigs.length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Active</p>
+                        <p className="text-xl font-bold text-green-400">{autoWithdrawConfigs.filter((c: any) => c.enabled).length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Disabled</p>
+                        <p className="text-xl font-bold text-muted-foreground">{autoWithdrawConfigs.filter((c: any) => !c.enabled).length}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -1561,82 +1503,89 @@ export function DatabaseAdmin() {
                       <p className="text-muted-foreground">Loading auto-withdrawal configs...</p>
                     </div>
                   ) : autoWithdrawConfigs && autoWithdrawConfigs.length > 0 ? (
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Currency</TableHead>
-                            <TableHead>Network</TableHead>
-                            <TableHead>Wallet Address</TableHead>
-                            <TableHead>Period</TableHead>
-                            <TableHead>Min Amount</TableHead>
-                            <TableHead>Last Withdrawal</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {autoWithdrawConfigs.map((config: any) => (
-                            <TableRow key={config.id}>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium text-sm">{config.userDisplayName || "—"}</p>
-                                  <p className="text-xs text-muted-foreground">{config.userEmail || config.userId.slice(0, 8)}</p>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={config.enabled ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
-                                  {config.enabled ? "Active" : "Disabled"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">{config.currency}</TableCell>
-                              <TableCell className="text-xs">{config.network}</TableCell>
-                              <TableCell className="text-xs font-mono">
-                                {config.walletAddress ? `${config.walletAddress.substring(0, 8)}...${config.walletAddress.slice(-6)}` : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">
-                                  {config.period === "weekly" ? "Weekly" : "Monthly"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-mono">${config.minAmount}</TableCell>
-                              <TableCell className="text-xs">
+                    <div className="space-y-3">
+                      {autoWithdrawConfigs.map((config: any) => (
+                        <div key={config.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                          {/* User & Status */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{config.userDisplayName || "—"}</p>
+                              <p className="text-xs text-muted-foreground truncate">{config.userEmail || config.userId.slice(0, 8)}</p>
+                            </div>
+                            <Badge className={config.enabled ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                              {config.enabled ? "Active" : "Disabled"}
+                            </Badge>
+                          </div>
+                          
+                          {/* Currency & Network */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Currency</p>
+                              <p className="font-medium text-sm">{config.currency}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Network</p>
+                              <p className="text-sm">{config.network}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Wallet Address */}
+                          <div>
+                            <p className="text-xs text-muted-foreground">Wallet Address</p>
+                            <p className="text-xs font-mono break-all text-muted-foreground mt-1">
+                              {config.walletAddress || "—"}
+                            </p>
+                          </div>
+                          
+                          {/* Period, Min Amount, Last Withdrawal */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Period</p>
+                              <Badge variant="outline" className="mt-1">
+                                {config.period === "weekly" ? "Weekly" : "Monthly"}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Min Amount</p>
+                              <p className="font-mono text-sm">${config.minAmount}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Last</p>
+                              <p className="text-xs">
                                 {config.lastWithdrawAt 
                                   ? new Date(config.lastWithdrawAt).toLocaleDateString()
                                   : "Never"
                                 }
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant={config.enabled ? "destructive" : "default"}
-                                    onClick={async () => {
-                                      try {
-                                        await fetch(`/api/admin/auto-withdrawals/${config.id}/toggle`, {
-                                          method: "PATCH",
-                                          headers: { "Content-Type": "application/json" },
-                                          body: JSON.stringify({ enabled: !config.enabled })
-                                        });
-                                        queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-withdrawals"] });
-                                        toast({
-                                          title: config.enabled ? "Disabled" : "Enabled",
-                                          description: `Auto-withdrawal ${config.enabled ? "disabled" : "enabled"} for user.`,
-                                        });
-                                      } catch (error) {
-                                        toast({ title: "Error", description: "Failed to toggle", variant: "destructive" });
-                                      }
-                                    }}
-                                  >
-                                    {config.enabled ? "Disable" : "Enable"}
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Action Button */}
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            variant={config.enabled ? "destructive" : "default"}
+                            onClick={async () => {
+                              try {
+                                await fetch(`/api/admin/auto-withdrawals/${config.id}/toggle`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ enabled: !config.enabled })
+                                });
+                                queryClient.invalidateQueries({ queryKey: ["/api/admin/auto-withdrawals"] });
+                                toast({
+                                  title: config.enabled ? "Disabled" : "Enabled",
+                                  description: `Auto-withdrawal ${config.enabled ? "disabled" : "enabled"} for user.`,
+                                });
+                              } catch (error) {
+                                toast({ title: "Error", description: "Failed to toggle", variant: "destructive" });
+                              }
+                            }}
+                          >
+                            {config.enabled ? "Disable" : "Enable"}
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="bg-card rounded-xl border border-border p-8 text-center">
@@ -1656,84 +1605,90 @@ export function DatabaseAdmin() {
                     <p className="text-muted-foreground">Manage solo mining contracts and award block rewards</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Active Contracts</p>
-                      <p className="text-2xl font-bold text-primary">{activeSoloPurchases.length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Hashpower</p>
-                      <p className="text-2xl font-bold">{totalSoloHashpower} PH/s</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Investment</p>
-                      <p className="text-2xl font-bold">${totalSoloInvestment.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Block Reward</p>
-                      <p className="text-2xl font-bold text-amber-500">3.125 BTC</p>
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-2">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Active Contracts</p>
+                        <p className="text-xl font-bold text-primary">{activeSoloPurchases.length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Total Hashpower</p>
+                        <p className="text-xl font-bold">{totalSoloHashpower} PH/s</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Total Investment</p>
+                        <p className="text-xl font-bold">${totalSoloInvestment.toLocaleString()}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Block Reward</p>
+                        <p className="text-xl font-bold text-amber-500">3.125 BTC</p>
+                      </div>
                     </div>
                   </div>
 
                   {soloMiningPurchases.length > 0 ? (
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="min-w-[150px]">User</TableHead>
-                              <TableHead>Package</TableHead>
-                              <TableHead>Hashpower</TableHead>
-                              <TableHead>Investment</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Earned</TableHead>
-                              <TableHead>Expires</TableHead>
-                              <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {soloMiningPurchases.map((purchase) => (
-                              <TableRow key={purchase.id}>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium text-xs">{purchase.userDisplayName || "—"}</p>
-                                    <p className="text-xs text-muted-foreground">{purchase.userEmail || purchase.userId.slice(0, 8)}</p>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-xs">{purchase.packageName}</TableCell>
-                                <TableCell className="font-medium">{purchase.hashrate} {purchase.hashrateUnit}</TableCell>
-                                <TableCell>${purchase.amount.toLocaleString()}</TableCell>
-                                <TableCell>
-                                  <Badge className={purchase.status === "active" ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
-                                    {purchase.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-amber-500 font-medium">
-                                  {purchase.totalEarned > 0 ? `₿${purchase.totalEarned.toFixed(4)}` : "—"}
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {purchase.expiryDate ? new Date(purchase.expiryDate).toLocaleDateString() : "—"}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {purchase.status === "active" && (
-                                    <Button
-                                      size="sm"
-                                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
-                                      onClick={() => {
-                                        setSelectedSoloPurchase(purchase);
-                                        setAwardBlockDialogOpen(true);
-                                      }}
-                                    >
-                                      <Zap className="w-3 h-3 mr-1" />
-                                      Award Block
-                                    </Button>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
+                    <div className="space-y-3">
+                      {soloMiningPurchases.map((purchase) => (
+                        <div key={purchase.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                          {/* User & Status */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{purchase.userDisplayName || "—"}</p>
+                              <p className="text-xs text-muted-foreground truncate">{purchase.userEmail || purchase.userId.slice(0, 8)}</p>
+                            </div>
+                            <Badge className={purchase.status === "active" ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                              {purchase.status}
+                            </Badge>
+                          </div>
+                          
+                          {/* Package & Hashpower */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Package</p>
+                              <p className="text-sm">{purchase.packageName}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Hashpower</p>
+                              <p className="font-medium text-sm">{purchase.hashrate} {purchase.hashrateUnit}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Investment, Earned, Expires */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Investment</p>
+                              <p className="text-sm font-medium">${purchase.amount.toLocaleString()}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Earned</p>
+                              <p className="text-sm font-medium text-amber-500">
+                                {purchase.totalEarned > 0 ? `₿${purchase.totalEarned.toFixed(4)}` : "—"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Expires</p>
+                              <p className="text-xs">
+                                {purchase.expiryDate ? new Date(purchase.expiryDate).toLocaleDateString() : "—"}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Award Block Button */}
+                          {purchase.status === "active" && (
+                            <Button
+                              size="sm"
+                              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                              onClick={() => {
+                                setSelectedSoloPurchase(purchase);
+                                setAwardBlockDialogOpen(true);
+                              }}
+                            >
+                              <Zap className="w-3 h-3 mr-1" />
+                              Award Block
+                            </Button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="bg-card rounded-xl border border-border p-8 text-center">
@@ -1865,44 +1820,46 @@ export function DatabaseAdmin() {
                     <h3 className="font-semibold mb-4">Existing Articles</h3>
                     <div className="space-y-4">
                       {articles.map((article) => (
-                        <div key={article.id} className="bg-card rounded-xl border border-border p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                {article.icon && <span className="text-2xl">{article.icon}</span>}
-                                <h4 className="font-semibold">{article.title}</h4>
-                                <Badge variant={article.isActive ? "default" : "secondary"}>
-                                  {article.isActive ? "Active" : "Inactive"}
-                                </Badge>
-                              </div>
-                              <div
-                                className="text-sm text-muted-foreground line-clamp-2"
-                                dangerouslySetInnerHTML={{ __html: article.description }}
-                              />
+                        <div key={article.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                          <div className="flex items-start gap-2">
+                            {article.icon && <span className="text-2xl flex-shrink-0">{article.icon}</span>}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold truncate">{article.title}</h4>
+                              <Badge variant={article.isActive ? "default" : "secondary"} className="mt-1">
+                                {article.isActive ? "Active" : "Inactive"}
+                              </Badge>
                             </div>
-                            <div className="flex gap-2 ml-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingArticle(article);
-                                  setArticleTitle(article.title);
-                                  setArticleDescription(article.description);
-                                  setArticleCategory(article.category || "Basics");
-                                  setArticleIcon(article.icon || "");
-                                  setArticleImage(article.image || "");
-                                }}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => setDeleteArticleId(article.id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                          </div>
+                          <div
+                            className="text-sm text-muted-foreground line-clamp-2"
+                            dangerouslySetInnerHTML={{ __html: article.description }}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                setEditingArticle(article);
+                                setArticleTitle(article.title);
+                                setArticleDescription(article.description);
+                                setArticleCategory(article.category || "Basics");
+                                setArticleIcon(article.icon || "");
+                                setArticleImage(article.image || "");
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="w-full"
+                              onClick={() => setDeleteArticleId(article.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1980,110 +1937,101 @@ export function DatabaseAdmin() {
 
               {/* Estimates Tab */}
               {activeNav === "estimates" && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
                     <h2 className="text-2xl font-bold mb-2">Earnings Estimates</h2>
                     <p className="text-muted-foreground">Controls the "Estimated earnings today" cards in Mining / Yield / Solo pages</p>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="space-y-3">
                     {/* Yield */}
-                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                    <div className="bg-card rounded-xl border border-border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs text-muted-foreground">Yield</p>
-                          <p className="text-lg font-bold">Annual APR (%)</p>
+                          <p className="font-bold">Annual APR (%)</p>
                         </div>
                         <Badge className="bg-emerald-500/15 border-emerald-500/30" style={{ color: 'rgb(12, 185, 105)' }}>Editable</Badge>
                       </div>
-
-                      <div>
-                        <Label className="text-xs text-muted-foreground">APR</Label>
-                        <Input value={estimateInvestAprAnnual} onChange={(e) => setEstimateInvestAprAnnual(e.target.value)} />
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          Preview: ${((1000 * (Number(estimateInvestAprAnnual || 0) / 100)) / 365).toFixed(2)} / day per $1,000
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <Input value={estimateInvestAprAnnual} onChange={(e) => setEstimateInvestAprAnnual(e.target.value)} className="flex-1" />
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            addConfig.mutate({
+                              key: "public_invest_apr_annual_percent",
+                              value: String(Number(estimateInvestAprAnnual || 19)),
+                              category: "estimates",
+                              description: "Public: Yield annual APR percent (used for Estimated earnings today)",
+                            })
+                          }
+                        >
+                          <Save className="w-4 h-4" />
+                        </Button>
                       </div>
-
-                      <Button
-                        onClick={() =>
-                          addConfig.mutate({
-                            key: "public_invest_apr_annual_percent",
-                            value: String(Number(estimateInvestAprAnnual || 19)),
-                            category: "estimates",
-                            description: "Public: Yield annual APR percent (used for Estimated earnings today)",
-                          })
-                        }
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Preview: ${((1000 * (Number(estimateInvestAprAnnual || 0) / 100)) / 365).toFixed(2)} / day per $1,000
+                      </p>
                     </div>
 
                     {/* Mining */}
-                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                    <div className="bg-card rounded-xl border border-border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs text-muted-foreground">Mining</p>
-                          <p className="text-lg font-bold">Estimate multiplier</p>
+                          <p className="font-bold">Estimate multiplier</p>
                         </div>
                         <Badge className="bg-primary/10 text-primary border-primary/25">Global</Badge>
                       </div>
-
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Multiplier</Label>
-                        <Input value={estimateMiningMultiplier} onChange={(e) => setEstimateMiningMultiplier(e.target.value)} />
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          1.0 = normal • 2.0 = double • 0.5 = half
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <Input value={estimateMiningMultiplier} onChange={(e) => setEstimateMiningMultiplier(e.target.value)} className="flex-1" />
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            addConfig.mutate({
+                              key: "public_mining_estimate_multiplier",
+                              value: String(Number(estimateMiningMultiplier || 1)),
+                              category: "estimates",
+                              description: "Public: Mining estimate multiplier (affects live earnings displays)",
+                            })
+                          }
+                        >
+                          <Save className="w-4 h-4" />
+                        </Button>
                       </div>
-
-                      <Button
-                        onClick={() =>
-                          addConfig.mutate({
-                            key: "public_mining_estimate_multiplier",
-                            value: String(Number(estimateMiningMultiplier || 1)),
-                            category: "estimates",
-                            description: "Public: Mining estimate multiplier (affects live earnings displays)",
-                          })
-                        }
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        1.0 = normal • 2.0 = double • 0.5 = half
+                      </p>
                     </div>
 
                     {/* Solo */}
-                    <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+                    <div className="bg-card rounded-xl border border-border p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs text-muted-foreground">Solo</p>
-                          <p className="text-lg font-bold">Estimate multiplier</p>
+                          <p className="font-bold">Estimate multiplier</p>
                         </div>
                         <Badge className="bg-amber-500/10 text-amber-300 border-amber-500/25">Global</Badge>
                       </div>
-
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Multiplier</Label>
-                        <Input value={estimateSoloMultiplier} onChange={(e) => setEstimateSoloMultiplier(e.target.value)} />
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          Multiplies the Solo "Estimated earnings today" display
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <Input value={estimateSoloMultiplier} onChange={(e) => setEstimateSoloMultiplier(e.target.value)} className="flex-1" />
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            addConfig.mutate({
+                              key: "public_solo_estimate_multiplier",
+                              value: String(Number(estimateSoloMultiplier || 1)),
+                              category: "estimates",
+                              description: "Public: Solo estimate multiplier (affects live earnings displays)",
+                            })
+                          }
+                        >
+                          <Save className="w-4 h-4" />
+                        </Button>
                       </div>
-
-                      <Button
-                        onClick={() =>
-                          addConfig.mutate({
-                            key: "public_solo_estimate_multiplier",
-                            value: String(Number(estimateSoloMultiplier || 1)),
-                            category: "estimates",
-                            description: "Public: Solo estimate multiplier (affects live earnings displays)",
-                          })
-                        }
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Multiplies the Solo "Estimated earnings today" display
+                      </p>
                     </div>
                   </div>
 
@@ -2104,18 +2052,20 @@ export function DatabaseAdmin() {
                     <p className="text-muted-foreground">Control "Estimated earnings today" for each user individually (Mining, Yield, Solo)</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Total Active Users</p>
-                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Users with Custom Estimates</p>
-                      <p className="text-2xl font-bold">{config.filter(c => c.key.startsWith("user_estimate_")).length}</p>
-                    </div>
-                    <div className="bg-card rounded-xl border border-border p-4">
-                      <p className="text-xs text-muted-foreground">Using Global Defaults</p>
-                      <p className="text-2xl font-bold">{users.filter(u => u.isActive).length - new Set(config.filter(c => c.key.startsWith("user_estimate_")).map(c => c.key.split("_")[2])).size}</p>
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex flex-wrap gap-x-10 gap-y-2">
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Active Users</p>
+                        <p className="text-xl font-bold">{users.filter(u => u.isActive).length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Custom</p>
+                        <p className="text-xl font-bold">{config.filter(c => c.key.startsWith("user_estimate_")).length}</p>
+                      </div>
+                      <div className="min-w-[90px]">
+                        <p className="text-xs text-muted-foreground">Global</p>
+                        <p className="text-xl font-bold">{users.filter(u => u.isActive).length - new Set(config.filter(c => c.key.startsWith("user_estimate_")).map(c => c.key.split("_")[2])).size}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -2129,80 +2079,72 @@ export function DatabaseAdmin() {
                     />
                   </div>
 
-                  <div className="bg-card rounded-xl border border-border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Mining Multiplier</TableHead>
-                            <TableHead>Yield APR (%)</TableHead>
-                            <TableHead>Solo Multiplier</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users
-                            .filter(u => {
-                              const q = userEstimatesSearch.trim().toLowerCase();
-                              if (!q) return true;
-                              return (
-                                u.email.toLowerCase().includes(q) ||
-                                (u.displayName || "").toLowerCase().includes(q)
-                              );
-                            })
-                            .map((user) => {
-                              const userMining = config.find(c => c.key === `user_estimate_${user.id}_mining`)?.value || "—";
-                              const userInvest = config.find(c => c.key === `user_estimate_${user.id}_invest`)?.value || "—";
-                              const userSolo = config.find(c => c.key === `user_estimate_${user.id}_solo`)?.value || "—";
-                              
-                              return (
-                                <TableRow key={user.id}>
-                                  <TableCell>
-                                    <div>
-                                      <div className="font-medium">{user.email}</div>
-                                      {user.displayName && (
-                                        <div className="text-sm text-muted-foreground">{user.displayName}</div>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={userMining === "—" ? "secondary" : "default"}>
-                                      {userMining === "—" ? "Global" : `${userMining}x`}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={userInvest === "—" ? "secondary" : "default"}>
-                                      {userInvest === "—" ? "Global" : `${userInvest}%`}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge variant={userSolo === "—" ? "secondary" : "default"}>
-                                      {userSolo === "—" ? "Global" : `${userSolo}x`}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setSelectedUserEstimate(user.id);
-                                        setUserMiningMultiplier(userMining === "—" ? "1" : userMining);
-                                        setUserInvestApr(userInvest === "—" ? "19" : userInvest);
-                                        setUserSoloMultiplier(userSolo === "—" ? "1" : userSolo);
-                                        setUserEstimateDialogOpen(true);
-                                      }}
-                                    >
-                                      <Edit2 className="w-4 h-4 mr-2" />
-                                      Edit
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                        </TableBody>
-                      </Table>
-                    </div>
+                  <div className="space-y-3">
+                    {users
+                      .filter(u => {
+                        const q = userEstimatesSearch.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          u.email.toLowerCase().includes(q) ||
+                          (u.displayName || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .map((user) => {
+                        const userMining = config.find(c => c.key === `user_estimate_${user.id}_mining`)?.value || "—";
+                        const userInvest = config.find(c => c.key === `user_estimate_${user.id}_invest`)?.value || "—";
+                        const userSolo = config.find(c => c.key === `user_estimate_${user.id}_solo`)?.value || "—";
+                        
+                        return (
+                          <div key={user.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                            {/* User Info */}
+                            <div>
+                              <p className="font-medium text-sm truncate">{user.email}</p>
+                              {user.displayName && (
+                                <p className="text-xs text-muted-foreground truncate">{user.displayName}</p>
+                              )}
+                            </div>
+                            
+                            {/* Multipliers */}
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <p className="text-xs text-muted-foreground">Mining</p>
+                                <Badge variant={userMining === "—" ? "secondary" : "default"} className="mt-1">
+                                  {userMining === "—" ? "Global" : `${userMining}x`}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Yield APR</p>
+                                <Badge variant={userInvest === "—" ? "secondary" : "default"} className="mt-1">
+                                  {userInvest === "—" ? "Global" : `${userInvest}%`}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground">Solo</p>
+                                <Badge variant={userSolo === "—" ? "secondary" : "default"} className="mt-1">
+                                  {userSolo === "—" ? "Global" : `${userSolo}x`}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            {/* Edit Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                setSelectedUserEstimate(user.id);
+                                setUserMiningMultiplier(userMining === "—" ? "1" : userMining);
+                                setUserInvestApr(userInvest === "—" ? "19" : userInvest);
+                                setUserSoloMultiplier(userSolo === "—" ? "1" : userSolo);
+                                setUserEstimateDialogOpen(true);
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4 mr-2" />
+                              Edit Estimates
+                            </Button>
+                          </div>
+                        );
+                      })}
                   </div>
 
                   <div className="bg-card rounded-xl border border-border p-4">
@@ -2224,57 +2166,60 @@ export function DatabaseAdmin() {
                   </div>
 
                   {/* Add New Config */}
-                  <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                  <div className="bg-card rounded-xl border border-border p-4 md:p-6 space-y-4">
                     <h3 className="font-semibold">Add New Configuration</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Category</Label>
-                        <Select value={newConfigCategory} onValueChange={(value) => {
-                          setNewConfigCategory(value);
-                          setNewConfigKey(""); // Reset key when category changes
-                        }}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="wallet">Wallet Addresses</SelectItem>
-                            <SelectItem value="pricing">Pricing</SelectItem>
-                            <SelectItem value="contracts">Mining Contracts</SelectItem>
-                            <SelectItem value="discount">Discounts & Sales</SelectItem>
-                            <SelectItem value="forceUpdate">Force Update</SelectItem>
-                            <SelectItem value="settings">App Settings</SelectItem>
-                            <SelectItem value="compliance">Compliance Mode</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm">Category</Label>
+                          <Select value={newConfigCategory} onValueChange={(value) => {
+                            setNewConfigCategory(value);
+                            setNewConfigKey(""); // Reset key when category changes
+                          }}>
+                            <SelectTrigger className="mt-1.5">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="wallet">Wallet Addresses</SelectItem>
+                              <SelectItem value="pricing">Pricing</SelectItem>
+                              <SelectItem value="contracts">Mining Contracts</SelectItem>
+                              <SelectItem value="discount">Discounts & Sales</SelectItem>
+                              <SelectItem value="forceUpdate">Force Update</SelectItem>
+                              <SelectItem value="settings">App Settings</SelectItem>
+                              <SelectItem value="compliance">Compliance Mode</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm">Config Key</Label>
+                          <Select 
+                            value={newConfigKey} 
+                            onValueChange={(value) => {
+                              setNewConfigKey(value);
+                              // Auto-fill description
+                              const key = CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.find(
+                                (k) => k.key === value
+                              );
+                              if (key) setNewConfigDescription(key.description);
+                            }}
+                          >
+                            <SelectTrigger className="mt-1.5">
+                              <SelectValue placeholder="Select config key" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.map((key) => (
+                                <SelectItem key={key.key} value={key.key}>
+                                  {key.description}
+                                </SelectItem>
+                              )) || <SelectItem value="">No keys available</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div>
-                        <Label>Config Key</Label>
-                        <Select 
-                          value={newConfigKey} 
-                          onValueChange={(value) => {
-                            setNewConfigKey(value);
-                            // Auto-fill description
-                            const key = CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.find(
-                              (k) => k.key === value
-                            );
-                            if (key) setNewConfigDescription(key.description);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select config key" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CONFIG_KEYS[newConfigCategory as keyof typeof CONFIG_KEYS]?.map((key) => (
-                              <SelectItem key={key.key} value={key.key}>
-                                {key.description}
-                              </SelectItem>
-                            )) || <SelectItem value="">No keys available</SelectItem>}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Value</Label>
+                        <Label className="text-sm">Value</Label>
                         <Input
+                          className="mt-1.5"
                           value={newConfigValue}
                           onChange={(e) => setNewConfigValue(e.target.value)}
                           placeholder={
@@ -2286,8 +2231,9 @@ export function DatabaseAdmin() {
                         />
                       </div>
                       <div>
-                        <Label>Description (Auto-filled)</Label>
+                        <Label className="text-sm">Description (Auto-filled)</Label>
                         <Input
+                          className="mt-1.5"
                           value={newConfigDescription}
                           onChange={(e) => setNewConfigDescription(e.target.value)}
                           placeholder="Description"
@@ -2296,6 +2242,7 @@ export function DatabaseAdmin() {
                       </div>
                     </div>
                     <Button
+                      className="w-full sm:w-auto"
                       onClick={() =>
                         addConfig.mutate({
                           key: newConfigKey,
@@ -2314,79 +2261,74 @@ export function DatabaseAdmin() {
                   {/* Existing Config */}
                   <div>
                     <h3 className="font-semibold mb-4">Current Configuration</h3>
-                    <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Key</TableHead>
-                            <TableHead>Value</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {config.map((cfg) => (
-                            <TableRow key={cfg.id}>
-                              <TableCell className="font-mono text-sm">{cfg.key}</TableCell>
-                              <TableCell>
-                                {editingConfig?.id === cfg.id ? (
-                                  <Input
-                                    value={editConfigValue}
-                                    onChange={(e) => setEditConfigValue(e.target.value)}
-                                    className="max-w-xs"
-                                  />
-                                ) : (
-                                  <span className="font-mono text-sm">{cfg.value}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{cfg.category}</Badge>
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">{cfg.description || "—"}</TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  {editingConfig?.id === cfg.id ? (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => {
-                                          updateConfig.mutate({ id: cfg.id, value: editConfigValue });
-                                        }}
-                                      >
-                                        <Save className="w-4 h-4" />
-                                      </Button>
-                                      <Button size="sm" variant="outline" onClick={() => setEditingConfig(null)}>
-                                        Cancel
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setEditingConfig(cfg);
-                                          setEditConfigValue(cfg.value);
-                                        }}
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => setDeleteConfigId(cfg.id)}
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                    
+                    {/* Card Layout */}
+                    <div className="space-y-3">
+                      {config.map((cfg) => (
+                        <div key={cfg.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <Badge variant="outline" className="mb-2">{cfg.category}</Badge>
+                              <p className="text-xs text-muted-foreground">{cfg.description || "—"}</p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              {editingConfig?.id === cfg.id ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      updateConfig.mutate({ id: cfg.id, value: editConfigValue });
+                                    }}
+                                  >
+                                    <Save className="w-4 h-4" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setEditingConfig(null)}>
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingConfig(cfg);
+                                      setEditConfigValue(cfg.value);
+                                    }}
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setDeleteConfigId(cfg.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Key</p>
+                              <p className="font-mono text-sm break-all">{cfg.key}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Value</p>
+                              {editingConfig?.id === cfg.id ? (
+                                <Input
+                                  value={editConfigValue}
+                                  onChange={(e) => setEditConfigValue(e.target.value)}
+                                  className="w-full"
+                                />
+                              ) : (
+                                <p className="font-mono text-sm break-all text-primary">{cfg.value}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -2424,7 +2366,7 @@ export function DatabaseAdmin() {
           if (!open) setSelectedUserId(null);
         }}
       >
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
             <DialogDescription>
@@ -2760,7 +2702,7 @@ export function DatabaseAdmin() {
 
       {/* Edit Article Dialog */}
       <Dialog open={!!editingArticle} onOpenChange={() => setEditingArticle(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Article</DialogTitle>
           </DialogHeader>
@@ -2829,7 +2771,7 @@ export function DatabaseAdmin() {
 
       {/* User Estimate Dialog */}
       <Dialog open={userEstimateDialogOpen} onOpenChange={setUserEstimateDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User Estimates</DialogTitle>
             <DialogDescription>
@@ -2935,7 +2877,7 @@ export function DatabaseAdmin() {
           setBlockTxHash("");
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />
