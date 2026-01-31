@@ -85,7 +85,7 @@ export function CryptoCard({ crypto, index, onExchange }: CryptoCardProps) {
             <span className="text-sm text-muted-foreground truncate">{crypto.name}</span>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-balance-${crypto.symbol.toLowerCase()}`}>
-            {crypto.balance.toFixed(6)} {crypto.symbol}
+            {crypto.balance.toFixed(2)} {crypto.symbol}
           </p>
         </div>
 

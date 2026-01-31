@@ -1012,9 +1012,9 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
   }, 0);
 
   const miningEarningsPerSecondUSDTBase = activePurchases.reduce((sum: number, p: any) => {
-    const dailyReturnBTC = Number(p?.dailyReturnBTC) || 0;
-    if (dailyReturnBTC <= 0) return sum;
-    const dailyUSDT = dailyReturnBTC * btcPrice;
+    // Calculate 0.5% daily of invested amount
+    const investmentAmount = Number(p?.amount) || 0;
+    const dailyUSDT = investmentAmount * 0.005; // 0.5% daily
     return sum + dailyUSDT / 86400;
   }, 0);
 

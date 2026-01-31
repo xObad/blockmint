@@ -404,19 +404,10 @@ export function Dashboard({
     });
 
     const miningPerSecondUSDBase = activeMiningPurchases.reduce((sum: number, p: any) => {
-      const isSolo = String(p?.packageName || "").includes("Solo Mining");
-      
-      if (isSolo) {
-        // Solo mining: 0.5% daily of investment amount
-        const investment = Number(p?.amount) || 0;
-        const dailyUSD = investment * 0.005;
-        return sum + (dailyUSD / 86400);
-      }
-      
-      // Regular mining: based on dailyReturnBTC
-      const dailyReturnBTC = Number(p?.dailyReturnBTC) || 0;
-      if (dailyReturnBTC <= 0 || btcUsdPrice <= 0) return sum;
-      return sum + (dailyReturnBTC * btcUsdPrice) / 86400;
+      // All packages: 0.5% daily of investment amount
+      const investment = Number(p?.amount) || 0;
+      const dailyUSD = investment * 0.005; // 0.5% daily
+      return sum + (dailyUSD / 86400);
     }, 0);
     const miningEstimateMultiplier = Number(estimateConfig?.miningEstimateMultiplier) || 1;
     const miningPerSecondUSD = miningPerSecondUSDBase * miningEstimateMultiplier;

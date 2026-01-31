@@ -2,11 +2,12 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { 
   User, Shield, Bell, Key, Fingerprint, Clock, 
-  DollarSign, Globe, ChevronRight, Info,
+  DollarSign, Globe, ChevronRight, ChevronLeft, Info,
   FileText, Mail, LogOut, Lock, Loader2, Camera,
   Link2, Unlink, Wallet, CalendarClock, ArrowDownToLine,
   Trash2, AlertTriangle
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, GoogleAuthProvider, linkWithPopup, unlink } from "firebase/auth";
 import { GlassCard } from "@/components/GlassCard";
 import { Switch } from "@/components/ui/switch";
@@ -765,6 +766,8 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
     }
   };
 
+  const [, setLocation] = useLocation();
+
   return (
     <motion.div
       className="flex flex-col gap-6 pb-6"
@@ -776,9 +779,18 @@ export function Settings({ settings, onSettingsChange, user, onLogout }: Setting
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
+        className="flex items-center gap-3"
       >
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Manage Your Preferences</p>
+        <button
+          onClick={() => setLocation('/dashboard')}
+          className="w-10 h-10 rounded-xl bg-white/[0.08] flex items-center justify-center hover:bg-white/[0.12] transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5 text-foreground" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage Your Preferences</p>
+        </div>
       </motion.header>
 
       <GlassCard delay={0.1} className="relative overflow-hidden">
