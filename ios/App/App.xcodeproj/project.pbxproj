@@ -17,6 +17,7 @@
 		6F59506F2F2EB6C7002A2FDE /* Info 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6F59506E2F2EB6C7002A2FDE /* Info 2.plist */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 		FACEID001FEDFACE0016851F /* FaceIDPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACEID002FEDFACE0016851F /* FaceIDPlugin.swift */; };
+		MYBRIDGE001FEDBR1DG016851F /* MyBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = MYBRIDGE002FEDBR1DG016851F /* MyBridgeViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		AF51FD2D460BCFE21FA515B2 /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		FC68EB0AF532CFC21C3344DD /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
 		FACEID002FEDFACE0016851F /* FaceIDPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceIDPlugin.swift; sourceTree = "<group>"; };
+		MYBRIDGE002FEDBR1DG016851F /* MyBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyBridgeViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +82,7 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				FACEID002FEDFACE0016851F /* FaceIDPlugin.swift */,
+				MYBRIDGE002FEDBR1DG016851F /* MyBridgeViewController.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -216,6 +219,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				FACEID001FEDFACE0016851F /* FaceIDPlugin.swift in Sources */,
+				MYBRIDGE001FEDBR1DG016851F /* MyBridgeViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

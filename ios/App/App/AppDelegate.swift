@@ -7,10 +7,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Register custom FaceIDPlugin with Capacitor
-        let bridge = (window?.rootViewController as? CAPBridgeViewController)?.bridge
-        bridge?.registerPluginInstance(FaceIDPlugin())
-        
+        // Plugin registration happens automatically via CAPBridgedPlugin protocol
         return true
     }
 
