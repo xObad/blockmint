@@ -5,7 +5,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { logOut } from "@/lib/firebase";
 import { ScrollAwareStatusBar } from "./ScrollAwareStatusBar";
-import { cn } from "@/lib/utils";
 
 interface GlobalHeaderProps {
   onOpenSettings?: () => void;
@@ -13,10 +12,6 @@ interface GlobalHeaderProps {
   onNavigateToWallet?: () => void;
   onNavigateToInvest?: () => void;
 }
-
-// iOS 26.2 fluid spring configuration
-const springConfig = { stiffness: 400, damping: 30, mass: 0.8 };
-const slideSpring = { type: "spring", stiffness: 350, damping: 35 };
 
 export function GlobalHeader({
   onOpenSettings,
@@ -35,20 +30,6 @@ export function GlobalHeader({
     window.location.href = '/';
   };
 
-  // iOS 26.2 glass button style
-  const glassButtonClass = cn(
-    "w-10 h-10 rounded-[14px]",
-    "flex items-center justify-center",
-    "dark:bg-white/[0.06] bg-white/80",
-    "dark:backdrop-blur-xl backdrop-blur-lg",
-    "border dark:border-white/[0.12] border-black/[0.05]",
-    "dark:shadow-[0_4px_12px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.1)]",
-    "shadow-[0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.8)]",
-    "transition-all duration-200",
-    "hover:dark:bg-white/[0.1] hover:bg-white/90",
-    "active:scale-95"
-  );
-
   return (
     <>
       {/* Scroll-aware background for system status bar */}
@@ -57,27 +38,27 @@ export function GlobalHeader({
       {/* Spacer for system status bar - reduced spacing */}
       <div className="h-[max(calc(env(safe-area-inset-top,44px)*2-15px),73px)]" />
       
-      <header className="bg-transparent">
-        <div className="flex items-center gap-3 px-4 h-16">
+      <header
+        className="bg-transparent"
+      >
+        <div className="flex items-center gap-4 px-4 h-16">
           {/* Left Side - Hamburger Menu & Settings */}
           <div className="flex items-center gap-2">
             <motion.button
               onClick={() => setShowMenu(!showMenu)}
-              className={glassButtonClass}
-              whileTap={{ scale: 0.92 }}
-              transition={springConfig}
+              className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+              whileTap={{ scale: 0.95 }}
               type="button"
             >
-              <Menu className="w-[18px] h-[18px] text-muted-foreground" />
+              <Menu className="w-[17px] h-[17px] text-muted-foreground" />
             </motion.button>
             <motion.button
               onClick={onOpenSettings}
-              className={glassButtonClass}
-              whileTap={{ scale: 0.92 }}
-              transition={springConfig}
+              className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+              whileTap={{ scale: 0.95 }}
               type="button"
             >
-              <SettingsIcon className="w-[18px] h-[18px] text-muted-foreground" />
+              <SettingsIcon className="w-[17px] h-[17px] text-muted-foreground" />
             </motion.button>
           </div>
 
@@ -85,52 +66,25 @@ export function GlobalHeader({
           <div className="flex items-center gap-2 ml-auto">
             <motion.button
               onClick={toggleTheme}
-              className={glassButtonClass}
-              whileTap={{ scale: 0.92 }}
-              transition={springConfig}
+              className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate transition-transform"
+              whileTap={{ scale: 0.95 }}
               type="button"
             >
-              <AnimatePresence mode="wait">
-                {theme === "dark" ? (
-                  <motion.div
-                    key="moon"
-                    initial={{ opacity: 0, rotate: -90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Moon className="w-[18px] h-[18px] text-muted-foreground" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="sun"
-                    initial={{ opacity: 0, rotate: 90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Sun className="w-[18px] h-[18px] text-amber-500" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {theme === "dark" ? (
+                <Moon className="w-[17px] h-[17px] text-muted-foreground" />
+              ) : (
+                <Sun className="w-[17px] h-[17px] text-amber-500" />
+              )}
             </motion.button>
             <div className="relative">
               <motion.button
-                className={glassButtonClass}
-                whileTap={{ scale: 0.92 }}
-                transition={springConfig}
+                className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center hover-elevate"
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
-                <Bell className="w-[18px] h-[18px] text-muted-foreground" />
+                <Bell className="w-[17px] h-[17px] text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <motion.span 
-                    className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    style={{
-                      boxShadow: "0 0 8px rgba(239, 68, 68, 0.6), 0 0 16px rgba(239, 68, 68, 0.3)"
-                    }}
-                  />
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/50" />
                 )}
               </motion.button>
             </div>
@@ -138,7 +92,7 @@ export function GlobalHeader({
         </div>
       </header>
 
-      {/* iOS 26.2 Hamburger Menu */}
+      {/* Hamburger Menu */}
       <AnimatePresence>
         {showMenu && (
           <>
@@ -146,32 +100,18 @@ export function GlobalHeader({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md z-[100]"
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
               onClick={() => setShowMenu(false)}
             />
             <motion.div
-              initial={{ x: -320, opacity: 0 }}
+              initial={{ x: -300, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -320, opacity: 0 }}
-              transition={slideSpring}
-              className={cn(
-                "fixed left-0 top-0 bottom-0 w-80 z-[101]",
-                "dark:bg-black/80 bg-white/95",
-                "dark:backdrop-blur-[60px] dark:backdrop-saturate-[180%] backdrop-blur-2xl",
-                "border-r dark:border-white/[0.1] border-black/[0.05]",
-                "shadow-[20px_0_60px_-15px_rgba(0,0,0,0.4)]"
-              )}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed left-0 top-0 bottom-0 w-80 z-[101] liquid-glass bg-background/95 backdrop-blur-xl border-r border-white/10 shadow-2xl"
             >
-              {/* iOS 26.2 specular highlight */}
-              <div 
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.06) 0%, transparent 30%)",
-                }}
-              />
-              
-              <div className="flex flex-col h-full p-6 pt-safe relative z-10">
+              <div className="flex flex-col h-full p-6 pt-safe">
                 <div className="flex items-center justify-between mb-8">
                   <div>
                     <h2 className="font-display text-2xl font-bold text-foreground">BlockMint</h2>
@@ -179,95 +119,35 @@ export function GlobalHeader({
                   </div>
                   <motion.button
                     onClick={() => setShowMenu(false)}
-                    className={cn(
-                      "w-9 h-9 rounded-xl",
-                      "flex items-center justify-center",
-                      "dark:bg-white/[0.08] bg-black/[0.05]",
-                      "dark:border dark:border-white/[0.1]",
-                      "transition-colors duration-200"
-                    )}
-                    whileTap={{ scale: 0.92 }}
+                    className="w-9 h-9 rounded-lg liquid-glass flex items-center justify-center hover-elevate"
+                    whileTap={{ scale: 0.95 }}
                   >
                     <X className="w-4 h-4 text-muted-foreground" />
                   </motion.button>
                 </div>
 
-                <nav className="flex-1 space-y-1.5">
-                  {[
-                    { icon: Home, label: "Home", color: "text-emerald-500", action: onNavigateToHome },
-                    { icon: Wallet, label: "Wallet", color: "text-blue-500", action: onNavigateToWallet },
-                    { icon: PieChart, label: "Yield", color: "text-purple-500", action: onNavigateToInvest },
-                    { icon: HelpCircle, label: "Support", color: "text-cyan-500", action: undefined },
-                  ].map((item, index) => (
-                    <motion.button
-                      key={item.label}
-                      onClick={() => { item.action?.(); setShowMenu(false); }}
-                      className={cn(
-                        "w-full flex items-center gap-3 p-3.5 rounded-2xl",
-                        "dark:hover:bg-white/[0.06] hover:bg-black/[0.03]",
-                        "transition-all duration-200"
-                      )}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ x: 6, backgroundColor: "rgba(255,255,255,0.08)" }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center",
-                        "dark:bg-white/[0.08] bg-black/[0.04]",
-                        "dark:border dark:border-white/[0.08]"
-                      )}>
-                        <item.icon className={cn("w-[18px] h-[18px]", item.color)} />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">{item.label}</span>
-                    </motion.button>
-                  ))}
-
-                  <div className="pt-4 mt-4 border-t dark:border-white/[0.08] border-black/[0.05]">
-                    <motion.button
-                      onClick={() => { onOpenSettings?.(); setShowMenu(false); }}
-                      className={cn(
-                        "w-full flex items-center gap-3 p-3.5 rounded-2xl",
-                        "dark:hover:bg-white/[0.06] hover:bg-black/[0.03]",
-                        "transition-all duration-200"
-                      )}
-                      whileHover={{ x: 6 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center",
-                        "dark:bg-white/[0.08] bg-black/[0.04]"
-                      )}>
-                        <SettingsIcon className="w-[18px] h-[18px] text-slate-500" />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">Settings</span>
-                    </motion.button>
-                  </div>
-                </nav>
-
-                <div className="pt-4 border-t dark:border-white/[0.08] border-black/[0.05]">
+                <nav className="flex-1 space-y-2">
                   <motion.button
-                    onClick={handleLogout}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3.5 rounded-2xl",
-                      "hover:bg-red-500/10 transition-all duration-200",
-                      "text-red-500"
-                    )}
-                    whileHover={{ x: 6 }}
+                    onClick={() => { onNavigateToHome?.(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-500/10">
-                      <LogOut className="w-[18px] h-[18px]" />
-                    </div>
-                    <span className="text-sm font-medium">Sign Out</span>
+                    <Home className="w-5 h-5 text-emerald-500" />
+                    <span className="text-sm font-medium text-foreground">Home</span>
                   </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  <motion.button
+                    onClick={() => { onNavigateToWallet?.(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Wallet className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm font-medium text-foreground">Wallet</span>
+                  </motion.button>
+                  <motion.button
+                    onClick={() => { onNavigateToInvest?.(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors"
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -314,7 +194,7 @@ export function GlobalHeader({
         )}
       </AnimatePresence>
 
-      {/* iOS 26.2 Notifications Panel */}
+      {/* Notifications Panel */}
       <AnimatePresence>
         {showNotifications && (
           <>
@@ -323,105 +203,60 @@ export function GlobalHeader({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-md z-[100]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
               onClick={() => setShowNotifications(false)}
             />
             <motion.div
-              initial={{ opacity: 0, y: -30, x: "-50%", scale: 0.9, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, x: "-50%", scale: 1, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -20, x: "-50%", scale: 0.95, filter: "blur(5px)" }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className={cn(
-                "fixed top-20 left-1/2 w-[min(92vw,26rem)] max-w-md z-[105] overflow-hidden",
-                "rounded-3xl",
-                "dark:bg-black/80 bg-white/95",
-                "dark:backdrop-blur-[60px] dark:backdrop-saturate-[180%] backdrop-blur-2xl",
-                "border dark:border-white/[0.12] border-black/[0.06]",
-                "shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)]"
-              )}
+              initial={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
+              exit={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-20 left-1/2 w-[min(92vw,28rem)] max-w-md bg-background border border-border rounded-2xl shadow-2xl z-[105] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* iOS 26.2 specular highlight */}
-              <div 
-                className="absolute inset-0 pointer-events-none rounded-3xl"
-                style={{
-                  background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
-                }}
-              />
-              
-              <div className="flex items-center justify-between p-4 border-b dark:border-white/[0.08] border-black/[0.05] relative z-10">
-                <h3 className="font-semibold text-foreground text-base">Notifications</h3>
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <h3 className="font-semibold text-foreground">Notifications</h3>
+                <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
-                    <motion.button
+                    <button
                       onClick={() => markAllAsRead()}
-                      className="text-xs text-primary font-medium hover:underline"
-                      whileTap={{ scale: 0.95 }}
+                      className="text-xs text-primary hover:underline"
                     >
                       Mark all read
-                    </motion.button>
+                    </button>
                   )}
-                  <motion.button
+                  <button
                     onClick={() => setShowNotifications(false)}
-                    className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center",
-                      "dark:bg-white/[0.08] bg-black/[0.04]",
-                      "transition-colors duration-200"
-                    )}
-                    whileTap={{ scale: 0.92 }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
                   >
                     <X className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
+                  </button>
                 </div>
               </div>
               {notifications.length > 0 ? (
-                <div className="max-h-80 overflow-y-auto relative z-10">
-                  {notifications.map((notif, index) => (
-                    <motion.div
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.map((notif) => (
+                    <div
                       key={notif.id}
                       onClick={() => markAsRead(notif.id)}
-                      className={cn(
-                        "p-4 border-b dark:border-white/[0.05] border-black/[0.03]",
-                        "hover:dark:bg-white/[0.04] hover:bg-black/[0.02]",
-                        "transition-colors cursor-pointer",
-                        !notif.read && "dark:bg-primary/[0.08] bg-primary/[0.05]"
-                      )}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
+                      className={`p-4 border-b border-border/50 hover:bg-muted/50 transition-colors cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
                     >
                       <div className="flex items-start gap-3">
-                        {!notif.read && (
-                          <motion.span 
-                            className="w-2 h-2 mt-1.5 rounded-full bg-primary shrink-0"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            style={{
-                              boxShadow: "0 0 8px rgba(16, 185, 129, 0.5)"
-                            }}
-                          />
-                        )}
+                        {!notif.read && <span className="w-2 h-2 mt-1.5 rounded-full bg-primary shrink-0" />}
                         <div className={!notif.read ? '' : 'pl-5'}>
                           <p className="font-medium text-foreground text-sm">{notif.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{notif.message}</p>
-                          <p className="text-xs text-muted-foreground/50 mt-2">{notif.time}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{notif.message}</p>
+                          <p className="text-xs text-muted-foreground/60 mt-2">{notif.time}</p>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-10 text-center relative z-10">
-                  <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="w-14 h-14 mx-auto mb-4 rounded-2xl dark:bg-white/[0.06] bg-black/[0.03] flex items-center justify-center"
-                  >
-                    <Bell className="w-7 h-7 text-muted-foreground/40" />
-                  </motion.div>
-                  <p className="text-sm font-medium text-foreground">No Notifications</p>
-                  <p className="text-xs text-muted-foreground mt-1.5">You're all caught up!</p>
+                <div className="p-8 text-center">
+                  <Bell className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="text-sm font-medium text-foreground">No Notifications Yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">You'll see updates here</p>
                 </div>
               )}
             </motion.div>
