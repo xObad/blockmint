@@ -50,6 +50,57 @@ function devAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 export function registerAdminRoutes(app: Express) {
+  
+  // ============ COMPLIANCE & USER MODE ============
+  
+  // Check if user should see safe mode (for App Store reviewers)
+  // TestFlight testers (whitelisted emails) see normal app
+  app.post("/api/compliance/check-mode", async (req, res) => {
+    try {
+      const { email, buildNumber } = req.body;
+      
+      // Get compliance mode setting
+      const [complianceConfig] = await db.select()
+        .from(schema.appConfig)
+        .where(eq(schema.appConfig.key, "compliance_mode"))
+        .limit(1);
+      
+      const complianceEnabled = complianceConfig?.value?.toLowerCase() === "true";
+      
+      if (!complianceEnabled) {
+        // Compliance off = everyone sees normal app
+        return res.json({ showSafeMode: false, reason: "compliance_disabled" });
+      }
+      
+      // If compliance is ON, check if user is a whitelisted tester
+      if (email) {
+        const [user] = await db.select()
+          .from(schema.users)
+          .where(eq(schema.users.email, email))
+          .limit(1);
+        
+        // If user exists in database = they're a tester/existing user
+        // Show them the NORMAL app (not safe mode)
+        if (user) {
+          return res.json({ showSafeMode: false, reason: "existing_user" });
+        }
+      }
+      
+      // Build number check: TestFlight users have specific build numbers
+      // You can whitelist build numbers here if needed
+      if (buildNumber && parseInt(buildNumber) >= 20) {
+        return res.json({ showSafeMode: false, reason: "testflight_build" });
+      }
+      
+      // Default: Show safe mode (for App Store reviewers)
+      return res.json({ showSafeMode: true, reason: "reviewer_mode" });
+    } catch (error) {
+      console.error("Error checking compliance mode:", error);
+      // On error, default to safe mode for safety
+      res.json({ showSafeMode: true, reason: "error" });
+    }
+  });
+  
   // ============ USER MANAGEMENT ============
   
   // Get all users

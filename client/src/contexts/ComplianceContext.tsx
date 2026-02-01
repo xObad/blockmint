@@ -4,29 +4,29 @@
  * This context provides global access to the compliance mode state.
  * 
  * ARCHITECTURE:
- * - When compliance_mode is true AND we're on a native app (Capacitor),
- *   the app shows "Safe Mode" (Server Management Dashboard - NO signup)
- * - When compliance_mode is true AND user navigates to /console,
- *   the app shows "Web Console" (Cloud Node Infrastructure - WITH signup)
- * - When compliance_mode is false, normal crypto mining app is shown
+ * - When compliance_mode is true AND user is NOT logged in (no email in localStorage),
+ *   the app shows "Safe Mode" (Server Management Dashboard - NO signup) for App Store reviewers
+ * - When compliance_mode is true AND user IS logged in (has email),
+ *   the app shows NORMAL crypto app (for TestFlight testers)
+ * - When compliance_mode is false, everyone sees normal crypto mining app
  * 
- * SMART MODE DETECTION:
- * - In production mobile app (Capacitor detected): Always use Safe Mode
- * - In production web browser: Use Safe Mode on main routes, Console on /console
- * - During development: Same as production, but can test both
+ * USER-BASED MODE DETECTION:
+ * - TestFlight testers: Login → email saved to localStorage → see NORMAL app
+ * - App Store reviewers: No login → no email → see SAFE MODE
+ * - Web Console: /console route → allows signup for web users
  * 
  * URL ROUTES:
- * - / → Safe Mode (review version) when compliance is ON
+ * - / → Safe Mode (reviewers) OR Normal app (testers) based on login status
  * - /console → Web Console (allows signup, USDT deposit)
- * - / → Normal app when compliance is OFF
+ * - /db-admin → Database admin panel
  * 
  * This ensures:
- * 1. App Store reviewer on mobile sees: Safe Mode (no crypto, no signup)
- * 2. App Store reviewer on web sees: Safe Mode by default, Console available at /console
- * 3. Normal users see: Full mining app
+ * 1. App Store reviewer sees: Safe Mode (no crypto, no signup, no login)
+ * 2. TestFlight testers see: Full mining app after login
+ * 3. Web users can access: Console at /console route
  * 
  * The compliance mode is fetched from the admin config API and cached.
- * It's checked once on app load and can be controlled via the /db-admin panel.
+ * It's controlled via the /db-admin panel → Config tab → compliance_mode setting.
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
@@ -169,14 +169,20 @@ export function ComplianceProvider({ children }: { children: ReactNode }) {
   // Check different compliance mode flags from config
   const complianceModeEnabled = isConfigEnabled("compliance_mode");
   
-  // SMART MODE DETECTION:
-  // - If compliance is ON → Safe Mode is default (main page shows review-safe app)
-  // - Console is ONLY shown when user navigates to /console route
-  // - Mobile app (Capacitor) NEVER shows storefront
-  // - If compliance is OFF → Normal crypto mining app
+  // USER-BASED MODE DETECTION:
+  // If user is logged in (email in localStorage), they're a TestFlight tester
+  // Show them the NORMAL app even if compliance is ON
+  const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
+  const isKnownUser = !!userEmail;
   
-  // Safe Mode: compliance ON and (native app OR not on storefront route)
-  const isComplianceMode = complianceModeEnabled && (isMobileApp || !onStorefrontRoute);
+  // SMART MODE DETECTION:
+  // - If compliance is OFF → Normal app for everyone
+  // - If compliance is ON + user is known (has email) → Normal app (TestFlight tester)
+  // - If compliance is ON + user is unknown (no email) → Safe Mode (App Store reviewer)
+  // - Mobile app (Capacitor) NEVER shows storefront
+  
+  // Safe Mode: compliance ON AND user is unknown (reviewer) AND (native app OR not on storefront route)
+  const isComplianceMode = complianceModeEnabled && !isKnownUser && (isMobileApp || !onStorefrontRoute);
   
   // Storefront: compliance ON and on storefront route (and not native app)
   const isWebStorefront = complianceModeEnabled && onStorefrontRoute && !isMobileApp;
