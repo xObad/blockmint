@@ -42,8 +42,8 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Safety timeout to prevent infinite loading
-  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
+  // Safety timeout to prevent infinite loading - increased to 90 seconds for Apple Sign-In
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 90000): Promise<T> => {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => 

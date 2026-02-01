@@ -362,37 +362,40 @@ export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSign
   
   try {
     console.log('[AppleSignIn] Starting native Apple Sign-In...');
-    console.log('[AppleSignIn] Hashed nonce provided:', !!hashedNonce);
     
-    // Build options - simpler config for iOS native
+    // Minimal options - let the plugin handle defaults
+    // The @capacitor-community/apple-sign-in plugin auto-uses the app's bundle ID
     const options: any = {
-      clientId: 'co.hardisk.blockmint',
       scopes: 'email name',
     };
     
-    // Only add nonce if provided
+    // Only add nonce if provided (for Firebase auth)
     if (hashedNonce) {
       options.nonce = hashedNonce;
     }
     
-    console.log('[AppleSignIn] Calling plugin.authorize with options:', JSON.stringify(options));
+    console.log('[AppleSignIn] Calling plugin.authorize...');
     
-    const authPromise = plugin.authorize(options);
+    // Call the native authorize - this will show the Apple Sign-In sheet
+    const response = await plugin.authorize(options);
     
-    const response = await authPromise;
+    console.log('[AppleSignIn] Got response');
     
-    console.log('[AppleSignIn] Got response:', JSON.stringify(response));
+    // Handle different response structures from the plugin
+    // Some versions wrap in .response, others return directly
+    const userData = response?.response || response;
     
-    // Handle different response structures
-    const userData = response.response || response;
+    console.log('[AppleSignIn] User data received:', !!userData);
     
-    if (!userData.identityToken) {
+    if (!userData || !userData.identityToken) {
       console.error('[AppleSignIn] No identity token in response');
       return {
         success: false,
         error: 'No identity token received from Apple'
       };
     }
+    
+    console.log('[AppleSignIn] Success! Identity token received');
     
     return {
       success: true,
@@ -405,25 +408,30 @@ export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSign
       }
     };
   } catch (error: any) {
-    console.error('Apple Sign-In Error:', error);
+    console.error('[AppleSignIn] Error:', error);
+    console.error('[AppleSignIn] Error message:', error?.message);
+    console.error('[AppleSignIn] Error code:', error?.code);
     
     // Handle user cancellation gracefully
-    // Check various cancellation patterns: 1001 is standard, but some versions use localized strings
+    const errorStr = JSON.stringify(error).toLowerCase();
     const isCancelled = 
-      error.message?.toLowerCase().includes('cancel') || 
-      error.code === 1001 || 
-      error.code === '1001' ||
-      JSON.stringify(error).toLowerCase().includes('cancel');
+      error?.message?.toLowerCase().includes('cancel') || 
+      error?.code === 1001 || 
+      error?.code === '1001' ||
+      errorStr.includes('cancel') ||
+      errorStr.includes('1001');
 
     if (isCancelled) {
+      console.log('[AppleSignIn] User cancelled');
       return {
         success: false,
         error: 'User cancelled Apple Sign-In'
       };
     }
+    
     return {
       success: false,
-      error: error.message || 'Apple Sign-In failed'
+      error: error?.message || 'Apple Sign-In failed'
     };
   }
 }

@@ -1,9 +1,7 @@
 /**
  * Safe Onboarding (Compliance Mode)
  * 
- * This is a separate onboarding flow for Safe Mode.
- * A legitimate PUBLIC server monitoring tool.
- * NO crypto references.
+ * Server monitoring tool onboarding - compact and clean design.
  */
 
 import { useState } from "react";
@@ -68,53 +66,54 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
   const Icon = slide.icon;
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col overflow-hidden">
-      {/* Background blur effects */}
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
+      {/* Background blur effects - stronger colors */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[30%] -left-[30%] w-[80%] h-[60%] bg-primary/5 rounded-full blur-[100px]" />
-        <div className="absolute -bottom-[20%] -right-[30%] w-[70%] h-[50%] bg-purple-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-1/3 -left-1/4 w-3/4 h-1/2 bg-primary/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 -right-1/4 w-2/3 h-1/2 bg-purple-500/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Safe area container */}
       <div className="relative z-10 flex-1 flex flex-col w-full max-w-lg mx-auto px-5">
         
-        {/* Header - Fixed height with safe area */}
-        <div className="pt-safe">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <motion.div 
-              className="flex items-center"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4 }}
+        {/* Header - with status bar spacing */}
+        <div className="h-[env(safe-area-inset-top,20px)]" />
+        <div className="h-4" /> {/* Extra spacing after status bar */}
+        
+        <div className="flex items-center justify-between h-14">
+          {/* Logo - 30% bigger (was 40px, now 52px) */}
+          <motion.div 
+            className="flex items-center"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <img
+              src="/attached_assets/App-Logo.png"
+              alt="BlockMint"
+              className="h-[52px] w-[52px] object-contain"
+              style={{ filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25))' }}
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          </motion.div>
+          
+          {/* Right actions - same size buttons */}
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={onComplete}
+              className="w-10 h-10 rounded-xl bg-muted/60 backdrop-blur-sm flex items-center justify-center border border-border/50"
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              aria-label="Skip"
             >
-              <img
-                src="/attached_assets/App-Logo.png"
-                alt="BlockMint"
-                className="h-10 w-10 object-contain"
-                style={{ filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2))' }}
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-            </motion.div>
-            
-            {/* Right actions */}
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <motion.button
-                onClick={onComplete}
-                className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center"
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                aria-label="Skip"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </motion.button>
-            </div>
+              <X className="w-5 h-5 text-muted-foreground" />
+            </motion.button>
+            <ThemeToggle />
           </div>
         </div>
 
-        {/* Main content area - flex grow */}
-        <div className="flex-1 flex flex-col min-h-0">
+        {/* Main content area - compact spacing */}
+        <div className="flex-1 flex flex-col justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -129,34 +128,34 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="flex-1 flex flex-col items-center justify-center cursor-grab active:cursor-grabbing py-8"
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="flex flex-col items-center cursor-grab active:cursor-grabbing"
             >
-              {/* Icon - responsive size */}
+              {/* Icon - compact size */}
               <motion.div 
-                className="relative w-24 h-24 sm:w-28 sm:h-28 mb-8"
-                animate={{ y: [0, -6, 0] }}
+                className="relative w-20 h-20 mb-5"
+                animate={{ y: [0, -5, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
                 {/* Glow */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-3xl blur-xl scale-125`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-30 rounded-2xl blur-xl scale-125`} />
                 {/* Icon container */}
-                <div className="relative z-10 w-full h-full rounded-3xl bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-15 rounded-3xl`} />
-                  <div className={`relative z-10 p-4 rounded-2xl bg-gradient-to-br ${slide.gradient}`}>
-                    <Icon className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                <div className="relative z-10 w-full h-full rounded-2xl bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-xl">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} opacity-15 rounded-2xl`} />
+                  <div className={`relative z-10 p-3 rounded-xl bg-gradient-to-br ${slide.gradient}`}>
+                    <Icon className="w-8 h-8 text-white" />
                   </div>
                 </div>
               </motion.div>
 
-              {/* Text content */}
-              <div className="text-center space-y-4 px-4 max-w-sm">
+              {/* Text content - tighter spacing */}
+              <div className="text-center space-y-2 px-4 max-w-xs">
                 {/* Badge */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-xs font-medium`}
+                  transition={{ delay: 0.1 }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${slide.gradient} text-white text-xs font-medium`}
                 >
                   <Icon className="w-3 h-3" />
                   {slide.subtitle}
@@ -164,20 +163,20 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
                 
                 {/* Title */}
                 <motion.h1 
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-2xl sm:text-3xl font-bold text-foreground"
+                  transition={{ delay: 0.15 }}
+                  className="text-2xl font-bold text-foreground"
                 >
                   {slide.title}
                 </motion.h1>
                 
                 {/* Description */}
                 <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="text-muted-foreground text-sm sm:text-base leading-relaxed"
+                  transition={{ delay: 0.2 }}
+                  className="text-muted-foreground text-sm leading-relaxed"
                 >
                   {slide.description}
                 </motion.p>
@@ -186,36 +185,49 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
           </AnimatePresence>
         </div>
 
-        {/* Bottom section - Fixed */}
-        <div className="pb-safe">
-          {/* Dots */}
-          <div className="flex justify-center gap-2 mb-6">
+        {/* Bottom section - same layout as main onboarding */}
+        <div className="pb-[max(env(safe-area-inset-bottom),16px)]">
+          {/* Dots indicator */}
+          <div className="flex justify-center gap-2 mb-4">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2 rounded-full transition-all duration-300 ${
                   index === currentSlide 
-                    ? 'w-8 bg-primary' 
+                    ? 'w-6 bg-primary' 
                     : 'w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                 }`}
+                aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
 
-          {/* Button */}
-          <Button
-            onClick={handleNext}
-            className="w-full h-14 text-base font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl shadow-lg shadow-emerald-500/20"
-          >
-            <span className="flex items-center justify-center gap-2">
-              {currentSlide === slides.length - 1 ? "Get Started" : "Continue"}
-              <ChevronRight className="w-5 h-5" />
-            </span>
-          </Button>
+          {/* Continue button with glow */}
+          <div className="relative mb-3">
+            <motion.div
+              className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 opacity-40 blur-xl"
+              animate={{ opacity: [0.3, 0.5, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            <Button
+              onClick={handleNext}
+              className="relative w-full h-14 text-base font-bold bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 text-white shadow-xl shadow-emerald-500/30 rounded-xl overflow-hidden"
+            >
+              <motion.span
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                animate={{ x: ["-200%", "200%"] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "linear", repeatDelay: 0.5 }}
+              />
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {currentSlide === slides.length - 1 ? "Get Started" : "Continue"}
+                <ChevronRight className="w-5 h-5" />
+              </span>
+            </Button>
+          </div>
 
-          {/* Hint */}
-          <p className="text-center text-xs text-muted-foreground mt-4 mb-2">
+          {/* Hint text below button */}
+          <p className="text-center text-xs text-muted-foreground">
             Create a free account to start monitoring
           </p>
         </div>
