@@ -20,11 +20,9 @@ import {
   ChevronRight,
   LogOut,
   User,
-  Smartphone,
   Info,
   Lock,
   X,
-  Fingerprint,
   KeyRound
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
@@ -37,11 +35,6 @@ import { logOut } from "@/lib/firebase";
 import { useLocation } from "wouter";
 import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 import { TwoFactorSetupModal } from "@/components/TwoFactorSetupModal";
-import { 
-  checkBiometricAvailability, 
-  authenticateWithBiometrics,
-  isNativePlatform 
-} from "@/lib/nativeServices";
 
 interface SettingItemProps {
   icon: React.ElementType;
@@ -91,10 +84,6 @@ export function SafeSettings() {
     const saved = localStorage.getItem("safe_notifications_enabled");
     return saved !== null ? JSON.parse(saved) : true;
   });
-  const [biometricsEnabled, setBiometricsEnabled] = useState(() => {
-    const saved = localStorage.getItem("safe_biometrics_enabled");
-    return saved !== null ? JSON.parse(saved) : false;
-  });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -105,13 +94,6 @@ export function SafeSettings() {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Handle delete account
-  // (تمت إزالة التعريفات المكررة لدالة handleDeleteAccount)
-  // Biometric test state
-  const [biometricType, setBiometricType] = useState<string>('none');
-  const [biometricAvailable, setBiometricAvailable] = useState<boolean>(false);
-  const [biometricAuthResult, setBiometricAuthResult] = useState<string>('');
-  const [credentialResult, setCredentialResult] = useState<string>('');
-  
   // 2FA status
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => {
     const saved = localStorage.getItem("safe_2fa_enabled");
@@ -160,77 +142,6 @@ export function SafeSettings() {
       });
     }
   };
-
-  // Handle biometrics toggle with actual effect
-  const handleBiometricsToggle = async (enabled: boolean) => {
-    if (enabled) {
-      // Check if biometrics are available
-      console.log('[SafeSettings] Checking biometric availability...');
-      const availability = await checkBiometricAvailability();
-      console.log('[SafeSettings] Biometric availability:', availability);
-      
-      if (!availability.isAvailable) {
-        toast({
-          title: "Biometrics Not Available",
-          description: availability.errorMessage || "Your device doesn't support biometric authentication",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Verify before enabling
-      console.log('[SafeSettings] Requesting biometric verification...');
-      const result = await authenticateWithBiometrics("Enable biometric login");
-      console.log('[SafeSettings] Biometric result:', result);
-      
-      if (result.success) {
-        setBiometricsEnabled(true);
-        localStorage.setItem("safe_biometrics_enabled", "true");
-        toast({ 
-          title: "Biometrics Enabled",
-          description: `${availability.biometryType === 'face' ? 'Face ID' : 'Touch ID'} has been enabled`
-        });
-      } else {
-        // Don't show error for user cancellation
-        if (!result.error?.toLowerCase().includes('cancel')) {
-          toast({
-            title: "Authentication Failed",
-            description: result.error || "Could not verify your identity",
-            variant: "destructive"
-          });
-        }
-      }
-    } else {
-      setBiometricsEnabled(false);
-      localStorage.setItem("safe_biometrics_enabled", "false");
-      toast({ 
-        title: "Biometrics Disabled",
-        description: "Biometric login has been disabled"
-      });
-    }
-  };
-
-  async function testBiometrics() {
-    console.log('[SafeSettings] Testing biometrics...');
-    const { checkBiometricAvailability, authenticateWithBiometrics, setCredentials, getCredentials } = await import('@/lib/nativeServices');
-    const availability = await checkBiometricAvailability();
-    console.log('[SafeSettings] Test - availability:', availability);
-    setBiometricType(availability.biometryType);
-    setBiometricAvailable(availability.isAvailable);
-    if (availability.isAvailable) {
-      const result = await authenticateWithBiometrics('Test Biometric Auth');
-      console.log('[SafeSettings] Test - auth result:', result);
-      setBiometricAuthResult(result.success ? 'Authenticated!' : `Failed: ${result.error}`);
-      // Store credentials
-      await setCredentials('blockmint-app', 'user@email.com', 'secure-token');
-      // Retrieve credentials
-      const creds = await getCredentials('blockmint-app');
-      setCredentialResult(JSON.stringify(creds));
-    } else {
-      setBiometricAuthResult('Biometrics not available: ' + (availability.errorMessage || 'unknown'));
-      setCredentialResult('');
-    }
-  }
 
   const userInfo = getUserInfo();
 
@@ -391,17 +302,6 @@ export function SafeSettings() {
               <Switch
                 checked={notificationsEnabled}
                 onCheckedChange={handleNotificationsToggle}
-              />
-            }
-          />
-          <SettingItem
-            icon={Smartphone}
-            label="Biometric Lock"
-            description="Use Face ID / Touch ID"
-            rightElement={
-              <Switch
-                checked={biometricsEnabled}
-                onCheckedChange={handleBiometricsToggle}
               />
             }
           />
@@ -680,58 +580,6 @@ export function SafeSettings() {
                       <p className="font-medium">Change Password</p>
                       <p className="text-xs text-muted-foreground">Update your password</p>
                     </div>
-                  </div>
-                </button>
-                <button
-                  onClick={async () => {
-                    // Check if biometrics are available
-                    const availability = await checkBiometricAvailability();
-                    
-                    if (!availability.isAvailable) {
-                      toast({
-                        title: "Biometrics Not Available",
-                        description: availability.errorMessage || "Your device doesn't support biometric authentication",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    if (!biometricsEnabled) {
-                      // Enabling - verify first
-                      const result = await authenticateWithBiometrics("Enable biometric login");
-                      if (result.success) {
-                        setBiometricsEnabled(true);
-                        toast({ 
-                          title: "Biometrics Enabled",
-                          description: `${availability.biometryType === 'face' ? 'Face ID' : 'Touch ID'} has been enabled`
-                        });
-                      } else {
-                        toast({
-                          title: "Authentication Failed",
-                          description: result.error || "Could not verify your identity",
-                          variant: "destructive"
-                        });
-                      }
-                    } else {
-                      // Disabling
-                      setBiometricsEnabled(false);
-                      toast({ 
-                        title: "Biometrics Disabled",
-                        description: "Biometric login has been disabled"
-                      });
-                    }
-                  }}
-                  className="w-full p-4 bg-muted/50 rounded-xl text-left hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Fingerprint className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="font-medium">Biometric Login</p>
-                        <p className="text-xs text-muted-foreground">Use Face ID or Touch ID</p>
-                      </div>
-                    </div>
-                    <Switch checked={biometricsEnabled} />
                   </div>
                 </button>
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">

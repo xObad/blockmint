@@ -9,6 +9,7 @@ import {
   authenticateWithBiometrics,
   isNativePlatform 
 } from "@/lib/nativeServices";
+import { useCompliance } from "@/contexts/ComplianceContext";
 
 interface SecuritySettings {
   pinEnabled: boolean;
@@ -52,7 +53,9 @@ interface AppLockProviderProps {
 export function AppLockProvider({ children, userId }: AppLockProviderProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isComplianceMode } = useCompliance();
   
+  // In compliance mode, never lock the app - skip all PIN/biometric functionality
   const [isLocked, setIsLocked] = useState(false);
   const [isSettingUpPin, setIsSettingUpPin] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -378,6 +381,9 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
   // Check lockout
   const isLockedOut = lockoutUntil && new Date() < lockoutUntil;
 
+  // In compliance mode, never show lock screens
+  const effectivelyLocked = isComplianceMode ? false : isLocked;
+
   const value: AppLockContextType = {
     isLocked,
     securityEnabled: settings?.pinEnabled || false,
@@ -395,8 +401,8 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
       {children}
       
       <AnimatePresence>
-        {/* PIN Verification */}
-        {isLocked && settings?.pinEnabled && !isSettingUpPin && !isLockedOut && (
+        {/* PIN Verification - Never show in compliance mode */}
+        {effectivelyLocked && settings?.pinEnabled && !isSettingUpPin && !isLockedOut && (
           <PinEntry
             mode="verify"
             onSuccess={handlePinSuccess}
@@ -406,8 +412,8 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
           />
         )}
         
-        {/* PIN Setup */}
-        {isSettingUpPin && (
+        {/* PIN Setup - Never show in compliance mode */}
+        {!isComplianceMode && isSettingUpPin && (
           <PinEntry
             mode="setup"
             onSuccess={handlePinSuccess}
@@ -417,8 +423,8 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
         )}
       </AnimatePresence>
       
-      {/* Lockout Screen */}
-      {isLockedOut && (
+      {/* Lockout Screen - Never show in compliance mode */}
+      {!isComplianceMode && isLockedOut && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background p-8 text-center">
           <div className="w-20 h-20 mb-6 rounded-2xl bg-red-500/20 flex items-center justify-center">
             <span className="text-4xl">🔒</span>
