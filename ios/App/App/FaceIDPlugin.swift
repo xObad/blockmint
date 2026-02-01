@@ -31,6 +31,8 @@ public class FaceIDPlugin: CAPPlugin, CAPBridgedPlugin {
             // Determine biometry type
             var biometryType = "none"
             switch context.biometryType {
+            case .none:
+                biometryType = "none"
             case .faceID:
                 biometryType = "face"
             case .touchID:
