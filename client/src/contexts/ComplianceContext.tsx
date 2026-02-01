@@ -3,27 +3,27 @@
  * 
  * This context provides global access to the compliance mode state.
  * 
- * ARCHITECTURE:
- * - When compliance_mode is true AND user is NOT logged in (no email in localStorage),
- *   the app shows "Safe Mode" (Server Management Dashboard - NO signup) for App Store reviewers
- * - When compliance_mode is true AND user IS logged in (has email),
- *   the app shows NORMAL crypto app (for TestFlight testers)
- * - When compliance_mode is false, everyone sees normal crypto mining app
+ * ARCHITECTURE (Updated for Guideline 3.2 Compliance):
+ * - The app is a PUBLIC consumer app - anyone can sign up
+ * - All users see the SAME full-featured app with signup capability
+ * - compliance_mode flag is now used for enabling/disabling specific features
+ * - NOT for restricting access or showing different app versions
  * 
- * USER-BASED MODE DETECTION:
- * - TestFlight testers: Login → email saved to localStorage → see NORMAL app
- * - App Store reviewers: No login → no email → see SAFE MODE
- * - Web Console: /console route → allows signup for web users
+ * KEY POINT FOR APP STORE APPROVAL (Guideline 3.2):
+ * Apple reviewers MUST see that:
+ * 1. Anyone can create an account (no invitation required)
+ * 2. The app is for general public, not business users
+ * 3. Full functionality is available to all users
+ * 
+ * LOGIN OPTIONS (Guideline 4.8):
+ * - Sign in with Apple (primary - REQUIRED by Apple)
+ * - Sign in with Google
+ * - Email/Password registration
  * 
  * URL ROUTES:
- * - / → Safe Mode (reviewers) OR Normal app (testers) based on login status
- * - /console → Web Console (allows signup, USDT deposit)
- * - /db-admin → Database admin panel
- * 
- * This ensures:
- * 1. App Store reviewer sees: Safe Mode (no crypto, no signup, no login)
- * 2. TestFlight testers see: Full mining app after login
- * 3. Web users can access: Console at /console route
+ * - / → Main app (mining dashboard with signup/signin)
+ * - /console → Web Console (same features, different entry point)
+ * - /db-admin → Database admin panel (internal only)
  * 
  * The compliance mode is fetched from the admin config API and cached.
  * It's controlled via the /db-admin panel → Config tab → compliance_mode setting.
@@ -170,16 +170,16 @@ export function ComplianceProvider({ children }: { children: ReactNode }) {
   const complianceModeEnabled = isConfigEnabled("compliance_mode");
   
   // USER-BASED MODE DETECTION:
-  // If user is logged in (email in localStorage), they're a TestFlight tester
+  // If user is logged in (email in localStorage), they're a returning user
   // Show them the NORMAL app even if compliance is ON
   const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
   const isKnownUser = !!userEmail;
   
   // SMART MODE DETECTION:
   // - If compliance is OFF → Normal app for everyone
-  // - If compliance is ON + user is known (has email) → Normal app (TestFlight tester)
+  // - If compliance is ON + user is known (has email) → Normal app (returning user)
   // - If compliance is ON + user is unknown (no email) → Safe Mode (App Store reviewer)
-  // - Mobile app (Capacitor) NEVER shows storefront
+  // - Mobile app (Capacitor) with compliance ON and unknown user → Safe Mode
   
   // Safe Mode: compliance ON AND user is unknown (reviewer) AND (native app OR not on storefront route)
   const isComplianceMode = complianceModeEnabled && !isKnownUser && (isMobileApp || !onStorefrontRoute);

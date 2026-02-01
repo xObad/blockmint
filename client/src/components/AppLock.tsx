@@ -165,6 +165,9 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
       return false;
     }
     
+    // Mark as tried immediately to prevent re-triggers
+    hasTriedAutoAuthRef.current = true;
+    
     try {
       authInProgressRef.current = true;
       setIsAuthenticating(true);
@@ -306,16 +309,17 @@ export function AppLockProvider({ children, userId }: AppLockProviderProps) {
   }, [settings?.pinEnabled, isLocked]);
 
   // Auto-trigger biometric authentication when locked and biometrics enabled
+  // Only trigger once per lock session
   useEffect(() => {
-    if (isLocked && settings?.biometricEnabled && !isSettingUpPin && !hasTriedAutoAuthRef.current) {
+    if (isLocked && settings?.biometricEnabled && !isSettingUpPin && !hasTriedAutoAuthRef.current && !authInProgressRef.current) {
       // Delay slightly to ensure UI is ready
       const timer = setTimeout(() => {
-        if (!authInProgressRef.current) {
+        if (!authInProgressRef.current && !hasTriedAutoAuthRef.current) {
           console.log('[AppLock] Auto-triggering biometric auth...');
           hasTriedAutoAuthRef.current = true;
           handleBiometricRequest();
         }
-      }, 500);
+      }, 600);
       return () => clearTimeout(timer);
     }
   }, [isLocked, settings?.biometricEnabled, isSettingUpPin, handleBiometricRequest]);

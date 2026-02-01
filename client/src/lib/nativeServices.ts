@@ -348,8 +348,9 @@ async function getAppleSignInPlugin() {
 
 /**
  * Perform native Apple Sign-In on iOS
+ * @param hashedNonce - SHA256 hashed nonce for Firebase authentication
  */
-export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
+export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSignInResult> {
   const plugin = await getAppleSignInPlugin();
   
   if (!plugin) {
@@ -365,12 +366,15 @@ export async function nativeAppleSignIn(): Promise<AppleSignInResult> {
       setTimeout(() => reject(new Error('APPLE_SIGNIN_TIMEOUT')), 60000);
     });
     
+    // Use provided hashed nonce or generate a random one
+    const nonce = hashedNonce || Math.random().toString(36).substring(7);
+    
     const authPromise = plugin.authorize({
       clientId: 'co.hardisk.blockmint', // Your app's bundle ID
       redirectURI: 'https://hardisk.co/__/auth/handler', // Firebase auth handler
       scopes: 'email name',
       state: Math.random().toString(36).substring(7),
-      nonce: Math.random().toString(36).substring(7)
+      nonce: nonce
     });
     
     const response = await Promise.race([authPromise, timeoutPromise]);

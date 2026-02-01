@@ -24,11 +24,14 @@ import {
   AlertCircle,
   Zap,
   Globe,
-  BarChart3
+  BarChart3,
+  Plus,
+  Link2
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 import {
   LineChart,
@@ -341,12 +344,26 @@ export function SafeHome() {
             ))}
           </div>
         ) : (
-          <GlassCard className="p-8 flex flex-col items-center justify-center text-center opacity-80" variant="subtle">
-             <div className="w-12 h-12 rounded-full bg-muted/30 flex items-center justify-center mb-3">
-                <Server className="w-6 h-6 text-muted-foreground" />
+          <GlassCard className="p-6 flex flex-col items-center justify-center text-center" variant="subtle">
+             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Plus className="w-7 h-7 text-primary" />
              </div>
-             <p className="text-sm font-medium text-foreground">No Nodes Provisioned</p>
-             <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">Use the metrics tab to request your first node allocation.</p>
+             <p className="text-base font-semibold text-foreground mb-1">Add Your First Server</p>
+             <p className="text-sm text-muted-foreground mb-4 max-w-[280px]">
+               Connect your own servers and nodes to monitor them in real-time via our API.
+             </p>
+             <div className="w-full space-y-2">
+               <Button 
+                 variant="default" 
+                 className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+               >
+                 <Link2 className="w-4 h-4 mr-2" />
+                 Connect via API
+               </Button>
+               <p className="text-xs text-muted-foreground">
+                 Use our REST API or agent to connect any server
+               </p>
+             </div>
           </GlassCard>
         )}
       </motion.div>

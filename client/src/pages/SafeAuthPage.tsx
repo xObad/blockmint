@@ -1,14 +1,17 @@
 /**
  * Safe Auth Page (Compliance Mode)
  * 
- * This is the sign-in page for Safe Mode - identical to main AuthPage design
- * but WITHOUT the signup option. Sign-in only for existing users.
+ * This is the authentication page for Safe Mode - a PUBLIC server monitoring tool.
+ * Supports both Sign In and Sign Up (Account Creation).
+ * 
+ * Per Apple Guideline 4.8: Sign in with Apple is the PRIMARY login option.
+ * Per Apple Guideline 3.2: This is a PUBLIC app - anyone can create an account.
  */
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Loader2, X } from "lucide-react";
-import { SiGoogle } from "react-icons/si";
+import { Mail, Loader2, X, User } from "lucide-react";
+import { SiGoogle, SiApple } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -16,21 +19,26 @@ import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ScrollAwareStatusBar } from "@/components/ScrollAwareStatusBar";
 import { 
-  signInWithGoogle, 
-  signInWithEmail, 
+  signInWithGoogle,
+  signInWithApple,
+  signInWithEmail,
+  registerWithEmail,
   resetPassword
 } from "@/lib/firebase";
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
 
 interface SafeAuthPageProps {
   onAuthSuccess: () => void;
   onBack?: () => void;
 }
 
+type AuthMode = "signin" | "signup";
+
 export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
+  const [mode, setMode] = useState<AuthMode>("signup"); // Default to signup for new users
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -73,26 +81,24 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
     }
   };
 
-  const handleSocialAuth = async () => {
+  const handleSocialAuth = async (provider: 'google' | 'apple' = 'google') => {
     setIsLoading(true);
     try {
-      let user;
-      if (Capacitor.getPlatform() === 'ios') {
-        // Use Safari View Controller for Google sign-in
-        await Browser.open({ url: 'https://accounts.google.com/signin/v2/identifier?flowName=GlifWebSignIn&flowEntry=ServiceLogin' });
-        // After redirect, handle result in app (requires deep link handling)
-        // You may need to implement a listener for Browser finished event and handle the auth result
-        setIsLoading(false);
-        return;
-      } else {
-        user = await withTimeout(signInWithGoogle(), 30000);
-      }
+      const authFn = provider === 'apple' ? signInWithApple : signInWithGoogle;
+      const user = await withTimeout(authFn(), 30000);
+      
       if (!user) {
         throw new Error('NO_USER');
       }
+      
+      // Store email for returning user detection
+      if (user.email) {
+        localStorage.setItem('userEmail', user.email);
+      }
+      
       toast({
         title: "Welcome!",
-        description: "You have successfully signed in.",
+        description: mode === "signup" ? "Your account has been created." : "You have successfully signed in.",
       });
       onAuthSuccess();
     } catch (error: any) {
@@ -102,22 +108,19 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       
       if (error.message === 'TIMEOUT') {
         title = "Connection Timeout";
-        message = "The sign-in took too long. Please check your connection and try again.";
-      } else if (error.message === 'NO_USER' || error.message === 'User cancelled Apple Sign-In') {
-        title = "Sign-In Cancelled";
-        message = "Sign-in was cancelled. Please try again.";
+        message = "The operation took too long. Please check your connection and try again.";
+      } else if (error.message === 'NO_USER' || error.message?.includes('cancelled') || error.message?.includes('cancel')) {
+        title = "Cancelled";
+        message = "Operation was cancelled. Please try again.";
       } else if (error.code === "auth/popup-closed-by-user") {
-        title = "Sign-In Cancelled";
+        title = "Cancelled";
         message = "You closed the sign-in window. Please try again.";
       } else if (error.code === "auth/cancelled-popup-request") {
-        title = "Sign-In Cancelled";
-        message = "Sign-in was cancelled. Please try again.";
-      } else if (error.code === "auth/user-not-found") {
-        title = "Account Not Found";
-        message = "No account exists with this email. Please contact your administrator.";
-      } else if (error.code === "auth/invalid-credential") {
-        title = "Invalid Login Details";
-        message = "Your email or password is incorrect. Please check and try again.";
+        title = "Cancelled";
+        message = "Operation was cancelled. Please try again.";
+      } else if (error.code === "auth/account-exists-with-different-credential") {
+        title = "Account Exists";
+        message = "An account with this email already exists. Try a different sign-in method.";
       } else if (error.code === "auth/too-many-requests") {
         title = "Too Many Attempts";
         message = "Please wait a few minutes before trying again.";
@@ -156,18 +159,44 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       return;
     }
 
+    if (mode === "signup") {
+      if (password !== confirmPassword) {
+        toast({
+          title: "Passwords Don't Match",
+          description: "Please make sure your passwords match.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      const user = await withTimeout(signInWithEmail(email, password), 30000);
+      let user;
+      
+      if (mode === "signup") {
+        user = await withTimeout(registerWithEmail(email, password, name.trim() || undefined), 30000);
+        toast({
+          title: "Account Created! 🎉",
+          description: "Welcome to BlockMint Node Manager!",
+        });
+      } else {
+        user = await withTimeout(signInWithEmail(email, password), 30000);
+        toast({
+          title: "Welcome Back!",
+          description: "You have successfully signed in.",
+        });
+      }
       
       if (!user) {
         throw new Error('NO_USER');
       }
       
-      toast({
-        title: "Welcome Back!",
-        description: "You have successfully signed in.",
-      });
+      // Store email for returning user detection
+      if (user.email) {
+        localStorage.setItem('userEmail', user.email);
+      }
+      
       onAuthSuccess();
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -176,28 +205,31 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       
       if (error.message === 'TIMEOUT') {
         title = "Connection Timeout";
-        message = "The sign-in took too long. Please check your connection and try again.";
+        message = "The operation took too long. Please check your connection and try again.";
       } else if (error.message === 'NO_USER') {
-        title = "Sign-In Failed";
-        message = "Could not sign in. Please try again.";
+        title = "Operation Failed";
+        message = "Could not complete the operation. Please try again.";
       } else if (error.code === "auth/invalid-email") {
         title = "Invalid Email";
         message = "Please enter a valid email address.";
-      } else if (error.code === "auth/wrong-password") {
-        title = "Incorrect Password";
-        message = "The password you entered is incorrect. Try again or reset your password.";
+      } else if (error.code === "auth/email-already-in-use") {
+        title = "Email Already Registered";
+        message = "This email is already in use. Try signing in instead.";
+      } else if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+        title = "Invalid Credentials";
+        message = "Your email or password is incorrect. Please check and try again.";
       } else if (error.code === "auth/user-not-found") {
         title = "Account Not Found";
-        message = "No account exists with this email. Please contact your administrator.";
-      } else if (error.code === "auth/invalid-credential") {
-        title = "Invalid Login Details";
-        message = "Your email or password is incorrect. Please check and try again.";
+        message = "No account exists with this email. Please create an account first.";
       } else if (error.code === "auth/too-many-requests") {
         title = "Too Many Attempts";
         message = "Please wait a few minutes before trying again.";
       } else if (error.code === "auth/network-request-failed") {
         title = "Connection Issue";
         message = "Please check your internet connection and try again.";
+      } else if (error.code === "auth/weak-password") {
+        title = "Weak Password";
+        message = "Please use a stronger password (at least 6 characters).";
       }
       
       toast({
@@ -208,6 +240,13 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setMode(mode === "signin" ? "signup" : "signin");
+    // Clear form when switching modes
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -222,7 +261,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col max-w-md mx-auto w-full px-6 overflow-y-auto">
-        {/* Spacer for system status bar - reduced spacing */}
+        {/* Spacer for system status bar */}
         <div className="h-[env(safe-area-inset-top,0px)] shrink-0" />
         
         {/* Header with X button and theme toggle */}
@@ -232,7 +271,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
             className="w-10 h-10 rounded-xl liquid-glass flex items-center justify-center hover-elevate"
             whileTap={{ scale: 0.95 }}
             type="button"
-            aria-label="Go back to onboarding"
+            aria-label="Go back"
             disabled={isLoading}
           >
             <X className="w-5 h-5 text-muted-foreground" />
@@ -260,7 +299,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
             >
               <img
                 src="/attached_assets/App-Logo.png"
-                alt="BlockMint"
+                alt="Node Manager"
                 className="h-20 w-auto object-contain relative z-10"
                 style={{
                   filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
@@ -270,16 +309,36 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               />
             </motion.div>
             <h1 className="font-display text-xl font-bold text-foreground mb-1">
-              Welcome Back
+              {mode === "signup" ? "Create Your Account" : "Welcome Back"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Sign in to continue
+              {mode === "signup" 
+                ? "Start monitoring your servers for free" 
+                : "Sign in to your account"}
             </p>
           </div>
 
           <div className="space-y-3">
+            {/* Sign in with Apple - Required by Apple App Store Guideline 4.8 */}
             <Button
-              onClick={handleSocialAuth}
+              onClick={() => handleSocialAuth('apple')}
+              variant="outline"
+              className="w-full h-11 text-sm font-medium bg-black dark:bg-white border-black dark:border-white gap-3"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
+              ) : (
+                <SiApple className="w-5 h-5 text-white dark:text-black" />
+              )}
+              <span className="text-white dark:text-black font-medium">
+                {mode === "signup" ? "Sign Up with Apple" : "Sign In with Apple"}
+              </span>
+            </Button>
+
+            {/* Sign in with Google */}
+            <Button
+              onClick={() => handleSocialAuth('google')}
               variant="outline"
               className="w-full h-11 text-sm font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
               disabled={isLoading}
@@ -289,22 +348,32 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               ) : (
                 <SiGoogle className="w-5 h-5 text-[#4285F4]" />
               )}
-              <span className="text-foreground">Continue With Google</span>
+              <span className="text-foreground">
+                {mode === "signup" ? "Sign Up with Google" : "Sign In with Google"}
+              </span>
             </Button>
-
-
 
             <div className="relative my-2">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or</span>
+                <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
               </div>
             </div>
 
             <form onSubmit={handleEmailAuth} className="space-y-3">
               <div className="space-y-2">
+                {mode === "signup" && (
+                  <Input
+                    type="text"
+                    placeholder="Full Name (optional)"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                    disabled={isLoading}
+                  />
+                )}
                 <Input
                   type="email"
                   placeholder="Email Address"
@@ -321,16 +390,28 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
                   className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
                   disabled={isLoading}
                 />
+                {mode === "signup" && (
+                  <Input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-11 text-sm bg-white/5 dark:border-white/10 light:border-2 light:border-emerald-400/50 light:focus:border-emerald-500 light:shadow-[0_0_15px_rgba(16,185,129,0.2)] light:focus:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-300"
+                    disabled={isLoading}
+                  />
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={handleResetPassword}
-                className="text-sm text-primary hover:underline"
-                disabled={isLoading}
-              >
-                Forgot Password?
-              </button>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  className="text-sm text-primary hover:underline"
+                  disabled={isLoading}
+                >
+                  Forgot Password?
+                </button>
+              )}
 
               <motion.div
                 whileHover={{ scale: 1.02 }}
@@ -346,22 +427,48 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
                   <span className="relative z-10 flex items-center justify-center">
                     {isLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    ) : mode === "signup" ? (
+                      <User className="w-5 h-5 mr-2" />
                     ) : (
                       <Mail className="w-5 h-5 mr-2" />
                     )}
-                    Sign In
+                    {mode === "signup" ? "Create Account" : "Sign In"}
                   </span>
                 </Button>
               </motion.div>
             </form>
 
-            {/* No signup option - authorized users only message */}
-            <p className="text-center text-xs text-muted-foreground/80 px-2 mt-3">
-              This application is for authorized users only. If you need access, please contact your system administrator.
+            {/* Toggle between sign in and sign up */}
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              {mode === "signup" ? (
+                <>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-primary font-medium hover:underline"
+                    disabled={isLoading}
+                  >
+                    Sign In
+                  </button>
+                </>
+              ) : (
+                <>
+                  Don't have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="text-primary font-medium hover:underline"
+                    disabled={isLoading}
+                  >
+                    Create Account
+                  </button>
+                </>
+              )}
             </p>
             
             <p className="text-center text-xs text-muted-foreground/60 mt-4">
-              By Continuing, You Agree To Our{" "}
+              By continuing, you agree to our{" "}
               <Link 
                 href="/legal/terms" 
                 className="text-primary/80 hover:text-primary underline"

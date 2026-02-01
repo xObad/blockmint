@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Fingerprint, ScanFace, Delete, Lock, Shield } from "lucide-react";
+import { Fingerprint, ScanFace, Delete, Lock, Shield, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PinEntryProps {
@@ -132,6 +132,18 @@ export function PinEntry({
         mode === "setup" ? "justify-start pt-[15vh]" : "justify-center"
       )}
     >
+      {/* Back button - only show when onCancel is provided and in setup mode */}
+      {onCancel && mode === "setup" && (
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={onCancel}
+          className="absolute top-safe left-4 mt-4 p-3 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors z-20"
+        >
+          <ArrowLeft className="w-5 h-5 text-foreground" />
+        </motion.button>
+      )}
+
       {/* Background gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-primary/10 rounded-full blur-[120px]" />

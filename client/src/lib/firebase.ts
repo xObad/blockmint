@@ -4,8 +4,10 @@ import type { FirebaseApp } from "firebase/app";
 import { 
   getAuth, 
   signInWithPopup,
+  signInWithCredential,
   getRedirectResult, 
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -15,6 +17,7 @@ import {
   updateProfile,
   User
 } from "firebase/auth";
+import { Capacitor } from '@capacitor/core';
 import { getMessaging, getToken, onMessage, type Messaging } from "firebase/messaging";
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
@@ -59,6 +62,9 @@ if (firebaseConfigured) {
 export const auth = authInstance;
 
 const googleProvider = new GoogleAuthProvider();
+const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 
 // Sign in with Google
 export async function signInWithGoogle() {
@@ -78,9 +84,78 @@ export async function signInWithGoogle() {
 // Sign in with Apple
 export async function signInWithApple() {
   try {
-    throw new Error("Sign in with Apple is temporarily disabled");
-  } catch (error) {
+    if (!auth) {
+      console.warn("signInWithApple called but Firebase is not configured");
+      return null;
+    }
+    
+    // Check if we're on native iOS
+    if (Capacitor.getPlatform() === 'ios') {
+      // Use native Sign in with Apple on iOS with proper nonce handling
+      const { nativeAppleSignIn } = await import('./nativeServices');
+      
+      // Generate a cryptographically secure nonce
+      const generateNonce = (length: number = 32): string => {
+        const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        const randomValues = new Uint8Array(length);
+        crypto.getRandomValues(randomValues);
+        for (let i = 0; i < length; i++) {
+          result += charset[randomValues[i] % charset.length];
+        }
+        return result;
+      };
+      
+      // SHA256 hash function for the nonce
+      const sha256 = async (plain: string): Promise<string> => {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(plain);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      };
+      
+      // Generate raw nonce and its hash
+      const rawNonce = generateNonce();
+      const hashedNonce = await sha256(rawNonce);
+      
+      // Call native Apple Sign-In with the hashed nonce
+      const result = await nativeAppleSignIn(hashedNonce);
+      
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'Apple Sign-In failed');
+      }
+      
+      // Create Firebase credential with the RAW nonce (not hashed)
+      const credential = appleProvider.credential({
+        idToken: result.user.identityToken,
+        rawNonce: rawNonce
+      });
+      
+      const firebaseResult = await signInWithCredential(auth, credential);
+      
+      // Update display name if provided by Apple (only on first sign-in)
+      if (result.user.givenName || result.user.familyName) {
+        const displayName = [result.user.givenName, result.user.familyName]
+          .filter(Boolean)
+          .join(' ');
+        if (displayName && firebaseResult.user) {
+          await updateProfile(firebaseResult.user, { displayName });
+        }
+      }
+      
+      return firebaseResult.user;
+    } else {
+      // Use Firebase popup for web/Android
+      const result = await signInWithPopup(auth, appleProvider);
+      return result.user;
+    }
+  } catch (error: any) {
     console.error("Apple sign-in error:", error);
+    // Re-throw with more user-friendly message for cancellation
+    if (error.message?.includes('cancel') || error.message?.includes('User cancelled')) {
+      throw new Error('User cancelled Apple Sign-In');
+    }
     throw error;
   }
 }

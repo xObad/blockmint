@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
-import { SiGoogle } from "react-icons/si";
+import { SiGoogle, SiApple } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
-  signInWithGoogle, 
+  signInWithGoogle,
+  signInWithApple,
   signInWithEmail, 
   registerWithEmail,
   resetPassword,
@@ -111,10 +112,11 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
     }
   };
 
-  const handleSocialAuth = async () => {
+  const handleSocialAuth = async (provider: 'google' | 'apple' = 'google') => {
     setIsLoading(true);
     try {
-      const user = await withTimeout(signInWithGoogle(), 30000);
+      const authFn = provider === 'apple' ? signInWithApple : signInWithGoogle;
+      const user = await withTimeout(authFn(), 30000);
       
       if (!user) {
         throw new Error('NO_USER');
@@ -133,7 +135,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
       if (error.message === 'TIMEOUT') {
         title = "Connection Timeout";
         message = "The sign-in took too long. Please check your connection and try again.";
-      } else if (error.message === 'NO_USER') {
+      } else if (error.message === 'NO_USER' || error.message?.includes('cancelled') || error.message?.includes('cancel')) {
         title = "Sign-In Cancelled";
         message = "Sign-in was cancelled or failed. Please try again.";
       } else if (error.code === "auth/popup-closed-by-user") {
@@ -398,8 +400,25 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
             </div>
 
           <div className="space-y-4">
+            {/* Sign in with Apple - Required by Apple App Store Guideline 4.8 */}
             <Button
-              onClick={handleSocialAuth}
+              onClick={() => handleSocialAuth('apple')}
+              variant="outline"
+              className="w-full h-11 text-sm font-medium bg-black dark:bg-white border-black dark:border-white gap-3"
+              data-testid="button-apple-auth"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-white dark:text-black" />
+              ) : (
+                <SiApple className="w-5 h-5 text-white dark:text-black" />
+              )}
+              <span className="text-white dark:text-black font-medium">Continue With Apple</span>
+            </Button>
+
+            {/* Sign in with Google */}
+            <Button
+              onClick={() => handleSocialAuth('google')}
               variant="outline"
               className="w-full h-11 text-sm font-medium bg-white dark:bg-white/10 border-white/20 gap-3"
               data-testid="button-google-auth"
@@ -418,7 +437,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or</span>
+                <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
               </div>
             </div>
 

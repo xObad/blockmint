@@ -2,8 +2,8 @@
  * Safe Onboarding (Compliance Mode)
  * 
  * This is a separate onboarding flow for Safe Mode.
- * NO crypto references, NO sign up option.
- * Only allows existing users to sign in.
+ * A legitimate PUBLIC server monitoring tool.
+ * NO crypto references.
  * 
  * Matches the design of the main Onboarding component.
  */
@@ -227,7 +227,7 @@ export function SafeOnboarding({ onComplete }: SafeOnboardingProps) {
 
           {/* Sign in hint */}
           <p className="text-center text-xs text-muted-foreground/80 pt-1">
-            Sign in to access your infrastructure dashboard.
+            Create an account or sign in to start monitoring.
           </p>
         </div>
       </div>
