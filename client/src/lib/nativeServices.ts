@@ -361,32 +361,47 @@ export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSign
   }
   
   try {
-    // Add timeout for the native call
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('APPLE_SIGNIN_TIMEOUT')), 60000);
-    });
+    console.log('[AppleSignIn] Starting native Apple Sign-In...');
+    console.log('[AppleSignIn] Hashed nonce provided:', !!hashedNonce);
     
-    // Use provided hashed nonce or generate a random one
-    const nonce = hashedNonce || Math.random().toString(36).substring(7);
-    
-    const authPromise = plugin.authorize({
-      clientId: 'co.hardisk.blockmint', // Your app's bundle ID
-      redirectURI: 'https://hardisk.co/__/auth/handler', // Firebase auth handler
+    // Build options - simpler config for iOS native
+    const options: any = {
+      clientId: 'co.hardisk.blockmint',
       scopes: 'email name',
-      state: Math.random().toString(36).substring(7),
-      nonce: nonce
-    });
+    };
     
-    const response = await Promise.race([authPromise, timeoutPromise]);
+    // Only add nonce if provided
+    if (hashedNonce) {
+      options.nonce = hashedNonce;
+    }
+    
+    console.log('[AppleSignIn] Calling plugin.authorize with options:', JSON.stringify(options));
+    
+    const authPromise = plugin.authorize(options);
+    
+    const response = await authPromise;
+    
+    console.log('[AppleSignIn] Got response:', JSON.stringify(response));
+    
+    // Handle different response structures
+    const userData = response.response || response;
+    
+    if (!userData.identityToken) {
+      console.error('[AppleSignIn] No identity token in response');
+      return {
+        success: false,
+        error: 'No identity token received from Apple'
+      };
+    }
     
     return {
       success: true,
       user: {
-        email: response.response.email,
-        givenName: response.response.givenName,
-        familyName: response.response.familyName,
-        identityToken: response.response.identityToken,
-        authorizationCode: response.response.authorizationCode
+        email: userData.email || null,
+        givenName: userData.givenName || null,
+        familyName: userData.familyName || null,
+        identityToken: userData.identityToken,
+        authorizationCode: userData.authorizationCode || ''
       }
     };
   } catch (error: any) {

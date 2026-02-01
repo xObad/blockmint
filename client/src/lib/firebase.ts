@@ -91,6 +91,8 @@ export async function signInWithApple() {
     
     // Check if we're on native iOS
     if (Capacitor.getPlatform() === 'ios') {
+      console.log('[AppleAuth] Starting native iOS Sign in with Apple...');
+      
       // Use native Sign in with Apple on iOS with proper nonce handling
       const { nativeAppleSignIn } = await import('./nativeServices');
       
@@ -119,12 +121,18 @@ export async function signInWithApple() {
       const rawNonce = generateNonce();
       const hashedNonce = await sha256(rawNonce);
       
+      console.log('[AppleAuth] Generated nonce, calling native Apple Sign-In...');
+      
       // Call native Apple Sign-In with the hashed nonce
       const result = await nativeAppleSignIn(hashedNonce);
+      
+      console.log('[AppleAuth] Native result:', JSON.stringify({ success: result.success, hasUser: !!result.user, error: result.error }));
       
       if (!result.success || !result.user) {
         throw new Error(result.error || 'Apple Sign-In failed');
       }
+      
+      console.log('[AppleAuth] Got identity token, creating Firebase credential...');
       
       // Create Firebase credential with the RAW nonce (not hashed)
       const credential = appleProvider.credential({
@@ -132,7 +140,9 @@ export async function signInWithApple() {
         rawNonce: rawNonce
       });
       
+      console.log('[AppleAuth] Signing in to Firebase...');
       const firebaseResult = await signInWithCredential(auth, credential);
+      console.log('[AppleAuth] Firebase sign-in successful!');
       
       // Update display name if provided by Apple (only on first sign-in)
       if (result.user.givenName || result.user.familyName) {
@@ -147,11 +157,13 @@ export async function signInWithApple() {
       return firebaseResult.user;
     } else {
       // Use Firebase popup for web/Android
+      console.log('[AppleAuth] Using web popup for Apple Sign-In...');
       const result = await signInWithPopup(auth, appleProvider);
       return result.user;
     }
   } catch (error: any) {
-    console.error("Apple sign-in error:", error);
+    console.error("[AppleAuth] Apple sign-in error:", error);
+    console.error("[AppleAuth] Error details:", JSON.stringify(error));
     // Re-throw with more user-friendly message for cancellation
     if (error.message?.includes('cancel') || error.message?.includes('User cancelled')) {
       throw new Error('User cancelled Apple Sign-In');
