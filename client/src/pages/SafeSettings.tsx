@@ -5,7 +5,7 @@
  * Contains app settings with NO crypto/wallet references.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Settings,
@@ -23,7 +23,8 @@ import {
   Info,
   Lock,
   X,
-  KeyRound
+  KeyRound,
+  ScanFace
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,10 @@ import { logOut } from "@/lib/firebase";
 import { useLocation } from "wouter";
 import { InlineNotificationBell } from "@/components/InlineNotificationBell";
 import { TwoFactorSetupModal } from "@/components/TwoFactorSetupModal";
+import { useSafeAppLock } from "@/components/SafeAppLock";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { checkBiometricAvailability, authenticateWithBiometrics, isIOS } from "@/lib/nativeServices";
 
 interface SettingItemProps {
   icon: React.ElementType;
@@ -78,6 +83,7 @@ function SettingItem({ icon: Icon, label, description, onClick, rightElement, de
 export function SafeSettings() {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     // Load initial state from localStorage
@@ -87,18 +93,20 @@ export function SafeSettings() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  
+  // Get SafeAppLock context
+  let safeAppLock: ReturnType<typeof useSafeAppLock> | null = null;
+  try {
+    safeAppLock = useSafeAppLock();
+  } catch (e) {
+    // Not inside SafeAppLockProvider - that's ok
+  }
 
   // Delete account dialog state
   const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-
-  // Handle delete account
-  // 2FA status
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => {
-    const saved = localStorage.getItem("safe_2fa_enabled");
-    return saved !== null ? JSON.parse(saved) : false;
-  });
 
   // Get user info from localStorage
   const getUserInfo = () => {
@@ -110,6 +118,120 @@ export function SafeSettings() {
     } catch (e) {}
     return { displayName: "User", email: "user@example.com" };
   };
+  
+  const userInfo = getUserInfo();
+  const resolvedUserId = userInfo?.id || userInfo?.dbId;
+
+  // Security settings query
+  const { data: securitySettings } = useQuery<{ pinLockEnabled?: boolean; biometricEnabled?: boolean }, Error, { pinEnabled: boolean; biometricEnabled: boolean }>({
+    queryKey: ["/api/security/settings", resolvedUserId],
+    enabled: !!resolvedUserId,
+    refetchOnWindowFocus: false,
+    select: (data) => ({
+      pinEnabled: Boolean(data?.pinLockEnabled),
+      biometricEnabled: Boolean(data?.biometricEnabled),
+    }),
+  });
+
+  // Toggle biometric mutation
+  const toggleBiometricMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!resolvedUserId) throw new Error("Missing user id");
+      const response = await apiRequest("POST", "/api/security/biometric", { enabled, userId: resolvedUserId });
+      return response.json();
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/security/settings", resolvedUserId] });
+      toast({
+        title: enabled ? "Face ID Enabled" : "Face ID Disabled",
+        description: enabled ? "Your app is now protected with Face ID." : "Face ID has been turned off.",
+      });
+    },
+  });
+
+  // Handle PIN toggle
+  const handlePinToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Show PIN setup
+      if (safeAppLock) {
+        safeAppLock.showPinSetup();
+      }
+    } else {
+      // Disable PIN
+      try {
+        await apiRequest("POST", "/api/security/disable-pin", { userId: resolvedUserId });
+        queryClient.invalidateQueries({ queryKey: ["/api/security/settings", resolvedUserId] });
+        toast({ title: "PIN Disabled", description: "PIN lock has been turned off." });
+      } catch (e) {
+        toast({ title: "Error", description: "Failed to disable PIN", variant: "destructive" });
+      }
+    }
+  };
+
+  // Handle Face ID toggle
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (!resolvedUserId) {
+      toast({ title: "Error", description: "Please sign in again.", variant: "destructive" });
+      return;
+    }
+
+    if (enabled && !securitySettings?.pinEnabled) {
+      // Need PIN first
+      toast({ title: "PIN Required", description: "Please enable PIN first to use Face ID." });
+      if (safeAppLock) {
+        safeAppLock.showPinSetup(async () => {
+          // After PIN setup, enable biometric
+          setIsBiometricLoading(true);
+          try {
+            const availability = await checkBiometricAvailability();
+            if (!availability.isAvailable) {
+              toast({ title: "Face ID Unavailable", description: availability.errorMessage || "Face ID is not available.", variant: "destructive" });
+              setIsBiometricLoading(false);
+              return;
+            }
+            const result = await authenticateWithBiometrics("Enable Face ID for BlockMint");
+            if (result.success) {
+              toggleBiometricMutation.mutate(true);
+            }
+          } catch (e) {
+            toast({ title: "Error", description: "Failed to enable Face ID", variant: "destructive" });
+          }
+          setIsBiometricLoading(false);
+        });
+      }
+      return;
+    }
+
+    if (enabled) {
+      setIsBiometricLoading(true);
+      try {
+        const availability = await checkBiometricAvailability();
+        if (!availability.isAvailable) {
+          toast({ title: "Face ID Unavailable", description: availability.errorMessage || "Face ID is not available.", variant: "destructive" });
+          setIsBiometricLoading(false);
+          return;
+        }
+        const result = await authenticateWithBiometrics("Enable Face ID for BlockMint");
+        if (result.success) {
+          toggleBiometricMutation.mutate(true);
+        } else if (!result.error?.toLowerCase().includes('cancel')) {
+          toast({ title: "Authentication Failed", description: result.error || "Could not verify.", variant: "destructive" });
+        }
+      } catch (e) {
+        toast({ title: "Error", description: "Failed to enable Face ID", variant: "destructive" });
+      }
+      setIsBiometricLoading(false);
+    } else {
+      toggleBiometricMutation.mutate(false);
+    }
+  };
+
+  // Handle delete account
+  // 2FA status
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(() => {
+    const saved = localStorage.getItem("safe_2fa_enabled");
+    return saved !== null ? JSON.parse(saved) : false;
+  });
 
   // Handle notification toggle with actual effect
   const handleNotificationsToggle = async (enabled: boolean) => {
@@ -142,8 +264,6 @@ export function SafeSettings() {
       });
     }
   };
-
-  const userInfo = getUserInfo();
 
   const handleSignOut = async () => {
     try {
@@ -555,7 +675,7 @@ export function SafeSettings() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-x-4 top-[15%] max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl"
+              className="fixed inset-x-4 top-[15%] max-w-md mx-auto bg-background border border-border rounded-2xl p-6 z-50 shadow-xl max-h-[70vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold">Security</h2>
@@ -567,6 +687,44 @@ export function SafeSettings() {
                 </button>
               </div>
               <div className="space-y-4">
+                {/* PIN Lock */}
+                <div className="p-4 bg-muted/50 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Lock className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="font-medium">PIN Lock</p>
+                        <p className="text-xs text-muted-foreground">Use a 6-digit PIN code</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={securitySettings?.pinEnabled ?? false}
+                      onCheckedChange={handlePinToggle}
+                    />
+                  </div>
+                </div>
+
+                {/* Face ID - iOS only */}
+                {isIOS() && (
+                  <div className="p-4 bg-muted/50 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <ScanFace className="w-5 h-5 text-primary" />
+                        <div>
+                          <p className="font-medium">Face ID</p>
+                          <p className="text-xs text-muted-foreground">Unlock with Face ID</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={securitySettings?.biometricEnabled ?? false}
+                        onCheckedChange={handleBiometricToggle}
+                        disabled={isBiometricLoading || toggleBiometricMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Change Password */}
                 <button
                   onClick={() => {
                     setShowSecurityModal(false);
@@ -575,26 +733,27 @@ export function SafeSettings() {
                   className="w-full p-4 bg-muted/50 rounded-xl text-left hover:bg-muted transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-primary" />
+                    <KeyRound className="w-5 h-5 text-primary" />
                     <div>
                       <p className="font-medium">Change Password</p>
                       <p className="text-xs text-muted-foreground">Update your password</p>
                     </div>
                   </div>
                 </button>
+
+                {/* Status indicator */}
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-emerald-500" />
                     <div>
                       <p className="font-medium text-emerald-400">Account Secured</p>
-                      <p className="text-xs text-muted-foreground">Your account is protected</p>
+                      <p className="text-xs text-muted-foreground">
+                        {securitySettings?.pinEnabled 
+                          ? (securitySettings?.biometricEnabled ? "PIN + Face ID enabled" : "PIN enabled")
+                          : "Enable PIN for extra security"}
+                      </p>
                     </div>
                   </div>
-                </div>
-                <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg mt-2">
-                  <p className="text-xs text-cyan-400">
-                    💡 Security settings can be changed from our web platform.
-                  </p>
                 </div>
               </div>
             </motion.div>
