@@ -9,7 +9,14 @@ import {
   authenticateWithBiometrics,
   isNativePlatform 
 } from "@/lib/nativeServices";
-import { useCompliance } from "@/contexts/ComplianceContext";
+import ComplianceContext from "@/contexts/ComplianceContext";
+
+// Safe compliance check - uses context directly without throwing if unavailable
+function useSafeComplianceMode(): boolean {
+  const context = useContext(ComplianceContext);
+  // If context is undefined (not within provider), default to false
+  return context?.isComplianceMode ?? false;
+}
 
 interface SecuritySettings {
   pinEnabled: boolean;
@@ -53,7 +60,9 @@ interface AppLockProviderProps {
 export function AppLockProvider({ children, userId }: AppLockProviderProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isComplianceMode } = useCompliance();
+  
+  // Safe compliance mode check - won't crash if context unavailable
+  const isComplianceMode = useSafeComplianceMode();
   
   // In compliance mode, never lock the app - skip all PIN/biometric functionality
   const [isLocked, setIsLocked] = useState(false);
