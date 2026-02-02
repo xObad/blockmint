@@ -43,8 +43,8 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
   const { toast } = useToast();
   const isIOS = isIOSDevice();
 
-  // Safety timeout to prevent infinite loading
-  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 30000): Promise<T> => {
+  // Safety timeout to prevent infinite loading (90s for Apple Sign-In which requires user interaction)
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 90000): Promise<T> => {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => 

@@ -93,7 +93,7 @@ export async function signInWithApple() {
     if (Capacitor.getPlatform() === 'ios') {
       console.log('[AppleAuth] Starting native iOS Sign in with Apple...');
       
-      // Use native Sign in with Apple on iOS with proper nonce handling
+      // Import nativeServices (already bundled, no dynamic import delay)
       const { nativeAppleSignIn } = await import('./nativeServices');
       
       // Generate a cryptographically secure nonce

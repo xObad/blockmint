@@ -325,25 +325,16 @@ interface AppleSignInResult {
   error?: string;
 }
 
-let SignInWithApple: any = null;
+// Pre-import Apple Sign-In plugin to avoid lazy loading delay
+import { SignInWithApple } from '@capacitor-community/apple-sign-in';
 
-// Lazy load Apple Sign-In plugin
-async function getAppleSignInPlugin() {
-  if (SignInWithApple) return SignInWithApple;
-  
+// Get Apple Sign-In plugin - returns immediately since it's pre-imported
+function getAppleSignInPlugin() {
   if (!isIOS()) {
     console.log('Apple Sign-In: Only available on iOS');
     return null;
   }
-  
-  try {
-    const module = await import('@capacitor-community/apple-sign-in');
-    SignInWithApple = module.SignInWithApple;
-    return SignInWithApple;
-  } catch (error) {
-    console.error('Failed to load Apple Sign-In plugin:', error);
-    return null;
-  }
+  return SignInWithApple;
 }
 
 /**
@@ -351,7 +342,7 @@ async function getAppleSignInPlugin() {
  * @param hashedNonce - SHA256 hashed nonce for Firebase authentication
  */
 export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSignInResult> {
-  const plugin = await getAppleSignInPlugin();
+  const plugin = getAppleSignInPlugin();
   
   if (!plugin) {
     return {
@@ -362,22 +353,27 @@ export async function nativeAppleSignIn(hashedNonce?: string): Promise<AppleSign
   
   try {
     console.log('[AppleSignIn] Starting native Apple Sign-In...');
+    console.log('[AppleSignIn] Platform:', Capacitor.getPlatform());
+    console.log('[AppleSignIn] Plugin available:', !!plugin);
     
-    // Minimal options - let the plugin handle defaults
-    // The @capacitor-community/apple-sign-in plugin auto-uses the app's bundle ID
+    // Options for Apple Sign-In
     const options: any = {
       scopes: 'email name',
     };
     
-    // Only add nonce if provided (for Firebase auth)
+    // Add nonce for Firebase auth
     if (hashedNonce) {
       options.nonce = hashedNonce;
+      console.log('[AppleSignIn] Nonce configured for Firebase');
     }
     
-    console.log('[AppleSignIn] Calling plugin.authorize...');
+    console.log('[AppleSignIn] Calling plugin.authorize - showing Apple Sign-In sheet...');
+    const startTime = Date.now();
     
     // Call the native authorize - this will show the Apple Sign-In sheet
     const response = await plugin.authorize(options);
+    
+    console.log('[AppleSignIn] Response received in', Date.now() - startTime, 'ms');
     
     console.log('[AppleSignIn] Got response');
     
