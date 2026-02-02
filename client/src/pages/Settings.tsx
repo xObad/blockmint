@@ -1155,7 +1155,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
           <SettingItem
             icon={Info}
             label="Version"
-            description="v1.0.0"
+            description="v1.8.0 (Build 34)"
             testId="setting-version"
           />
           <SettingItem
@@ -1205,7 +1205,7 @@ export function Settings({ settings, onSettingsChange, user, onLogout, onClose }
       )}
 
       <p className="text-center text-xs text-muted-foreground mt-2" data-testid="text-copyright">
-        v1.0.0
+        v1.8.0 (Build 34)
       </p>
 
       {/* Account Deletion Dialog */}

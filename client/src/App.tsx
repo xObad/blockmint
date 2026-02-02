@@ -141,7 +141,7 @@ function MobileApp() {
 
   useEffect(() => {
     // Version check to reset localStorage on new app version
-    const currentVersion = "1.0.1";
+    const currentVersion = "1.8.0";
     const savedVersion = localStorage.getItem("appVersion");
     
     if (savedVersion !== currentVersion) {

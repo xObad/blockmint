@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
     // url: 'http://localhost:5000',
     // cleartext: true,
     // Production: Uncomment these and comment out localhost
-    // url: 'https://hardisk.co',
+    url: 'https://hardisk.co',
     androidScheme: 'https',
     iosScheme: 'https',
     // allowNavigation: ['hardisk.co', '*.hardisk.co'],

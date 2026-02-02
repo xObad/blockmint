@@ -25,7 +25,7 @@ function isAndroidDevice(): boolean {
 
 function getAppVersion(): string {
   // Get version from environment variable (Vite uses import.meta.env)
-  const version = import.meta.env.VITE_APP_VERSION || "1.0.0";
+  const version = import.meta.env.VITE_APP_VERSION || "1.8.0";
   return version;
 }
 
