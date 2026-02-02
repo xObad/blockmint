@@ -5,14 +5,10 @@ const config: CapacitorConfig = {
   appName: 'BlockMint',
   webDir: 'dist/public',
   server: {
-    // Development: Load from local dev server
-    // url: 'http://localhost:5000',
-    // cleartext: true,
-    // Production: Uncomment these and comment out localhost
+    // Production: Load from remote server
     url: 'https://hardisk.co',
     androidScheme: 'https',
     iosScheme: 'https',
-    // allowNavigation: ['hardisk.co', '*.hardisk.co'],
   },
   ios: {
     contentInset: 'automatic',
