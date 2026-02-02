@@ -6,12 +6,12 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   server: {
     // Development: Load from local dev server
-    url: 'http://localhost:5000',
-    cleartext: true,
+    // url: 'http://localhost:5000',
+    // cleartext: true,
     // Production: Uncomment these and comment out localhost
     // url: 'https://hardisk.co',
-    // androidScheme: 'https',
-    // iosScheme: 'https',
+    androidScheme: 'https',
+    iosScheme: 'https',
     // allowNavigation: ['hardisk.co', '*.hardisk.co'],
   },
   ios: {
