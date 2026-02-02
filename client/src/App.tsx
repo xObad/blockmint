@@ -327,7 +327,7 @@ function MobileApp() {
         onNavigateToInvest={() => setActiveTab("invest")}
       />
 
-      <main className="relative z-10 max-w-md mx-auto px-4 pb-48">
+      <main className="relative z-10 max-w-md mx-auto px-4 pb-28">
         <Suspense fallback={<PageLoader />}>
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
