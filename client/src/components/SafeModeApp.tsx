@@ -22,6 +22,7 @@ import { News } from "@/pages/News";
 import { SafeOnboarding } from "@/pages/SafeOnboarding";
 import { SafeAuthPage } from "@/pages/SafeAuthPage";
 import { ForceUpdateModal } from "@/components/ForceUpdateModal";
+import { SafeAppLockProvider } from "@/components/SafeAppLock";
 import { onAuthChange, logOut } from "@/lib/firebase";
 import { useKeyboardAdjustment } from "@/hooks/useKeyboardAdjustment";
 import type { User } from "firebase/auth";
@@ -163,8 +164,12 @@ export function SafeModeApp() {
     );
   }
 
-  // Main Safe Mode app
+  // Get user ID for AppLock
+  const userId = firebaseUser?.uid;
+
+  // Main Safe Mode app - wrapped with SafeAppLockProvider
   return (
+    <SafeAppLockProvider userId={userId}>
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
@@ -260,6 +265,7 @@ export function SafeModeApp() {
       {/* Safe Mode Bottom Navigation */}
       <SafeBottomNav />
     </div>
+    </SafeAppLockProvider>
   );
 }
 
