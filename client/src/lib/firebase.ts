@@ -91,10 +91,12 @@ export async function signInWithApple() {
     
     // Check if we're on native iOS
     if (Capacitor.getPlatform() === 'ios') {
+      const startTotal = Date.now();
       console.log('[AppleAuth] Starting native iOS Sign in with Apple...');
       
       // Import nativeServices (already bundled, no dynamic import delay)
       const { nativeAppleSignIn } = await import('./nativeServices');
+      console.log('[AppleAuth] Import took:', Date.now() - startTotal, 'ms');
       
       // Generate a cryptographically secure nonce
       const generateNonce = (length: number = 32): string => {
@@ -118,13 +120,17 @@ export async function signInWithApple() {
       };
       
       // Generate raw nonce and its hash
+      const nonceStart = Date.now();
       const rawNonce = generateNonce();
       const hashedNonce = await sha256(rawNonce);
+      console.log('[AppleAuth] Nonce generation took:', Date.now() - nonceStart, 'ms');
       
-      console.log('[AppleAuth] Generated nonce, calling native Apple Sign-In...');
+      console.log('[AppleAuth] Calling native Apple Sign-In...');
+      const appleStart = Date.now();
       
       // Call native Apple Sign-In with the hashed nonce
       const result = await nativeAppleSignIn(hashedNonce);
+      console.log('[AppleAuth] Native Sign-In took:', Date.now() - appleStart, 'ms');
       
       console.log('[AppleAuth] Native result:', JSON.stringify({ success: result.success, hasUser: !!result.user, error: result.error }));
       
@@ -133,6 +139,7 @@ export async function signInWithApple() {
       }
       
       console.log('[AppleAuth] Got identity token, creating Firebase credential...');
+      const firebaseStart = Date.now();
       
       // Create Firebase credential with the RAW nonce (not hashed)
       const credential = appleProvider.credential({
@@ -142,7 +149,8 @@ export async function signInWithApple() {
       
       console.log('[AppleAuth] Signing in to Firebase...');
       const firebaseResult = await signInWithCredential(auth, credential);
-      console.log('[AppleAuth] Firebase sign-in successful!');
+      console.log('[AppleAuth] Firebase sign-in took:', Date.now() - firebaseStart, 'ms');
+      console.log('[AppleAuth] Total time:', Date.now() - startTotal, 'ms');
       
       // Update display name if provided by Apple (only on first sign-in)
       if (result.user.givenName || result.user.familyName) {
