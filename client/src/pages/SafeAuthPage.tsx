@@ -300,7 +300,7 @@ export function SafeAuthPage({ onAuthSuccess, onBack }: SafeAuthPageProps) {
               <img
                 src="/attached_assets/App-Logo.png"
                 alt="Node Manager"
-                className="h-20 w-auto object-contain relative z-10"
+                className="h-8 w-auto object-contain relative z-10"
                 style={{
                   filter: 'drop-shadow(0 15px 35px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 15px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
                   imageRendering: '-webkit-optimize-contrast',

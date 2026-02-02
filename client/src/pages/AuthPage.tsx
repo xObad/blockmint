@@ -378,7 +378,7 @@ export function AuthPage({ mode, onBack, onModeChange, onComplete }: AuthPagePro
                 <img
                   src="/attached_assets/App-Logo.png"
                   alt="BlockMint"
-                  className="h-28 w-auto object-contain relative z-10"
+                  className="h-8 w-auto object-contain relative z-10"
                   style={{
                     filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 20px rgba(16, 185, 129, 0.3)) contrast(1.1) saturate(1.2)',
                     imageRendering: '-webkit-optimize-contrast',
