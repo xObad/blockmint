@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { auth } from "@/lib/firebase";
+import { StripePayButton } from "@/components/StripePayButton";
 import type { WalletBalance, Transaction } from "@/lib/types";
 import btcLogo from "@assets/bitcoin-sign-3d-icon-png-download-4466132_1766014388601.png";
 import ltcLogo from "@assets/litecoin-3d-icon-png-download-4466121_1766014388608.png";
@@ -871,6 +872,25 @@ export function Wallet({
                     <><CheckCircle2 className="w-4 h-4 mr-2" />Confirm Deposit</>
                   )}
                 </Button>
+                {/* Quick Card Deposit via Stripe */}
+                {userId && depositAmount && parseFloat(depositAmount) > 0 && (
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-xs text-muted-foreground text-center mb-2">Or deposit instantly with card</p>
+                    <StripePayButton
+                      userId={userId}
+                      amount={parseFloat(depositAmount)}
+                      productType="wallet_deposit"
+                      productName={`Wallet Deposit - $${parseFloat(depositAmount).toFixed(2)}`}
+                      metadata={{ depositCurrency: selectedCrypto }}
+                      variant="outline"
+                      className="w-full h-10"
+                      onPaymentSuccess={() => {
+                        queryClient.invalidateQueries();
+                        setDepositSubmitted(true);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-3 pt-2 border-t border-white/10">

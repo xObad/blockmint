@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { GlassCard } from "@/components/GlassCard";
 import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
+import { StripePayButton } from "@/components/StripePayButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -744,6 +745,20 @@ export function SoloMining() {
               {createSoloPurchase.isPending ? "Processing..." : "Start Solo Mining"}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
+            {dbUserId && (
+              <StripePayButton
+                userId={dbUserId}
+                amount={calculations.cost}
+                productType="solo_mining"
+                productName={`Solo Mining ${hashpower[0]} PH/s - ${duration[0]} months`}
+                metadata={{ hashrate: hashpower[0], hashrateUnit: "PH/s", duration: duration[0], crypto: "BTC" }}
+                variant="outline"
+                className="w-full h-12 text-base mt-2"
+                onPaymentSuccess={() => {
+                  queryClient.invalidateQueries();
+                }}
+              />
+            )}
           </div>
         </GlassCard>
       </motion.section>

@@ -72,6 +72,12 @@ import {
   Plus,
   ArrowUpToLine,
   ChevronRight,
+  CreditCard,
+  ToggleLeft,
+  ToggleRight,
+  ExternalLink,
+  TestTube2,
+  Key,
 } from "lucide-react";
 
 const ADMIN_PASSWORD = "MiningClub2024!";
@@ -153,7 +159,7 @@ const ARTICLE_CATEGORIES = [
   "News",
 ];
 
-type NavItem = "users" | "deposits" | "withdrawals" | "auto-withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates" | "solo-mining";
+type NavItem = "users" | "deposits" | "withdrawals" | "auto-withdrawals" | "notifications" | "articles" | "update-app" | "config" | "estimates" | "user-estimates" | "solo-mining" | "stripe";
 
 interface SoloMiningPurchase {
   id: string;
@@ -308,6 +314,18 @@ export function DatabaseAdmin() {
   const [selectedSoloPurchase, setSelectedSoloPurchase] = useState<SoloMiningPurchase | null>(null);
   const [blockRewardAmount, setBlockRewardAmount] = useState("3.125");
   const [blockTxHash, setBlockTxHash] = useState("");
+
+  // Stripe states
+  const [stripeTestPublishable, setStripeTestPublishable] = useState("");
+  const [stripeTestSecret, setStripeTestSecret] = useState("");
+  const [stripeTestWebhook, setStripeTestWebhook] = useState("");
+  const [stripeLivePublishable, setStripeLivePublishable] = useState("");
+  const [stripeLiveSecret, setStripeLiveSecret] = useState("");
+  const [stripeLiveWebhook, setStripeLiveWebhook] = useState("");
+  const [stripeCurrency, setStripeCurrency] = useState("usd");
+  const [stripeMinAmount, setStripeMinAmount] = useState("5");
+  const [stripeMaxAmount, setStripeMaxAmount] = useState("10000");
+  const [stripeSettingsLoaded, setStripeSettingsLoaded] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -445,6 +463,34 @@ export function DatabaseAdmin() {
   const activeSoloPurchases = soloMiningPurchases.filter(p => p.status === "active");
   const totalSoloInvestment = activeSoloPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalSoloHashpower = activeSoloPurchases.reduce((sum, p) => sum + (p.hashrate || 0), 0);
+
+  // Stripe queries
+  const { data: stripeSettings, isLoading: isLoadingStripe } = useQuery<any>({
+    queryKey: ["/api/admin/stripe/settings"],
+    enabled: isAuthenticated && activeNav === "stripe",
+  });
+
+  const { data: stripePayments = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/stripe/payments"],
+    enabled: isAuthenticated && activeNav === "stripe",
+    refetchInterval: 30000,
+  });
+
+  // Populate stripe form when settings load
+  useEffect(() => {
+    if (stripeSettings && !stripeSettingsLoaded) {
+      setStripeTestPublishable(stripeSettings.testPublishableKey || "");
+      setStripeTestSecret(stripeSettings.testSecretKey || "");
+      setStripeTestWebhook(stripeSettings.testWebhookSecret || "");
+      setStripeLivePublishable(stripeSettings.livePublishableKey || "");
+      setStripeLiveSecret(stripeSettings.liveSecretKey || "");
+      setStripeLiveWebhook(stripeSettings.liveWebhookSecret || "");
+      setStripeCurrency(stripeSettings.currency || "usd");
+      setStripeMinAmount(String(stripeSettings.minPaymentAmount ?? "5"));
+      setStripeMaxAmount(String(stripeSettings.maxPaymentAmount ?? "10000"));
+      setStripeSettingsLoaded(true);
+    }
+  }, [stripeSettings, stripeSettingsLoaded]);
 
   // Mutations
   const confirmDeposit = useMutation({
@@ -771,6 +817,7 @@ export function DatabaseAdmin() {
   ];
 
   const settingsItems = [
+    { id: "stripe" as NavItem, icon: CreditCard, label: "Stripe Payments" },
     { id: "articles" as NavItem, icon: FileText, label: "Articles" },
     { id: "update-app" as NavItem, icon: Smartphone, label: "Update App" },
     { id: "estimates" as NavItem, icon: TrendingUp, label: "Global Estimates" },
@@ -2153,6 +2200,408 @@ export function DatabaseAdmin() {
                       Users with custom estimates will see their personalized "Estimated earnings today" values.
                       Users without custom estimates use the global settings from the "Global Estimates" tab.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Stripe Payments Tab */}
+              {activeNav === "stripe" && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Stripe Payments</h2>
+                    <p className="text-muted-foreground">Configure Stripe payment gateway for fiat payments</p>
+                  </div>
+
+                  {/* Enable/Disable Toggle + Mode */}
+                  <div className="bg-card rounded-xl border border-border p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <CreditCard className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">Stripe Gateway</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {stripeSettings?.isEnabled ? "Payments are active" : "Payments are disabled"}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant={stripeSettings?.isEnabled ? "default" : "outline"}
+                        className={stripeSettings?.isEnabled ? "bg-green-600 hover:bg-green-700" : ""}
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/admin/stripe/toggle", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ isEnabled: !stripeSettings?.isEnabled }),
+                            });
+                            if (res.ok) {
+                              queryClient.invalidateQueries({ queryKey: ["/api/admin/stripe/settings"] });
+                              toast({
+                                title: stripeSettings?.isEnabled ? "Stripe Disabled" : "Stripe Enabled",
+                                description: stripeSettings?.isEnabled
+                                  ? "Payment gateway has been turned off"
+                                  : "Payment gateway is now active",
+                              });
+                            }
+                          } catch (err) {
+                            toast({ title: "Error", description: "Failed to toggle Stripe", variant: "destructive" });
+                          }
+                        }}
+                      >
+                        {stripeSettings?.isEnabled ? (
+                          <>
+                            <ToggleRight className="w-4 h-4 mr-2" />
+                            Enabled
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="w-4 h-4 mr-2" />
+                            Disabled
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Mode Toggle */}
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 mb-4">
+                      <p className="text-sm font-medium">Mode:</p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={stripeSettings?.mode === "test" || !stripeSettings?.mode ? "default" : "outline"}
+                          onClick={async () => {
+                            const res = await fetch("/api/admin/stripe/mode", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ mode: "test" }),
+                            });
+                            if (res.ok) {
+                              queryClient.invalidateQueries({ queryKey: ["/api/admin/stripe/settings"] });
+                              toast({ title: "Switched to Test Mode" });
+                            }
+                          }}
+                        >
+                          <TestTube2 className="w-4 h-4 mr-2" />
+                          Test Mode
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={stripeSettings?.mode === "live" ? "default" : "outline"}
+                          className={stripeSettings?.mode === "live" ? "bg-green-600 hover:bg-green-700" : ""}
+                          onClick={async () => {
+                            const res = await fetch("/api/admin/stripe/mode", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ mode: "live" }),
+                            });
+                            if (res.ok) {
+                              queryClient.invalidateQueries({ queryKey: ["/api/admin/stripe/settings"] });
+                              toast({ title: "Switched to Live Mode", description: "Real payments are now active!" });
+                            }
+                          }}
+                        >
+                          <Zap className="w-4 h-4 mr-2" />
+                          Live Mode
+                        </Button>
+                      </div>
+                      <Badge variant={stripeSettings?.mode === "live" ? "default" : "secondary"}>
+                        {stripeSettings?.mode === "live" ? "PRODUCTION" : "TESTING"}
+                      </Badge>
+                    </div>
+
+                    {/* Test Connection */}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/admin/stripe/test", { method: "POST" });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast({ title: "Connection Successful!", description: data.message });
+                          } else {
+                            toast({ title: "Connection Failed", description: data.error, variant: "destructive" });
+                          }
+                        } catch {
+                          toast({ title: "Error", description: "Could not test connection", variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <TestTube2 className="w-4 h-4 mr-2" />
+                      Test Connection
+                    </Button>
+                  </div>
+
+                  {/* API Keys */}
+                  <div className="bg-card rounded-xl border border-border p-6 space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Key className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold text-lg">API Keys</h3>
+                    </div>
+
+                    {/* Test Keys */}
+                    <div className="space-y-4 p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5">
+                      <div className="flex items-center gap-2">
+                        <TestTube2 className="w-4 h-4 text-yellow-500" />
+                        <p className="font-medium text-yellow-600 dark:text-yellow-400">Test Keys</p>
+                      </div>
+                      <div>
+                        <Label>Test Publishable Key</Label>
+                        <Input
+                          value={stripeTestPublishable}
+                          onChange={(e) => setStripeTestPublishable(e.target.value)}
+                          placeholder="pk_test_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label>Test Secret Key</Label>
+                        <Input
+                          type="password"
+                          value={stripeTestSecret}
+                          onChange={(e) => setStripeTestSecret(e.target.value)}
+                          placeholder="sk_test_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label>Test Webhook Secret</Label>
+                        <Input
+                          type="password"
+                          value={stripeTestWebhook}
+                          onChange={(e) => setStripeTestWebhook(e.target.value)}
+                          placeholder="whsec_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Keys */}
+                    <div className="space-y-4 p-4 rounded-lg border border-green-500/20 bg-green-500/5">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-green-500" />
+                        <p className="font-medium text-green-600 dark:text-green-400">Live Keys (Production)</p>
+                      </div>
+                      <div>
+                        <Label>Live Publishable Key</Label>
+                        <Input
+                          value={stripeLivePublishable}
+                          onChange={(e) => setStripeLivePublishable(e.target.value)}
+                          placeholder="pk_live_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label>Live Secret Key</Label>
+                        <Input
+                          type="password"
+                          value={stripeLiveSecret}
+                          onChange={(e) => setStripeLiveSecret(e.target.value)}
+                          placeholder="sk_live_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label>Live Webhook Secret</Label>
+                        <Input
+                          type="password"
+                          value={stripeLiveWebhook}
+                          onChange={(e) => setStripeLiveWebhook(e.target.value)}
+                          placeholder="whsec_..."
+                          className="mt-1 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Payment Settings */}
+                    <div className="space-y-4 p-4 rounded-lg border border-border">
+                      <p className="font-medium">Payment Settings</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Currency</Label>
+                          <Select value={stripeCurrency} onValueChange={setStripeCurrency}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="usd">USD ($)</SelectItem>
+                              <SelectItem value="eur">EUR (€)</SelectItem>
+                              <SelectItem value="gbp">GBP (£)</SelectItem>
+                              <SelectItem value="aed">AED (د.إ)</SelectItem>
+                              <SelectItem value="sar">SAR (ر.س)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Min Payment ($)</Label>
+                          <Input
+                            type="number"
+                            value={stripeMinAmount}
+                            onChange={(e) => setStripeMinAmount(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label>Max Payment ($)</Label>
+                          <Input
+                            type="number"
+                            value={stripeMaxAmount}
+                            onChange={(e) => setStripeMaxAmount(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <Button
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/admin/stripe/settings", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              testPublishableKey: stripeTestPublishable || undefined,
+                              testSecretKey: stripeTestSecret || undefined,
+                              testWebhookSecret: stripeTestWebhook || undefined,
+                              livePublishableKey: stripeLivePublishable || undefined,
+                              liveSecretKey: stripeLiveSecret || undefined,
+                              liveWebhookSecret: stripeLiveWebhook || undefined,
+                              currency: stripeCurrency,
+                              minPaymentAmount: parseFloat(stripeMinAmount) || 5,
+                              maxPaymentAmount: parseFloat(stripeMaxAmount) || 10000,
+                            }),
+                          });
+                          if (res.ok) {
+                            queryClient.invalidateQueries({ queryKey: ["/api/admin/stripe/settings"] });
+                            toast({ title: "Stripe Settings Saved", description: "All keys and settings have been updated" });
+                          } else {
+                            toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+                          }
+                        } catch {
+                          toast({ title: "Error", description: "Network error", variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save All Settings
+                    </Button>
+
+                    {/* Webhook URL Info */}
+                    <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                      <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Webhook Endpoint</p>
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono block overflow-x-auto">
+                        {typeof window !== "undefined" ? `${window.location.origin}/api/stripe/webhook` : "/api/stripe/webhook"}
+                      </code>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Add this URL in your Stripe Dashboard → Developers → Webhooks
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Payment History */}
+                  <div className="bg-card rounded-xl border border-border p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-lg">Recent Payments</h3>
+                      <Badge variant="secondary">{stripePayments.length} total</Badge>
+                    </div>
+                    {stripePayments.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p>No payments yet</p>
+                        <p className="text-sm">Payments will appear here once customers start paying</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>User</TableHead>
+                              <TableHead>Product</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {stripePayments.slice().reverse().map((payment: any) => (
+                              <TableRow key={payment.id}>
+                                <TableCell className="text-xs">
+                                  {new Date(payment.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-xs font-mono">
+                                  {payment.userId?.slice(0, 8)}...
+                                </TableCell>
+                                <TableCell>
+                                  <div>
+                                    <p className="text-sm font-medium">{payment.productName || "—"}</p>
+                                    <p className="text-xs text-muted-foreground">{payment.productType}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  ${payment.amount?.toFixed(2)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      payment.status === "succeeded"
+                                        ? "default"
+                                        : payment.status === "failed"
+                                        ? "destructive"
+                                        : payment.status === "refunded"
+                                        ? "secondary"
+                                        : "outline"
+                                    }
+                                    className={payment.status === "succeeded" ? "bg-green-600" : ""}
+                                  >
+                                    {payment.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {payment.status === "succeeded" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await fetch(`/api/admin/stripe/refund/${payment.id}`, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({}),
+                                          });
+                                          const data = await res.json();
+                                          if (data.success) {
+                                            queryClient.invalidateQueries({ queryKey: ["/api/admin/stripe/payments"] });
+                                            toast({ title: "Refunded", description: "Payment has been refunded" });
+                                          } else {
+                                            toast({ title: "Error", description: data.error, variant: "destructive" });
+                                          }
+                                        } catch {
+                                          toast({ title: "Error", description: "Refund failed", variant: "destructive" });
+                                        }
+                                      }}
+                                    >
+                                      Refund
+                                    </Button>
+                                  )}
+                                  {payment.receiptUrl && (
+                                    <a href={payment.receiptUrl} target="_blank" rel="noopener noreferrer">
+                                      <Button size="sm" variant="ghost">
+                                        <ExternalLink className="w-3 h-3" />
+                                      </Button>
+                                    </a>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

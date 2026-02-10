@@ -37,6 +37,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useBTCPrice } from "@/hooks/useBTCPrice";
 import { useCryptoPrices, CryptoType } from "@/hooks/useCryptoPrices";
 import { LiveGrowingBalance } from "@/components/LiveGrowingBalance";
+import { StripePayButton } from "@/components/StripePayButton";
 import type { ChartDataPoint, MiningContract, PoolStatus } from "@/lib/types";
 
 import btcMineImg from "@assets/Bitcoin_Mine_1766014388617.webp";
@@ -440,7 +441,7 @@ function ActiveMiningPurchases({
   );
 }
 
-function PackageCard({ pkg, index, onPurchase, isPending }: { pkg: MiningPackage; index: number; onPurchase: (pkg: MiningPackage) => void; isPending?: boolean }) {
+function PackageCard({ pkg, index, onPurchase, isPending, userId }: { pkg: MiningPackage; index: number; onPurchase: (pkg: MiningPackage) => void; isPending?: boolean; userId?: string | null }) {
   const { convert, getSymbol } = useCurrency();
   const { btcPrice } = useBTCPrice();
   const isBTC = pkg.crypto === "BTC";
@@ -546,6 +547,22 @@ function PackageCard({ pkg, index, onPurchase, isPending }: { pkg: MiningPackage
               {isPending ? "Processing..." : "Buy Now"}
               <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
+            {userId && (
+              <StripePayButton
+                userId={userId}
+                amount={pkg.cost}
+                productType="mining_package"
+                productId={pkg.id}
+                productName={`${pkg.crypto} ${pkg.name} Mining Package`}
+                metadata={{ hashrate: pkg.hashrateValue, hashrateUnit: pkg.hashrateUnit, crypto: pkg.crypto }}
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs mt-1"
+                onPaymentSuccess={() => {
+                  window.location.reload();
+                }}
+              />
+            )}
           </div>
         </div>
       </GlassCard>
@@ -553,7 +570,7 @@ function PackageCard({ pkg, index, onPurchase, isPending }: { pkg: MiningPackage
   );
 }
 
-function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { hashrate: number; cost: number; dailyReturnBTC: number; returnPercent: number }) => void; isPending?: boolean }) {
+function HashRateCalculator({ onPurchase, isPending, userId }: { onPurchase: (data: { hashrate: number; cost: number; dailyReturnBTC: number; returnPercent: number }) => void; isPending?: boolean; userId?: string | null }) {
   const { convert, getSymbol } = useCurrency();
   const { btcPrice } = useBTCPrice();
   
@@ -740,6 +757,18 @@ function HashRateCalculator({ onPurchase, isPending }: { onPurchase: (data: { ha
           {isPending ? "Processing..." : "Buy Custom Hashpower"}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
+        {userId && (
+          <StripePayButton
+            userId={userId}
+            amount={estimatedCost}
+            productType="mining_package"
+            productName={`Custom BTC Mining ${btcHashrate} TH/s`}
+            metadata={{ hashrate: btcHashrate, hashrateUnit: "TH/s", crypto: "BTC" }}
+            variant="outline"
+            className="w-full mt-2"
+            onPaymentSuccess={() => window.location.reload()}
+          />
+        )}
         
         <p className="text-center text-[10px] text-muted-foreground">
           5 Year Contract • All rewards paid in BTC
@@ -1234,7 +1263,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
               </div>
               <div className="space-y-3">
                 {btcPackages.map((pkg, index) => (
-                  <PackageCard key={pkg.id} pkg={pkg} index={index} onPurchase={handlePackagePurchase} isPending={createPurchase.isPending} />
+                  <PackageCard key={pkg.id} pkg={pkg} index={index} onPurchase={handlePackagePurchase} isPending={createPurchase.isPending} userId={dbUserId} />
                 ))}
               </div>
             </div>
@@ -1248,7 +1277,7 @@ export function Mining({ chartData, contracts, poolStatus, onNavigateToInvest }:
             transition={{ duration: 0.3 }}
             className="space-y-5"
           >
-            <HashRateCalculator onPurchase={handleCustomPurchase} isPending={createPurchase.isPending} />
+            <HashRateCalculator onPurchase={handleCustomPurchase} isPending={createPurchase.isPending} userId={dbUserId} />
             {hasContracts && (
               <>
                 <HashRateChart data={chartData} title="Earnings Over Time" />

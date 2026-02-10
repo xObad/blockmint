@@ -9,6 +9,9 @@ export { rewardsService } from "./rewardsService";
 export { notificationService } from "./notificationService";
 export { adminService } from "./adminService";
 
+// Stripe payment service
+export * as stripeService from "./stripeService";
+
 // Re-export types
 export type { AuthResult, TokenPayload } from "./authService";
 export type { UserFilters, PaginatedResult } from "./userService";

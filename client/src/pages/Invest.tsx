@@ -46,6 +46,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { StripePayButton } from "@/components/StripePayButton";
 
 // Invest is USDT-only (stable, predictable returns)
 const cryptoAssets = [
@@ -520,6 +521,20 @@ function APRCalculator() {
             {createSubscription.isPending ? "Processing..." : `Start Earning with ${selectedCrypto.symbol}`}
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
+          {dbUserId && (
+            <StripePayButton
+              userId={dbUserId}
+              amount={investmentAmount}
+              productType="earn_plan"
+              productName={`${selectedCrypto.symbol} Earn Plan (${selectedDuration})`}
+              metadata={{ duration: selectedDuration, aprRate: aprRates[selectedDuration]?.rate, symbol: selectedCrypto.symbol }}
+              variant="outline"
+              className="w-full h-12 text-base"
+              onPaymentSuccess={() => {
+                queryClient.invalidateQueries();
+              }}
+            />
+          )}
 
           <p className="text-center text-xs text-muted-foreground">
             <CheckCircle2 className="w-3 h-3 inline mr-1" />

@@ -11,6 +11,7 @@ import { blockchainService } from "./services/blockchain";
 import { walletService } from "./services/walletService";
 import { getMasterWalletService } from "./services/hdWalletService";
 import { authService } from "./services/authService";
+import * as stripeService from "./services/stripeService";
 import { eq, and, or, desc, lte, inArray, sql } from "drizzle-orm";
 import { generateSecret, generate, verify } from "otplib";
 import QRCode from "qrcode";
@@ -4126,6 +4127,153 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to send support email:", error);
       res.status(500).json({ error: "Failed to send support request" });
+    }
+  });
+
+  // ============ STRIPE PAYMENTS ============
+
+  // Get Stripe publishable key and status for frontend
+  app.get("/api/stripe/config", async (_req, res) => {
+    try {
+      const settings = await stripeService.getStripeSettings();
+      if (!settings || !settings.isEnabled) {
+        return res.json({ enabled: false });
+      }
+      const publishableKey = await stripeService.getPublishableKey();
+      res.json({
+        enabled: true,
+        publishableKey,
+        currency: settings.currency,
+        minAmount: settings.minPaymentAmount,
+        maxAmount: settings.maxPaymentAmount,
+        mode: settings.mode,
+      });
+    } catch (error) {
+      console.error("Stripe config error:", error);
+      res.status(500).json({ error: "Failed to fetch Stripe config" });
+    }
+  });
+
+  // Create a payment intent
+  app.post("/api/stripe/create-payment-intent", async (req, res) => {
+    try {
+      const { userId: rawUserId, amount, productType, productId, productName, metadata } = req.body;
+      const userId = await resolveDbUserId(rawUserId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+
+      // Get user email
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const result = await stripeService.createPaymentIntent({
+        userId,
+        email: user.email,
+        displayName: user.displayName || undefined,
+        amount: parseFloat(amount),
+        productType,
+        productId,
+        productName,
+        metadata,
+      });
+
+      if (!result) {
+        return res.status(400).json({ error: "Stripe is not enabled or not configured" });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Create payment intent error:", error);
+      res.status(400).json({ error: error.message || "Failed to create payment" });
+    }
+  });
+
+  // Stripe webhook handler
+  app.post("/api/stripe/webhook", async (req, res) => {
+    try {
+      const Stripe = (await import("stripe")).default;
+      const sig = req.headers["stripe-signature"];
+      const webhookSecret = await stripeService.getWebhookSecret();
+      
+      if (!sig || !webhookSecret) {
+        return res.status(400).json({ error: "Missing signature or webhook secret" });
+      }
+
+      const stripe = await stripeService.getStripe();
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      let event: any;
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.rawBody as Buffer,
+          sig as string,
+          webhookSecret
+        );
+      } catch (err: any) {
+        console.error("Webhook signature verification failed:", err.message);
+        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+      }
+
+      // Handle events
+      switch (event.type) {
+        case "payment_intent.succeeded": {
+          const paymentIntent = event.data.object;
+          await stripeService.handlePaymentSuccess(
+            paymentIntent.id,
+            paymentIntent.charges?.data?.[0]?.receipt_url
+          );
+          break;
+        }
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object;
+          await stripeService.handlePaymentFailure(
+            paymentIntent.id,
+            paymentIntent.last_payment_error?.message
+          );
+          break;
+        }
+        case "charge.refunded": {
+          const charge = event.data.object;
+          if (charge.payment_intent) {
+            const refundedAmount = charge.amount_refunded / 100;
+            // Update payment record
+            const { stripePayments } = await import("@shared/schema");
+            await db
+              .update(stripePayments)
+              .set({
+                status: "refunded",
+                refundedAmount,
+                refundedAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(eq(stripePayments.stripePaymentIntentId, charge.payment_intent as string));
+          }
+          break;
+        }
+        default:
+          console.log(`Unhandled Stripe event: ${event.type}`);
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook error:", error);
+      res.status(500).json({ error: "Webhook handler failed" });
+    }
+  });
+
+  // Get user's payment history
+  app.get("/api/stripe/payments/:userId", async (req, res) => {
+    try {
+      const userId = await resolveDbUserId(req.params.userId);
+      if (!userId) return res.status(400).json({ error: "Invalid user" });
+
+      const payments = await stripeService.getUserPayments(userId);
+      res.json(payments);
+    } catch (error) {
+      console.error("Fetch payments error:", error);
+      res.status(500).json({ error: "Failed to fetch payments" });
+>>>>>>> f685dd4 (Add Stripe payment integration with admin panel controls)
     }
   });
 

@@ -5,6 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { verifyIdToken, setCustomClaims } from "./firebase-admin";
 import { HDWalletService } from "./services/hdWalletService";
+import * as stripeService from "./services/stripeService";
 
 // Middleware to verify admin authentication
 async function requireAdmin(req: Request, res: Response, next: NextFunction) {
@@ -49,7 +50,7 @@ function devAdmin(req: Request, res: Response, next: NextFunction) {
   return requireAdmin(req, res, next);
 }
 
-export function registerAdminRoutes(app: Express) {
+export async function registerAdminRoutes(app: Express) {
   
   // ============ COMPLIANCE & USER MODE ============
   
@@ -1605,4 +1606,195 @@ export function registerAdminRoutes(app: Express) {
   });
 
   console.log("Admin routes registered");
+
+  // ============ STRIPE SETTINGS (Admin) ============
+
+  // Get Stripe settings
+  app.get("/api/admin/stripe/settings", devAdmin, async (_req: Request, res: Response) => {
+    try {
+      const settings = await stripeService.getStripeSettings();
+      res.json(settings || { isEnabled: false, mode: "test" });
+    } catch (error) {
+      console.error("Error fetching Stripe settings:", error);
+      res.status(500).json({ error: "Failed to fetch Stripe settings" });
+    }
+  });
+
+  // Update Stripe settings
+  app.put("/api/admin/stripe/settings", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const {
+        isEnabled,
+        mode,
+        testPublishableKey,
+        testSecretKey,
+        testWebhookSecret,
+        livePublishableKey,
+        liveSecretKey,
+        liveWebhookSecret,
+        currency,
+        allowedPaymentMethods,
+        minPaymentAmount,
+        maxPaymentAmount,
+        webhookUrl,
+      } = req.body;
+
+      const existing = await db.select().from(schema.stripeSettings).limit(1);
+
+      if (existing.length > 0) {
+        const updated = await db
+          .update(schema.stripeSettings)
+          .set({
+            isEnabled: isEnabled ?? existing[0].isEnabled,
+            mode: mode ?? existing[0].mode,
+            testPublishableKey: testPublishableKey ?? existing[0].testPublishableKey,
+            testSecretKey: testSecretKey ?? existing[0].testSecretKey,
+            testWebhookSecret: testWebhookSecret ?? existing[0].testWebhookSecret,
+            livePublishableKey: livePublishableKey ?? existing[0].livePublishableKey,
+            liveSecretKey: liveSecretKey ?? existing[0].liveSecretKey,
+            liveWebhookSecret: liveWebhookSecret ?? existing[0].liveWebhookSecret,
+            currency: currency ?? existing[0].currency,
+            allowedPaymentMethods: allowedPaymentMethods ?? existing[0].allowedPaymentMethods,
+            minPaymentAmount: minPaymentAmount ?? existing[0].minPaymentAmount,
+            maxPaymentAmount: maxPaymentAmount ?? existing[0].maxPaymentAmount,
+            webhookUrl: webhookUrl ?? existing[0].webhookUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.stripeSettings.id, existing[0].id))
+          .returning();
+
+        stripeService.invalidateStripeCache();
+        return res.json(updated[0]);
+      }
+
+      // Create new settings
+      const created = await db
+        .insert(schema.stripeSettings)
+        .values({
+          isEnabled: isEnabled ?? false,
+          mode: mode ?? "test",
+          testPublishableKey,
+          testSecretKey,
+          testWebhookSecret,
+          livePublishableKey,
+          liveSecretKey,
+          liveWebhookSecret,
+          currency: currency ?? "usd",
+          allowedPaymentMethods: allowedPaymentMethods ?? ["card"],
+          minPaymentAmount: minPaymentAmount ?? 5,
+          maxPaymentAmount: maxPaymentAmount ?? 10000,
+          webhookUrl,
+        })
+        .returning();
+
+      stripeService.invalidateStripeCache();
+      res.json(created[0]);
+    } catch (error) {
+      console.error("Error updating Stripe settings:", error);
+      res.status(500).json({ error: "Failed to update Stripe settings" });
+    }
+  });
+
+  // Toggle Stripe on/off
+  app.patch("/api/admin/stripe/toggle", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const { isEnabled } = req.body;
+      const existing = await db.select().from(schema.stripeSettings).limit(1);
+
+      if (existing.length === 0) {
+        const created = await db
+          .insert(schema.stripeSettings)
+          .values({ isEnabled: isEnabled ?? false })
+          .returning();
+        stripeService.invalidateStripeCache();
+        return res.json(created[0]);
+      }
+
+      const updated = await db
+        .update(schema.stripeSettings)
+        .set({ isEnabled, updatedAt: new Date() })
+        .where(eq(schema.stripeSettings.id, existing[0].id))
+        .returning();
+
+      stripeService.invalidateStripeCache();
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error toggling Stripe:", error);
+      res.status(500).json({ error: "Failed to toggle Stripe" });
+    }
+  });
+
+  // Switch between test/live mode
+  app.patch("/api/admin/stripe/mode", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const { mode } = req.body; // 'test' | 'live'
+      if (!["test", "live"].includes(mode)) {
+        return res.status(400).json({ error: "Mode must be 'test' or 'live'" });
+      }
+
+      const existing = await db.select().from(schema.stripeSettings).limit(1);
+      if (existing.length === 0) {
+        return res.status(404).json({ error: "No Stripe settings found. Save settings first." });
+      }
+
+      const updated = await db
+        .update(schema.stripeSettings)
+        .set({ mode, updatedAt: new Date() })
+        .where(eq(schema.stripeSettings.id, existing[0].id))
+        .returning();
+
+      stripeService.invalidateStripeCache();
+      res.json(updated[0]);
+    } catch (error) {
+      console.error("Error switching Stripe mode:", error);
+      res.status(500).json({ error: "Failed to switch Stripe mode" });
+    }
+  });
+
+  // Test Stripe connection
+  app.post("/api/admin/stripe/test", devAdmin, async (_req: Request, res: Response) => {
+    try {
+      const stripe = await stripeService.getStripe();
+      if (!stripe) {
+        return res.json({ success: false, error: "Stripe not configured or disabled" });
+      }
+
+      // Try to list a single payment intent to verify the key works
+      await stripe.paymentIntents.list({ limit: 1 });
+      res.json({ success: true, message: "Stripe connection successful!" });
+    } catch (error: any) {
+      console.error("Stripe test error:", error);
+      res.json({ success: false, error: error.message || "Connection failed" });
+    }
+  });
+
+  // Get all Stripe payments (admin view)
+  app.get("/api/admin/stripe/payments", devAdmin, async (_req: Request, res: Response) => {
+    try {
+      const payments = await stripeService.getAllPayments();
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching Stripe payments:", error);
+      res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  // Refund a payment
+  app.post("/api/admin/stripe/refund/:paymentId", devAdmin, async (req: Request, res: Response) => {
+    try {
+      const { amount } = req.body; // optional partial refund
+      const success = await stripeService.refundPayment(req.params.paymentId, amount);
+
+      if (!success) {
+        return res.status(400).json({ error: "Refund failed. Payment not found or Stripe not configured." });
+      }
+
+      res.json({ success: true, message: "Refund processed" });
+    } catch (error: any) {
+      console.error("Refund error:", error);
+      res.status(500).json({ error: error.message || "Refund failed" });
+    }
+  });
+
+  console.log("Stripe admin routes registered");
 }

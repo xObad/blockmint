@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { auth } from "@/lib/firebase";
 import { FeedbackPrompt } from "@/components/FeedbackPrompt";
+import { StripePayButton } from "@/components/StripePayButton";
 
 import mixedMain from "@assets/Mixed_main_1766014388605.webp";
 import gpuMining from "@assets/Gpu_Mining_1766014388614.webp";
@@ -922,24 +923,45 @@ export function Dashboard({
 
                   {/* Deposit Confirmation Button */}
                   {!depositSubmitted ? (
-                    <Button
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-9 md:h-10 text-xs md:text-sm"
-                      onClick={handleSubmitDeposit}
-                      disabled={submitDepositMutation.isPending || !depositAmount || !depositAddress}
-                      data-testid="button-confirm-deposit"
-                    >
-                      {submitDepositMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-                          I Have Completed My Deposit
-                        </>
+                    <>
+                      <Button
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-9 md:h-10 text-xs md:text-sm"
+                        onClick={handleSubmitDeposit}
+                        disabled={submitDepositMutation.isPending || !depositAmount || !depositAddress}
+                        data-testid="button-confirm-deposit"
+                      >
+                        {submitDepositMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4 mr-2" />
+                            I Have Completed My Deposit
+                          </>
+                        )}
+                      </Button>
+                      {/* Quick Card Deposit via Stripe */}
+                      {userId && depositAmount && parseFloat(depositAmount) > 0 && (
+                        <div className="pt-2 border-t border-white/10">
+                          <p className="text-[10px] text-muted-foreground text-center mb-1">Or deposit instantly with card</p>
+                          <StripePayButton
+                            userId={userId}
+                            amount={parseFloat(depositAmount)}
+                            productType="wallet_deposit"
+                            productName={`Wallet Deposit - $${parseFloat(depositAmount).toFixed(2)}`}
+                            metadata={{ depositCurrency: selectedCrypto }}
+                            variant="outline"
+                            className="w-full h-9"
+                            onPaymentSuccess={() => {
+                              queryClient.invalidateQueries();
+                              setDepositSubmitted(true);
+                            }}
+                          />
+                        </div>
                       )}
-                    </Button>
+                    </>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 p-2 md:p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">

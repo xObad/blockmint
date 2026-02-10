@@ -1206,3 +1206,86 @@ export const insertUserSecuritySchema = createInsertSchema(userSecurity).omit({
 
 export type InsertUserSecurity = z.infer<typeof insertUserSecuritySchema>;
 export type UserSecurity = typeof userSecurity.$inferSelect;
+
+// ============ STRIPE PAYMENTS ============
+
+// Stripe settings (admin-configurable)
+export const stripeSettings = pgTable("stripe_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  mode: text("mode").notNull().default("test"), // 'test' | 'live'
+  testPublishableKey: text("test_publishable_key"),
+  testSecretKey: text("test_secret_key"),
+  testWebhookSecret: text("test_webhook_secret"),
+  livePublishableKey: text("live_publishable_key"),
+  liveSecretKey: text("live_secret_key"),
+  liveWebhookSecret: text("live_webhook_secret"),
+  currency: text("currency").notNull().default("usd"),
+  allowedPaymentMethods: jsonb("allowed_payment_methods").default(["card"]),  // card, apple_pay, google_pay
+  minPaymentAmount: real("min_payment_amount").notNull().default(5),         // Minimum $5
+  maxPaymentAmount: real("max_payment_amount").notNull().default(10000),     // Maximum $10,000
+  webhookUrl: text("webhook_url"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by"),
+});
+
+export const insertStripeSettingsSchema = createInsertSchema(stripeSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertStripeSettings = z.infer<typeof insertStripeSettingsSchema>;
+export type StripeSettings = typeof stripeSettings.$inferSelect;
+
+// Stripe customers (link users to Stripe customer IDs)
+export const stripeCustomers = pgTable("stripe_customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  email: text("email"),
+  name: text("name"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertStripeCustomerSchema = createInsertSchema(stripeCustomers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStripeCustomer = z.infer<typeof insertStripeCustomerSchema>;
+export type StripeCustomer = typeof stripeCustomers.$inferSelect;
+
+// Stripe payments (track all payment intents)
+export const stripePayments = pgTable("stripe_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  orderId: varchar("order_id").references(() => orders.id),
+  stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  amount: real("amount").notNull(),           // Amount in dollars
+  currency: text("currency").notNull().default("usd"),
+  status: text("status").notNull().default("pending"), // pending, processing, succeeded, failed, canceled, refunded
+  productType: text("product_type").notNull(),          // mining_package, earn_plan, wallet_deposit, solo_mining
+  productId: varchar("product_id"),                     // Reference to the product being purchased
+  productName: text("product_name"),
+  metadata: jsonb("metadata"),                          // Extra details (hashrate, duration, etc.)
+  receiptUrl: text("receipt_url"),
+  failureReason: text("failure_reason"),
+  refundedAmount: real("refunded_amount"),
+  refundedAt: timestamp("refunded_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertStripePaymentSchema = createInsertSchema(stripePayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+  refundedAt: true,
+});
+
+export type InsertStripePayment = z.infer<typeof insertStripePaymentSchema>;
+export type StripePayment = typeof stripePayments.$inferSelect;
