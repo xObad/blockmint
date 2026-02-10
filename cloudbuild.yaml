@@ -1,55 +1,31 @@
 # Cloud Build pipeline for deploying to Cloud Run.
 #
+# Uses `gcloud run deploy --source .` which automatically:
+#   - Builds the Docker image
+#   - Creates an Artifact Registry repo
+#   - Pushes the image
+#   - Deploys to Cloud Run
+#
 # Prereqs:
-# - Enable Cloud Run + Cloud Build APIs
+# - Enable Cloud Run, Cloud Build, and Artifact Registry APIs
 # - Create the secrets in Secret Manager (see substitutions below)
-# - Create a Cloud Build trigger (or run manually) and override the _VITE_* substitutions
 #
 # Notes:
-# - Vite variables (VITE_*) must be provided at *build time*.
-# - Server secrets (DB + Firebase Admin) must be provided at *runtime* via Cloud Run.
+# - Vite variables are hardcoded in the Dockerfile as ARG defaults.
+# - Server secrets (DB + Firebase Admin) are provided at runtime via Cloud Run.
 
 steps:
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - -t
-      - gcr.io/$PROJECT_ID/$_SERVICE:$BUILD_ID
-      - --build-arg
-      - VITE_FIREBASE_API_KEY=$_VITE_FIREBASE_API_KEY
-      - --build-arg
-      - VITE_FIREBASE_PROJECT_ID=$_VITE_FIREBASE_PROJECT_ID
-      - --build-arg
-      - VITE_FIREBASE_APP_ID=$_VITE_FIREBASE_APP_ID
-      - --build-arg
-      - VITE_FIREBASE_AUTH_DOMAIN=$_VITE_FIREBASE_AUTH_DOMAIN
-      - --build-arg
-      - VITE_FIREBASE_STORAGE_BUCKET=$_VITE_FIREBASE_STORAGE_BUCKET
-      - .
-
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - gcr.io/$PROJECT_ID/$_SERVICE:$BUILD_ID
-
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
     args:
       - run
       - deploy
       - $_SERVICE
-      - --image
-      - gcr.io/$PROJECT_ID/$_SERVICE:$BUILD_ID
-      - --region
-      - $_REGION
-      - --platform
-      - managed
+      - --source=.
+      - --region=$_REGION
+      - --platform=managed
       - --allow-unauthenticated
-      - --set-secrets
-      - DATABASE_URL_POOLER=$_DB_URL_SECRET:latest,DATABASE_URL=$_DB_URL_SECRET:latest,FIREBASE_SERVICE_ACCOUNT=$_FIREBASE_SA_SECRET:latest
-
-images:
-  - gcr.io/$PROJECT_ID/$_SERVICE:$BUILD_ID
+      - --set-secrets=DATABASE_URL_POOLER=$_DB_URL_SECRET:latest,DATABASE_URL=$_DB_URL_SECRET:latest,FIREBASE_SERVICE_ACCOUNT=$_FIREBASE_SA_SECRET:latest
 
 options:
   defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
@@ -59,13 +35,5 @@ substitutions:
   _REGION: us-central1
 
   # Secret Manager secret NAMES (create these in your GCP project)
-  # IMPORTANT: Do NOT put actual secret values (DB URLs, private keys) into this file.
   _DB_URL_SECRET: neon_database_url
   _FIREBASE_SA_SECRET: firebase_service_account_json
-
-  # Build-time Vite variables (set these in your Cloud Build trigger)
-  _VITE_FIREBASE_API_KEY: "REPLACE_ME"
-  _VITE_FIREBASE_PROJECT_ID: "REPLACE_ME"
-  _VITE_FIREBASE_APP_ID: "REPLACE_ME"
-  _VITE_FIREBASE_AUTH_DOMAIN: "REPLACE_ME"
-  _VITE_FIREBASE_STORAGE_BUCKET: "REPLACE_ME"
