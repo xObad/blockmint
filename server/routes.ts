@@ -4273,7 +4273,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Fetch payments error:", error);
       res.status(500).json({ error: "Failed to fetch payments" });
->>>>>>> f685dd4 (Add Stripe payment integration with admin panel controls)
     }
   });
 
